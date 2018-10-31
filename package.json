@@ -1,0 +1,13 @@
+{
+  "name": "forge-extract",
+  "version": "0.0.0",
+  "description": "Command-line tool for converting Autodesk Forge SVF files into other formats.",
+  "main": "src/index.js",
+  "scripts": {
+  },
+  "author": "Petr Broz <petr.broz@autodesk.com>",
+  "license": "MIT",
+  "dependencies": {
+    "node-zip": "^1.1.1"
+  }
+}

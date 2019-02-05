@@ -93,6 +93,8 @@ function serializeFragment(fragment, model, manifest, rootfile) {
         console.warn('Could not find mesh for fragment', fragment, 'geometry', geometry);
     }
 
+    node.dbid = fragment.dbID;
+
     return node;
 }
 

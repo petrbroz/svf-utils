@@ -30,10 +30,16 @@ app.get('/:urn', async function(req, res) {
         const { urn } = req.params;
         const url = `${ForgeUrl}/modelderivative/v2/designdata/${urn}/manifest`;
         const response = await fetch(url, { headers: { Authorization: req.headers.authorization }  });
+        if (response.status !== 200) {
+            const message = await response.buffer();
+            res.status(response.status).json({ message });
+            return;
+        }
         const manifest = await response.json();
         res.json(findViewables(manifest));
-    } catch(ex) {
-        res.status(500).send(ex);
+    } catch(error) {
+        console.error(error);
+        res.status(500).json(error);
     }
 });
 
@@ -51,8 +57,9 @@ app.use('/:urn/:guid', async function(req, res, next) {
             serialize(model, path.join(folder, 'output'));
         }
         next();
-    } catch(ex) {
-        res.status(500).send(ex);
+    } catch(error) {
+        console.error(error);
+        res.status(500).json(error);
     }
 });
 
@@ -62,7 +69,11 @@ app.use('/:urn/:guid', async function(req, res, next) {
 app.get('/:urn/:guid', function(req, res) {
     const { urn, guid } = req.params;
     const folder = path.join(__dirname, 'cache', urn, guid);
-    res.json(fs.readdirSync(folder));
+    if (fs.existsSync(folder)) {
+        res.json(fs.readdirSync(folder));
+    } else {
+        res.status(404).end();
+    }
 });
 
 // GET /:urn/:guid/:resource

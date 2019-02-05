@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const fetch = require('node-fetch');
 const Zip = require('node-zip');
 
 const { FragmentReader } = require('./fragment-reader');
@@ -7,41 +8,92 @@ const { GeometryReader } = require('./geometry-reader');
 const { MeshReader } = require('./mesh-reader');
 const { MaterialReader } = require('./material-reader');
 
-function getAsset(ownerPath, assetPath) {
-    return path.join(path.dirname(ownerPath), assetPath);
+const BaseUrl = 'https://developer.api.autodesk.com';
+
+async function getManifest(urn, token) {
+    const res = await fetch(`${BaseUrl}/modelderivative/v2/designdata/${urn}/manifest`, {
+        compress: true,
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
+    return res.json();
 }
 
-function parseFragments(uri) {
-    const reader = new FragmentReader(fs.readFileSync(uri));
+async function getDerivative(urn, token) {
+    const res = await fetch(`${BaseUrl}/derivativeservice/v2/derivatives/${urn}`, {
+        compress: true,
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
+    return res.buffer();
+}
+
+async function getViewable(urn, token, guid) {
+    const manifest = await getManifest(urn, token);
+    function traverse(node, callback) {
+        callback(node);
+        if (node.derivatives) {
+            for (const child of node.derivatives) {
+                traverse(child, callback);
+            }
+        } else if (node.children) {
+            for (const child of node.children) {
+                traverse(child, callback);
+            }
+        }
+    }
+
+    let node = null;
+    traverse(manifest, function(n) { if (n.guid === guid) node = n; });
+    if (!node) {
+        return null;
+    }
+
+    const url = decodeURIComponent(node.urn);
+    const rootFilename = url.slice(url.lastIndexOf('/') + 1);
+    const basePath = url.slice(0, url.lastIndexOf('/') + 1);
+    const localPath = basePath.slice(basePath.indexOf('/') + 1).replace(/^output\//, '');
+    const buffer = await getDerivative(url, token);
+    const archive = new Zip(buffer, { checkCRC32: true, base64: false });
+    return {
+        url, rootFilename, basePath, localPath,
+        manifest: JSON.parse(archive.files['manifest.json'].asText()),
+        metadata: JSON.parse(archive.files['metadata.json'].asText())
+    };
+}
+
+async function parseFragments(uri, token) {
+    const buffer = await getDerivative(uri, token);
+    const reader = new FragmentReader(buffer);
     return reader.fragments;
 }
 
-function parseGeometries(uri) {
-    const reader = new GeometryReader(fs.readFileSync(uri));
+async function parseGeometries(uri, token) {
+    const buffer = await getDerivative(uri, token);
+    const reader = new GeometryReader(buffer);
     return reader.geometries;
 }
 
-function parseMeshes(uri) {
-    const reader = new MeshReader(fs.readFileSync(uri));
+async function parseMeshes(uri, token) {
+    const buffer = await getDerivative(uri, token);
+    const reader = new MeshReader(buffer);
     return reader.meshes;
 }
 
-function parseMaterials(uri) {
-    const reader = new MaterialReader(fs.readFileSync(uri));
+async function parseMaterials(uri, token) {
+    const buffer = await getDerivative(uri, token);
+    const reader = new MaterialReader(buffer);
     return reader.materials;
 }
 
-function deserialize(filename) {
-    const buffer = fs.readFileSync(filename);
-    const svf = new Zip(buffer, { checkCRC32: true, base64: false });
-    const manifest = JSON.parse(svf.files['manifest.json'].asText());
-    const metadata = JSON.parse(svf.files['metadata.json'].asText());
-    let result = {
-        metadata,
-        fragments: null,
-        geometries: null,
-        meshpacks: []
-    };
+async function deserialize(urn, token, guid) {
+    const svf = await getViewable(urn, token, guid);
+
+    let manifest = svf.manifest;
+    let metadata = svf.metadata;
+    let materials = null;
+    let fragments = null;
+    let geometries = null;
+    let meshpacks = [];
+
     for (const asset of manifest.assets) {
         switch (asset.type) {
             case 'Autodesk.CloudPlatform.PropertyAttributes':
@@ -57,23 +109,25 @@ function deserialize(filename) {
                 // TODO: parse instance tree
                 break;
             case 'Autodesk.CloudPlatform.FragmentList':
-                result.fragments = parseFragments(getAsset(filename, asset.URI));
+                fragments = await parseFragments(svf.basePath + asset.URI, token);
                 break;
             case 'Autodesk.CloudPlatform.GeometryMetadataList':
-                result.geometries = parseGeometries(getAsset(filename, asset.URI));
+                geometries = await parseGeometries(svf.basePath + asset.URI, token);
                 break;
             case 'Autodesk.CloudPlatform.PackFile':
                 const typeset = manifest.typesets[asset.typeset];
                 if (typeset.types[0].class === 'Autodesk.CloudPlatform.Geometry') {
-                    result.meshpacks.push(parseMeshes(getAsset(filename, asset.URI)));
+                    const meshpack = await parseMeshes(svf.basePath + asset.URI, token);
+                    meshpacks.push(meshpack);
                 }
                 break;
             case 'ProteinMaterials':
-                result.materials = parseMaterials(getAsset(filename, asset.URI));
+                materials = await parseMaterials(svf.basePath + asset.URI, token);
                 break;
         }
     }
-    return result;
+
+    return { manifest, metadata, materials, fragments, geometries, meshpacks };
 }
 
 module.exports = {

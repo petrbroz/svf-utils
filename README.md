@@ -1,9 +1,11 @@
 # forge-extract
 
-Command-line tool for converting Autodesk Forge SVF files into other formats.
+Simple server for translating SVF files to glTF.
 
 ## Usage
 
-`node . <input-svf-path> <output-folder-path>`
-
-> The output folder path must already exist
+- install npm dependencies: `npm install`
+- run the server: `npm start`
+- list all 3D viewables in an URN: `curl -X GET http://localhost:3000/<urn> -H 'Authorization: Bearer <access token>'`
+- list all translations of a 3D viewable: `curl -X GET http://localhost:3000/<urn>/<guid> -H 'Authorization: Bearer <access token>'`
+- get the content of a translation output: `curl -X GET http://localhost:3000/<urn>/<guid>/<resource> -H 'Authorization: Bearer <access token>'`

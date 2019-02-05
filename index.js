@@ -10,6 +10,18 @@ const ForgeUrl = 'https://developer.api.autodesk.com';
 
 let app = express();
 
+function createFolders(folder) {
+    folder.split('/').reduce((accumulator, current) => {
+        if (accumulator && !fs.existsSync(accumulator)) {
+            fs.mkdirSync(accumulator);
+        }
+        return accumulator + '/' + current;
+    });
+    if (!fs.existsSync(folder)) {
+        fs.mkdirSync(folder);
+    }
+}
+
 function findViewables(manifest) {
     function traverse(node, callback) {
         callback(node);
@@ -50,8 +62,7 @@ app.use('/:urn/:guid', async function(req, res, next) {
         const { urn, guid } = req.params;
         const folder = path.join(__dirname, 'cache', urn, guid);
         if (!fs.existsSync(folder)) {
-            fs.mkdirSync(path.dirname(folder));
-            fs.mkdirSync(folder);
+            createFolders(folder);
             const logfile = path.join(folder, 'output.log');
             function log(msg) { fs.appendFileSync(logfile, `[${new Date().toString()}] ${msg}\n`); };
             const token = req.headers.authorization.replace('Bearer ', '');

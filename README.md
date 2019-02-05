@@ -1,6 +1,6 @@
 # forge-extract
 
-Simple server for translating SVF files to glTF.
+Prototype of a simple SVF-to-glTF translator.
 
 ## Usage
 

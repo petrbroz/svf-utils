@@ -50,10 +50,12 @@ app.use('/:urn/:guid', async function(req, res, next) {
         const { urn, guid } = req.params;
         const folder = path.join(__dirname, 'cache', urn, guid);
         if (!fs.existsSync(folder)) {
-            const token = req.headers.authorization.replace('Bearer ', '');
-            const model = await deserialize(urn, token, guid);
             fs.mkdirSync(path.dirname(folder));
             fs.mkdirSync(folder);
+            const logfile = path.join(folder, 'output.log');
+            function log(msg) { fs.appendFileSync(logfile, `[${new Date().toString()}] ${msg}\n`); };
+            const token = req.headers.authorization.replace('Bearer ', '');
+            const model = await deserialize(urn, token, guid, log);
             serialize(model, path.join(folder, 'output'));
         }
         next();

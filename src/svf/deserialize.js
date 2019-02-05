@@ -84,11 +84,12 @@ async function parseMaterials(uri, token) {
     return reader.materials;
 }
 
-async function deserialize(urn, token, guid) {
+async function deserialize(urn, token, guid, log) {
+    log('Downloading viewable manifest and metadata.');
     const svf = await getViewable(urn, token, guid);
 
     let manifest = svf.manifest;
-    let metadata = svf.metadata;
+    let metadata = svf.metata;
     let materials = null;
     let fragments = null;
     let geometries = null;
@@ -109,24 +110,29 @@ async function deserialize(urn, token, guid) {
                 // TODO: parse instance tree
                 break;
             case 'Autodesk.CloudPlatform.FragmentList':
+                log(`Parsing fragments (${asset.URI}).`);
                 fragments = await parseFragments(svf.basePath + asset.URI, token);
                 break;
             case 'Autodesk.CloudPlatform.GeometryMetadataList':
+                log(`Parsing geometries (${asset.URI}).`);
                 geometries = await parseGeometries(svf.basePath + asset.URI, token);
                 break;
             case 'Autodesk.CloudPlatform.PackFile':
                 const typeset = manifest.typesets[asset.typeset];
                 if (typeset.types[0].class === 'Autodesk.CloudPlatform.Geometry') {
+                    log(`Parsing meshes (${asset.URI}).`);
                     const meshpack = await parseMeshes(svf.basePath + asset.URI, token);
                     meshpacks.push(meshpack);
                 }
                 break;
             case 'ProteinMaterials':
+                log(`Parsing materials (${asset.URI}).`);
                 materials = await parseMaterials(svf.basePath + asset.URI, token);
                 break;
         }
     }
 
+    log(`Deserialization complete.`);
     return { manifest, metadata, materials, fragments, geometries, meshpacks };
 }
 

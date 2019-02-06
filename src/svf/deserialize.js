@@ -26,23 +26,23 @@ async function getDerivative(urn, token) {
     return res.buffer();
 }
 
-async function getViewable(urn, token, guid) {
-    const manifest = await getManifest(urn, token);
-    function traverse(node, callback) {
-        callback(node);
-        if (node.derivatives) {
-            for (const child of node.derivatives) {
-                traverse(child, callback);
-            }
-        } else if (node.children) {
-            for (const child of node.children) {
-                traverse(child, callback);
-            }
+function traverseManifest(node, callback) {
+    callback(node);
+    if (node.derivatives) {
+        for (const child of node.derivatives) {
+            traverseManifest(child, callback);
+        }
+    } else if (node.children) {
+        for (const child of node.children) {
+            traverseManifest(child, callback);
         }
     }
+}
 
+async function getViewable(urn, token, guid) {
+    const manifest = await getManifest(urn, token);
     let node = null;
-    traverse(manifest, function(n) { if (n.guid === guid) node = n; });
+    traverseManifest(manifest, function(n) { if (n.guid === guid) node = n; });
     if (!node) {
         return null;
     }
@@ -58,6 +58,19 @@ async function getViewable(urn, token, guid) {
         manifest: JSON.parse(archive.files['manifest.json'].asText()),
         metadata: JSON.parse(archive.files['metadata.json'].asText())
     };
+}
+
+async function getPropertyDatabase(urn, token) {
+    const manifest = await getManifest(urn, token);
+    let node = null;
+    traverseManifest(manifest, function(n) { if (n.mime === 'application/autodesk-db') node = n; });
+    if (!node) {
+        return null;
+    }
+
+    const url = decodeURIComponent(node.urn);
+    const buffer = await getDerivative(url, token);
+    return buffer;
 }
 
 async function parseFragments(uri, token) {
@@ -87,6 +100,8 @@ async function parseMaterials(uri, token) {
 async function deserialize(urn, token, guid, log) {
     log('Downloading viewable manifest and metadata.');
     const svf = await getViewable(urn, token, guid);
+    log('Downloading property database.');
+    const propertydb = await getPropertyDatabase(urn, token);
 
     let manifest = svf.manifest;
     let metadata = svf.metata;
@@ -97,15 +112,6 @@ async function deserialize(urn, token, guid, log) {
 
     for (const asset of manifest.assets) {
         switch (asset.type) {
-            case 'Autodesk.CloudPlatform.PropertyAttributes':
-            case 'Autodesk.CloudPlatform.PropertyValues':
-            case 'Autodesk.CloudPlatform.PropertyIDs':
-            case 'Autodesk.CloudPlatform.PropertyViewables':
-            case 'Autodesk.CloudPlatform.PropertyOffsets':
-            case 'Autodesk.CloudPlatform.PropertyAVs':
-            case 'Autodesk.CloudPlatform.PropertyRCVs':
-                // TODO: parse property db
-                break;
             case 'Autodesk.CloudPlatform.InstanceTree':
                 // TODO: parse instance tree
                 break;
@@ -133,7 +139,7 @@ async function deserialize(urn, token, guid, log) {
     }
 
     log(`Deserialization complete.`);
-    return { manifest, metadata, materials, fragments, geometries, meshpacks };
+    return { manifest, metadata, materials, fragments, geometries, meshpacks, propertydb };
 }
 
 module.exports = {

@@ -55,6 +55,44 @@ app.get('/:urn', async function(req, res) {
     }
 });
 
+// GET /:urn/database
+// Provides sqlite database for given URN.
+app.get('/:urn/database', async function(req, res) {
+    try {
+        const { urn } = req.params;
+        const cache = path.join(__dirname, 'cache', urn, 'output.sdb');
+        if (fs.existsSync(cache)) {
+            res.sendFile(cache);
+            return;
+        }
+
+        createFolders(path.dirname(cache));
+        const url = `${ForgeUrl}/modelderivative/v2/designdata/${urn}/manifest`;
+        const response = await fetch(url, { headers: { Authorization: req.headers.authorization }  });
+        if (response.status !== 200) {
+            const message = await response.buffer();
+            res.status(response.status).json({ message });
+            return;
+        }
+        const manifest = await response.json();
+        const databases = findViewables(manifest, 'application/autodesk-db');
+        if (databases.length > 0) {
+            const _res = await fetch(`${ForgeUrl}/derivativeservice/v2/derivatives/${databases[0].urn}`, {
+                compress: true,
+                headers: { Authorization: req.headers.authorization }
+            });
+            const buffer = await _res.buffer();
+            fs.writeFileSync(cache, buffer);
+            res.sendFile(cache);
+        } else {
+            res.status(404).end();
+        }
+    } catch(error) {
+        console.error(error);
+        res.status(500).json(error);
+    }
+});
+
 // Intercepts all requests to /:urn/:guid/*,
 // triggering SVF-to-GLTF translation if the output is not yet available.
 app.use('/:urn/:guid', async function(req, res, next) {

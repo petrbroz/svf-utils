@@ -19,8 +19,10 @@ class MeshReader extends PackFileReader {
                     this.meshes.push(this.parseMeshOCTM());
                     break;
                 case 'Autodesk.CloudPlatform.Lines': // TODO
+                    this.meshes.push(null);
                     break;
                 case 'Autodesk.CloudPlatform.Points': // TODO
+                    this.meshes.push(null);
                     break;
             }
         }

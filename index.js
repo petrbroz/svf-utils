@@ -22,7 +22,7 @@ function createFolders(folder) {
     }
 }
 
-function findViewables(manifest) {
+function findViewables(manifest, mime) {
     function traverse(node, callback) {
         callback(node);
         node.derivatives && node.derivatives.forEach(child => traverse(child, callback));
@@ -30,7 +30,7 @@ function findViewables(manifest) {
     }
 
     let viewables = [];
-    traverse(manifest, function(node) { if (node.mime === 'application/autodesk-svf') viewables.push(node.guid); });
+    traverse(manifest, function(node) { if (node.mime === mime) viewables.push(node); });
     return viewables;
 }
 
@@ -48,7 +48,7 @@ app.get('/:urn', async function(req, res) {
             return;
         }
         const manifest = await response.json();
-        res.json(findViewables(manifest));
+        res.json(findViewables(manifest, 'application/autodesk-svf').map(viewable => viewable.guid));
     } catch(error) {
         console.error(error);
         res.status(500).json(error);

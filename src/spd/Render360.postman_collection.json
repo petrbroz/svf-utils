@@ -1,0 +1,231 @@
+{
+	"info": {
+		"_postman_id": "3aab2e17-a0c7-43d1-a095-f263177630fe",
+		"name": "Render360",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "get upload S3 URL",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "4ba11ae7-f466-427e-843c-b3724eebf790",
+						"exec": [
+							"try {",
+							"    var jsonData = JSON.parse(responseBody);",
+							"    postman.setEnvironmentVariable(\"uploadSPDUrl\", jsonData.uploadSPDUrl);",
+							"    postman.setEnvironmentVariable(\"finalSPDUrl\", jsonData.finalSPDUrl); ",
+							"} catch (ex) {",
+							"    postman.setNextRequest(null);",
+							"}",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{RAAS}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://raas2.autodesk.com/render/storage",
+					"protocol": "https",
+					"host": [
+						"raas2",
+						"autodesk",
+						"com"
+					],
+					"path": [
+						"render",
+						"storage"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "upload SPD file to S3",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "526de082-a025-42e9-b6b5-ef87124ea7f7",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "PUT",
+				"header": [
+					{
+						"key": "content-type",
+						"value": "",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "file",
+					"file": {}
+				},
+				"url": {
+					"raw": "{{uploadSPDUrl}}",
+					"host": [
+						"{{uploadSPDUrl}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "post SPD job",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{RAAS}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"ConsumerServiceKey\": \"raas\",\n  \"Scenes\": [\n    {\n      \"Renderings\": [\n        {\n          \"ImageInfo\": {\n            \"ImageParams\": {\n              \"RenderResolutionY\": 512,\n              \"RenderResolutionX\": 512,\n              \"ResultFileName\": \"random{3D}\",\n              \"RenderImageFormat\": \"PNG\"\n            },\n            \"ToneMap\": null,\n            \"Render\": {\n              \"ExposureType\": \"Native\",\n              \"RenderCameraName\": \"{3D-1}\",\n              \"RenderKernel\": \"Inherit\",\n              \"RenderingType\": \"image\",\n              \"RenderQuality\": \"best\",\n              \"RenderPreset\": \"\"\n            },\n            \"Assemblies\": null,\n            \"Actions\": [\n              \"Render\"\n            ],\n            \"SunStudy\": null,\n            \"MaterialOverrides\": null,\n            \"EnvironmentOverridePreset\": \"\"\n          }\n        }\n      ],\n      \"SceneInfo\": {\n        \"SceneId\": \"APItest__Nitrogen_3\",\n        \"SourceFileInfo\": {\n          \"AccessKey\": \"raas\",\n          \"AccessLevel\": \"Private\",\n          \"Type\": \"S3\",\n          \"FileUrl\": \"{{finalSPDUrl}}\"\n        }\n      }\n    }\n  ],\n  \"UserInfo\": {\n    \"UserName\": \"UserName\",\n    \"UserUUID\": \"UserUUID\",\n    \"UserID\": \"UserID\",\n    \"EmailFlag\": \"false\"\n  },\n  \"ProductVersion\": \"Revit 2013 UP1\"\n}"
+				},
+				"url": {
+					"raw": "https://raas2.autodesk.com/render/submit",
+					"protocol": "https",
+					"host": [
+						"raas2",
+						"autodesk",
+						"com"
+					],
+					"path": [
+						"render",
+						"submit"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create Pano",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{RAAS}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json charset=UTF-8",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"AppData\":{\"action\":\"rerender\",\"payload\":{\"Actions\":[\"Render\",\"ToneMap\"],\"Render\":{\"RenderQuality\":\"standard\",\"LocalRenderQuality\":50,\"ExposureType\":\"Native\",\"RenderingType\":\"panorama\",\"RenderKernel\":\"Inherit\",\"RenderCameraName\":\"CustomizedView38320374679\",\"LocalMaxRuntime\":0},\"ImageParams\":{\"RenderResolutionX\":1024,\"RenderResolutionY\":1024,\"RenderImageFormat\":\"PNG\"},\"EnvironmentOverridePreset\":\"none\"},\"jobId\":\"ad2389e9-99e3-41d7-a2ec-3a75e8e48ce3\",\"emailMe\":false,\"usebonusjobs\":false},\"action\":\"start\"}\n"
+				},
+				"url": {
+					"raw": "https://raas2.autodesk.com/clic/job",
+					"protocol": "https",
+					"host": [
+						"raas2",
+						"autodesk",
+						"com"
+					],
+					"path": [
+						"clic",
+						"job"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get Pano",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{RAAS}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://raas2.autodesk.com/query/renderings?q=jobId%3D4e8bca10-1af2-4672-a97d-0065f43ad176&signedDataType=1023",
+					"protocol": "https",
+					"host": [
+						"raas2",
+						"autodesk",
+						"com"
+					],
+					"path": [
+						"query",
+						"renderings"
+					],
+					"query": [
+						{
+							"key": "q",
+							"value": "jobId%3D4e8bca10-1af2-4672-a97d-0065f43ad176"
+						},
+						{
+							"key": "signedDataType",
+							"value": "1023"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

@@ -104,7 +104,7 @@ async function deserialize(urn, token, guid, log) {
     const propertydb = await getPropertyDatabase(urn, token);
 
     let manifest = svf.manifest;
-    let metadata = svf.metata;
+    let metadata = svf.metadata;
     let materials = null;
     let fragments = null;
     let geometries = null;

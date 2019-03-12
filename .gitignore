@@ -1,4 +1,5 @@
 node_modules/
 .vscode/
 cache/
+output/
 .DS_Store

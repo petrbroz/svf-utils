@@ -7,6 +7,10 @@ async function getManifest(urn, token) {
         compress: true,
         headers: { 'Authorization': 'Bearer ' + token }
     });
+    if (res.status !== 200) {
+        const message = await res.text();
+        throw new Error(message);
+    }
     return res.json();
 }
 
@@ -15,6 +19,10 @@ async function getDerivative(urn, token) {
         compress: true,
         headers: { 'Authorization': 'Bearer ' + token }
     });
+    if (res.status !== 200) {
+        const message = await res.text();
+        throw new Error(message);
+    }
     return res.buffer();
 }
 

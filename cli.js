@@ -1,35 +1,11 @@
 const path = require('path');
 const fs = require('fs');
 const program = require('commander');
-const fetch = require('node-fetch');
 
 const { version } = require('./package.json');
 const { deserialize } = require('./src/readers/svf');
-const { serialize } = require('./src/writers/gltf')
-
-const ForgeHost = 'https://developer.api.autodesk.com';
-
-async function getManifest(urn, token) {
-    const url = `${ForgeHost}/modelderivative/v2/designdata/${urn}/manifest`;
-    const response = await fetch(url, { headers: { Authorization: 'Bearer ' + token }  });
-    if (response.status !== 200) {
-        const message = await response.text();
-        throw new Error(message);
-    }
-    const manifest = await response.json();
-    return manifest;
-}
-
-function findViewables(manifest, mime) {
-    function traverse(node, callback) {
-        callback(node);
-        node.derivatives && node.derivatives.forEach(child => traverse(child, callback));
-        node.children && node.children.forEach(child => traverse(child, callback));
-    }
-    let viewables = [];
-    traverse(manifest, function(node) { if (node.mime === mime) viewables.push(node); });
-    return viewables;
-}
+const { serialize } = require('./src/writers/gltf');
+const { getManifest, traverseManifest } = require('./src/helpers/forge');
 
 async function convertToGltf(urn, guid, token, folder) {
     console.log('Converting to gltf');
@@ -70,7 +46,12 @@ async function convertUrn(urn, guid, token, folder, format) {
         await convertViewable(urn, guid, token, urnFolder, format);
     } else {
         const manifest = await getManifest(urn, token);
-        const guids = findViewables(manifest, 'application/autodesk-svf').map(viewable => viewable.guid);
+        const guids = [];
+        traverseManifest(manifest, function(node) {
+            if (node.mime === 'application/autodesk-svf') {
+                guids.push(node.guid);
+            }
+        });
         for (const guid of guids) {
             await convertViewable(urn, guid, token, urnFolder, format);
         }

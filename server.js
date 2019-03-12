@@ -3,8 +3,8 @@ const path = require('path');
 const express = require('express');
 const fetch = require('node-fetch');
 
-const { deserialize } = require('./src/svf/deserialize');
-const { serialize } = require('./src/gltf/serialize')
+const { deserialize } = require('./src/readers/svf');
+const { serialize } = require('./src/writers/gltf')
 
 const ForgeUrl = 'https://developer.api.autodesk.com';
 

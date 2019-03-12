@@ -4,8 +4,8 @@ const program = require('commander');
 const fetch = require('node-fetch');
 
 const { version } = require('./package.json');
-const { deserialize } = require('./src/svf/deserialize');
-const { serialize } = require('./src/gltf/serialize')
+const { deserialize } = require('./src/readers/svf');
+const { serialize } = require('./src/writers/gltf')
 
 const ForgeHost = 'https://developer.api.autodesk.com';
 

@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build": "tsc"
   },
   "author": "Petr Broz <petr.broz@autodesk.com>",
   "dependencies": {
@@ -11,5 +12,9 @@
     "express": "^4.16.4",
     "node-fetch": "^2.3.0",
     "node-zip": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^11.11.2",
+    "typescript": "^3.3.3333"
   }
 }

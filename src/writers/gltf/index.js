@@ -149,6 +149,13 @@ class Serializer {
             byteLength: -1
         };
         manifest.bufferViews.push(normalBufferView);
+        const uvBufferViewID = manifest.bufferViews.length;
+        let uvBufferView = {
+            buffer: this.bufferID,
+            byteOffset: -1,
+            byteLength: -1
+        };
+        manifest.bufferViews.push(uvBufferView);
     
         const indexAccessorID = manifest.accessors.length;
         let indexAccessor = {
@@ -176,12 +183,21 @@ class Serializer {
             type: 'VEC3'
         };
         manifest.accessors.push(normalAccessor);
+        const uvAccessorID = manifest.accessors.length;
+        let uvAccessor = {
+            bufferView: uvBufferViewID,
+            componentType: 5126, // FLOAT
+            count: -1,
+            type: 'VEC2'
+        };
+        manifest.accessors.push(uvAccessor);
     
         let mesh = {
             primitives: [{
                 attributes: {
                     POSITION: positionAccessorID,
-                    NORMAL: normalAccessorID
+                    NORMAL: normalAccessorID,
+                    TEXCOORD_0: uvAccessorID
                 },
                 indices: indexAccessorID
             }]
@@ -218,10 +234,20 @@ class Serializer {
             normalBufferView.byteLength = normals.byteLength;
             this.buffer.byteLength += normals.byteLength;
         }
+
+        // UVs (only the first UV map if there's one)
+        if (fragmesh.uvmaps && fragmesh.uvmaps.length > 0) {
+            const uvs = Buffer.from(fragmesh.uvmaps[0].uvs.buffer);
+            fs.writeSync(this.bufferFD, uvs);
+            uvAccessor.count = uvs.byteLength / 4 / 2;
+            uvBufferView.byteOffset = this.buffer.byteLength;
+            uvBufferView.byteLength = uvs.byteLength;
+            this.buffer.byteLength += uvs.byteLength;
+        }
     
         return mesh;
     }
-    
+
     serializeMaterial(mat, model, manifest, rootfile) {
         //console.log(JSON.stringify(mat));
         switch (mat.definition) {

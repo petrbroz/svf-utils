@@ -45,10 +45,11 @@ class MeshReader extends PackFileReader {
         };
         mesh.vcount = stream.getInt32(); // Num of vertices
         mesh.tcount = stream.getInt32(); // Num of triangles
-        mesh.uvs = stream.getInt32(); // Num of texture UVs per vertex
+        mesh.uvcount = stream.getInt32(); // Num of UV maps
         mesh.attrs = stream.getInt32(); // Number of attributes per vertex
         mesh.flags = stream.getInt32();
         mesh.comment = stream.getString(stream.getInt32());
+        mesh.uvmaps = [];
         switch (method) {
             case 'RAW':
                 this.parseMeshRAW(mesh);
@@ -101,6 +102,20 @@ class MeshReader extends PackFileReader {
             for (let i = 0; i < mesh.vcount * 3; i++) {
                 mesh.normals[i] = stream.getFloat32();
             }
+        }
+
+        // Parse zero or more UV maps
+        for (let i = 0; i < mesh.uvcount; i++) {
+            name = stream.getString(4);
+            console.assert(name === 'TEXC');
+            const uvmap = {};
+            uvmap.name = stream.getString(stream.getInt32());
+            uvmap.file = stream.getString(stream.getInt32());
+            uvmap.uvs = new Float32Array(mesh.vcount * 2);
+            for (let j = 0; j < mesh.vcount * 2; j++) {
+                uvmap.uvs[j] = stream.getFloat32();
+            }
+            mesh.uvmaps.push(uvmap);
         }
     }
 

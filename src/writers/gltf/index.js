@@ -251,19 +251,20 @@ class Serializer {
             case 'SimplePhong':
                 if (mat.properties.colors && mat.properties.colors.generic_diffuse) {
                     const color = mat.properties.colors.generic_diffuse.values[0];
-                    let alpha = coloa.a;
-                    if (mat.transparent)
-                        alpha = (1.0 - (mat.properties.scalars.generic_transparency.values[0]);
-                    return {
-                        pbrMetallicRoughness: {
-                            pbrMetallicRoughness: {
-                            baseColorFactor: [color.r, color.g, color.b, alpha],
-                            //baseColorTexture: {},
-                            //metallicRoughnessTexture: {},
-                            metallicFactor: 0.1,
-                            roughnessFactor: 0.2
+                    let material = {
+                        pbrMetallicRoughness:{
+                                baseColorFactor: [color.r, color.g, color.b, coloa.a],
+                                //baseColorTexture: {},
+                                //metallicRoughnessTexture: {},
+                                metallicFactor: 0.1,
+                                roughnessFactor: 0.2
                         }
-                    };
+                    }
+                    if (mat.transparent) {
+                        material.pbrMetallicRoughness.baseColorFactor[3] = (1.0 - (mat.properties.scalars.generic_transparency.values[0]);
+                        material.alphaMode = "BLEND";
+                    }
+                    return { material };
                 } else {
                     console.warn('Could not obtain diffuse color', mat);
                     return {};

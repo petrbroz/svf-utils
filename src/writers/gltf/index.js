@@ -251,13 +251,17 @@ class Serializer {
             case 'SimplePhong':
                 if (mat.properties.colors && mat.properties.colors.generic_diffuse) {
                     const color = mat.properties.colors.generic_diffuse.values[0];
+                    let alpha = coloa.a;
+                    if (mat.transparent)
+                        alpha = (1.0 - (mat.properties.scalars.generic_transparency.values[0]);
                     return {
                         pbrMetallicRoughness: {
-                            baseColorFactor: [color.r, color.g, color.b, color.a],
+                            pbrMetallicRoughness: {
+                            baseColorFactor: [color.r, color.g, color.b, alpha],
                             //baseColorTexture: {},
                             //metallicRoughnessTexture: {},
-                            metallicFactor: 0,
-                            roughnessFactor: 1
+                            metallicFactor: 0.1,
+                            roughnessFactor: 0.2
                         }
                     };
                 } else {

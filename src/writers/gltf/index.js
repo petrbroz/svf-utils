@@ -88,7 +88,15 @@ class Serializer {
                 node.rotation = [q.x, q.y, q.z, q.w];
             }
             if ('matrix' in fragment.transform) {
-                console.error('matrix not supported yet!');
+                const m = fragment.transform.matrix;
+                const t = fragment.transform.t;
+                node.matrix = [
+                    m[0], m[3], m[6], 0,
+                    m[1], m[4], m[7], 0,
+                    m[2], m[5], m[8], 0,
+                    t.x, t.y, t.z, 1
+                ]; // 4x4, column major
+                delete node.translation; // Translation is already included in the 4x4 matrix
             }
         }
     

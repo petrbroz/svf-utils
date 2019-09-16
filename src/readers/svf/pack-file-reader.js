@@ -87,12 +87,13 @@ class PackFileReader {
     }
 
     getMatrix3x3() {
-       const elements = new Array(16);
+       const elements = [];
        for (let i = 0; i < 3; i++) {
            for (let j = 0; j < 3; j++) {
-               elements[4 * i + j] = this.stream.getFloat32();
+               elements.push(this.stream.getFloat32());
            }
        }
+       return elements;
     }
 
     getTransform() {

@@ -99,8 +99,20 @@ class MeshReader extends PackFileReader {
             name = stream.getString(4);
             console.assert(name === 'NORM');
             mesh.normals = new Float32Array(mesh.vcount * 3);
-            for (let i = 0; i < mesh.vcount * 3; i++) {
-                mesh.normals[i] = stream.getFloat32();
+            for (let i = 0; i < mesh.vcount; i++) {
+                let x = stream.getFloat32();
+                let y = stream.getFloat32();
+                let z = stream.getFloat32();
+                const dot = x * x + y * y + z * z;
+                if (dot !== 1.0) {
+                    const len = Math.sqrt(dot);
+                    x /= len;
+                    y /= len;
+                    z /= len;
+                }
+                mesh.normals[i * 3] = x;
+                mesh.normals[i * 3 + 1] = y;
+                mesh.normals[i * 3 + 2] = z;
             }
         }
 

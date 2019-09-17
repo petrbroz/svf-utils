@@ -14,18 +14,11 @@ class Serializer {
         this.bufferID = -1;
         this.bufferFD = null;
 
-        const dbidFilename = path.join(path.dirname(rootfile), 'dbids.bin');
-        this.dbidStream = fs.createWriteStream(dbidFilename);
-
         let manifest = {
             asset: {
                 version: '2.0',
                 generator: 'svf-to-gltf',
                 copyright: '2018 (c) Autodesk'
-            },
-            extras: {
-                dbidBufferUri: path.basename(dbidFilename),
-                dbidByteSize: 4
             },
             buffers: [],
             bufferViews: [],
@@ -40,7 +33,6 @@ class Serializer {
         const scene = this.serializeScene(model, manifest, rootfile);
         manifest.scenes.push(scene);
         fs.writeFileSync(rootfile + '.gltf', JSON.stringify(manifest, null, 2));
-        this.dbidStream.end();
 
         if (this.bufferFD) {
             fs.closeSync(this.bufferFD);
@@ -113,10 +105,7 @@ class Serializer {
             console.warn('Could not find mesh for fragment', fragment, 'geometry', geometry);
         }
 
-        // Output dbid into separate file, having the same index as the node
-        let dbid = Buffer.alloc(4);
-        dbid.writeUInt32LE(fragment.dbID);
-        this.dbidStream.write(dbid);
+        node.name = fragment.dbID.toString();
 
         return node;
     }
@@ -270,15 +259,20 @@ class Serializer {
             case 'SimplePhong':
                 if (mat.properties.colors && mat.properties.colors.generic_diffuse) {
                     const color = mat.properties.colors.generic_diffuse.values[0];
-                    return {
-                        pbrMetallicRoughness: {
-                            baseColorFactor: [color.r, color.g, color.b, color.a],
-                            //baseColorTexture: {},
-                            //metallicRoughnessTexture: {},
-                            metallicFactor: 0,
-                            roughnessFactor: 1
+                    let material = {
+                        pbrMetallicRoughness:{
+                                baseColorFactor: [color.r, color.g, color.b, color.a],
+                                //baseColorTexture: {},
+                                //metallicRoughnessTexture: {},
+                                metallicFactor: 0.1,
+                                roughnessFactor: 0.2
                         }
-                    };
+                    }
+                    if (mat.transparent) {
+                        material.pbrMetallicRoughness.baseColorFactor[3] = 1.0 - mat.properties.scalars.generic_transparency.values[0];
+                        material.alphaMode = "BLEND";
+                    }
+                    return material;
                 } else {
                     console.warn('Could not obtain diffuse color', mat);
                     return {};

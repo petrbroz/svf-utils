@@ -58,9 +58,18 @@ async function parseMeshes(uri, token) {
     return reader.meshes;
 }
 
-async function parseMaterials(uri, token) {
-    const buffer = await getDerivative(uri, token);
-    const reader = new MaterialReader(buffer);
+async function parseMaterials(basePath, uri, token) {
+    const buffer = await getDerivative(basePath + uri, token);
+    const reader = new MaterialReader(buffer, basePath, token);
+    // TODO: await texture downloads in a more efficient way
+    for (const material of reader.materials) {
+        if (material._texture_promise) {
+            material._texture_data = {};
+            for (const uri of Object.keys(material._texture_promise)) {
+                material._texture_data[uri] = await material._texture_promise[uri];
+            }
+        }
+    }
     return reader.materials;
 }
 
@@ -100,7 +109,7 @@ async function deserialize(urn, token, guid, log) {
                 break;
             case 'ProteinMaterials':
                 log(`Parsing materials (${asset.URI}).`);
-                materials = await parseMaterials(svf.basePath + asset.URI, token);
+                materials = await parseMaterials(svf.basePath, asset.URI, token);
                 break;
         }
     }

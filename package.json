@@ -9,6 +9,7 @@
   "dependencies": {
     "commander": "^2.19.0",
     "express": "^4.16.4",
+    "mkdirp": "^0.5.1",
     "node-fetch": "^2.3.0",
     "node-zip": "^1.1.1"
   }

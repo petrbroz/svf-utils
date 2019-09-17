@@ -7,6 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const mkdirp = require('mkdirp');
 
 class Serializer {
     serialize(model, rootfile) {
@@ -260,7 +261,7 @@ class Serializer {
                 if (mat.properties.colors && mat.properties.colors.generic_diffuse) {
                     const color = mat.properties.colors.generic_diffuse.values[0];
                     let material = {
-                        pbrMetallicRoughness:{
+                        pbrMetallicRoughness: {
                                 baseColorFactor: [color.r, color.g, color.b, color.a],
                                 //baseColorTexture: {},
                                 //metallicRoughnessTexture: {},
@@ -272,9 +273,22 @@ class Serializer {
                         material.pbrMetallicRoughness.baseColorFactor[3] = 1.0 - mat.properties.scalars.generic_transparency.values[0];
                         material.alphaMode = "BLEND";
                     }
+                    if (mat.textures && mat.textures.generic_diffuse) {
+                        material.pbrMetallicRoughness.baseColorTexture = {
+                            index: 1, // TODO: serialize texture
+                            texCoord: 1
+                        };
+                    }
+                    if (mat._texture_data) {
+                        for (const uri of Object.keys(mat._texture_data)) {
+                            const filepath = path.join(path.dirname(rootfile), uri);
+                            mkdirp.sync(path.dirname(filepath));
+                            fs.writeFileSync(filepath, mat._texture_data[uri]);
+                        }
+                    }
                     return material;
                 } else {
-                    console.warn('Could not obtain diffuse color', mat);
+                    console.warn('Could not obtain diffuse color/texture', mat);
                     return {};
                 }
             default:

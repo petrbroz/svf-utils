@@ -253,7 +253,7 @@ class Serializer {
                     const color = mat.properties.colors.generic_diffuse.values[0];
                     let material = {
                         pbrMetallicRoughness:{
-                                baseColorFactor: [color.r, color.g, color.b, coloa.a],
+                                baseColorFactor: [color.r, color.g, color.b, color.a],
                                 //baseColorTexture: {},
                                 //metallicRoughnessTexture: {},
                                 metallicFactor: 0.1,
@@ -261,10 +261,10 @@ class Serializer {
                         }
                     }
                     if (mat.transparent) {
-                        material.pbrMetallicRoughness.baseColorFactor[3] = (1.0 - (mat.properties.scalars.generic_transparency.values[0]);
+                        material.pbrMetallicRoughness.baseColorFactor[3] = 1.0 - mat.properties.scalars.generic_transparency.values[0];
                         material.alphaMode = "BLEND";
                     }
-                    return { material };
+                    return material;
                 } else {
                     console.warn('Could not obtain diffuse color', mat);
                     return {};

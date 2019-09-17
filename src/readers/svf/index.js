@@ -102,6 +102,9 @@ async function deserialize(urn, token, guid, log) {
                 log(`Parsing materials (${asset.URI}).`);
                 materials = await parseMaterials(svf.basePath + asset.URI, token);
                 break;
+            default:
+                log(`Skipping unsupported asset type: ${asset.type}`);
+                break;
         }
     }
 

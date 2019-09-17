@@ -16,4 +16,4 @@ Prototype of a simple SVF-to-glTF translator.
 
 - install npm dependencies: `npm install`
 - run the command line script without parameters for usage info: `node cli.js`
-- run the command line script with parameters: `FORGE_ACCESS_TOKEN=<token> node cli.js --output-folder=test <urn>`
+- run the command line script with parameters: `FORGE_CLIENT_ID=<client id> FORGE_CLIENT_SECRET=<client secret> node cli.js --output-folder=test <urn>`

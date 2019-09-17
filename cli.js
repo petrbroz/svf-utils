@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const program = require('commander');
+const { AuthenticationClient } = require('forge-server-utils');
 
 const { version } = require('./package.json');
 const { deserialize } = require('./src/readers/svf');
@@ -60,19 +61,22 @@ async function convertUrn(urn, guid, token, folder, format) {
 
 program
     .version(version, '-v, --version')
-    .option('-a, --access-token [token]', 'Forge access token (can also be provided via FORGE_ACCESS_TOKEN env. var.)', '')
     .option('-o, --output-folder [folder]', 'output folder', '.')
     .option('-t, --output-type [type]', 'output file format (gltf)', 'gltf')
     .arguments('<urn> [guid]')
-    .action(function(urn, guid) {
-        const token = program.accessToken || process.env.FORGE_ACCESS_TOKEN;
-        if (!token) {
-            console.warn('Forge access token missing.');
+    .action(async function(urn, guid) {
+        const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
+        if (!FORGE_CLIENT_ID || !FORGE_CLIENT_SECRET) {
+            console.warn('FORGE_CLIENT_ID or FORGE_CLIENT_SECRET env. variables missing.');
             return;
         }
-        convertUrn(urn, guid, token, program.outputFolder, program.outputType)
-            .then(_ => console.log('Done!'))
-            .catch(err => console.error(err));
+        try {
+            const authClient = new AuthenticationClient(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET);
+            const token = await authClient.authenticate(['viewables:read']);
+            await convertUrn(urn, guid, token.access_token, program.outputFolder, program.outputType);
+        } catch(err) {
+            console.error(err);
+        }
     })
     .parse(process.argv);
 

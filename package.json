@@ -1,16 +1,40 @@
 {
   "name": "forge-extract",
-  "version": "0.0.0",
-  "main": "index.js",
+  "version": "0.0.1",
+  "description": "Tools for converting Autodesk Forge models into glTF.",
+  "main": "lib/index.js",
+  "bin": {
+    "forge-extract": "./cli.js"
+  },
   "scripts": {
-    "start": "node server.js"
+    "build": "tsc",
+    "docs": "typedoc --out lib/docs src"
   },
   "author": "Petr Broz <petr.broz@autodesk.com>",
+  "license": "MIT",
+  "keywords": [
+    "autodesk",
+    "forge",
+    "gltf",
+    "node.js",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/petrbroz/forge-extract.git"
+  },
+  "bugs": {
+    "url": "https://github.com/petrbroz/forge-extract/issues"
+  },
+  "homepage": "https://github.com/petrbroz/forge-extract#readme",
+  "devDependencies": {
+    "@types/fs-extra": "^8.0.0",
+    "typedoc": "^0.15.0",
+    "typescript": "^3.6.3"
+  },
   "dependencies": {
     "commander": "^2.19.0",
-    "express": "^4.16.4",
-    "forge-server-utils": "^5.1.0",
-    "node-fetch": "^2.3.0",
-    "node-zip": "^1.1.1"
+    "forge-server-utils": "^6.0.1",
+    "fs-extra": "^8.1.0"
   }
 }

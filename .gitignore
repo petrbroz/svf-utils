@@ -1,5 +1,8 @@
-node_modules/
 .vscode/
-cache/
+node_modules/
 output/
+lib/
+tmp/
+*.log
 .DS_Store
+Thumbs.db

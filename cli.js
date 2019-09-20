@@ -1,79 +1,57 @@
-const path = require('path');
-const fs = require('fs');
 const program = require('commander');
-const { AuthenticationClient } = require('forge-server-utils');
+const path = require('path');
+const fse = require('fs-extra');
+const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
 
-const { version } = require('./package.json');
-const { deserialize } = require('./src/readers/svf');
-const { serialize } = require('./src/writers/gltf');
-const { getManifest, traverseManifest } = require('./src/helpers/forge');
+const { deserialize, serialize } = require('.');
 
-async function convertToGltf(urn, guid, token, folder) {
-    console.log('Converting to gltf');
-
-    const outputFolder = path.join(folder, 'gltf');
-    if (!fs.existsSync(outputFolder)) fs.mkdirSync(outputFolder);
-
-    const model = await deserialize(urn, token, guid, console.log);
-    serialize(model, path.join(outputFolder, 'output'));
-    fs.writeFileSync(path.join(outputFolder, 'props.db'), model.propertydb); // TODO: store property db just once per URN
+const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, FORGE_ACCESS_TOKEN } = process.env;
+let auth = null;
+if (FORGE_ACCESS_TOKEN) {
+    auth = { token: FORGE_ACCESS_TOKEN };
+} else if (FORGE_CLIENT_ID && FORGE_CLIENT_SECRET) {
+    auth = { client_id: FORGE_CLIENT_ID, client_secret: FORGE_CLIENT_SECRET };
 }
 
-async function convertViewable(urn, guid, token, folder, format) {
-    console.log('Viewable GUID', guid);
-
-    const viewableFolder = path.join(folder, guid);
-    if (!fs.existsSync(viewableFolder)) fs.mkdirSync(viewableFolder);
-
-    switch (format) {
-        case 'gltf':
-            await convertToGltf(urn, guid, token, viewableFolder)
-            break;
-        default:
-            console.warn('Output type not supported.');
-            break;
-    }
-}
-
-async function convertUrn(urn, guid, token, folder, format) {
-    console.log('URN', urn);
-
-    const outputFolder = path.resolve(__dirname, folder);
-    if (!fs.existsSync(outputFolder)) fs.mkdirSync(outputFolder);
-    const urnFolder = path.join(outputFolder, urn);
-    if (!fs.existsSync(urnFolder)) fs.mkdirSync(urnFolder);
-
-    if (guid) {
-        await convertViewable(urn, guid, token, urnFolder, format);
-    } else {
-        const manifest = await getManifest(urn, token);
-        const guids = [];
-        traverseManifest(manifest, function(node) {
-            if (node.mime === 'application/autodesk-svf') {
-                guids.push(node.guid);
-            }
-        });
-        for (const guid of guids) {
-            await convertViewable(urn, guid, token, urnFolder, format);
-        }
-    }
+async function convert(urn, guid, folder) {
+    console.log('Converting urn', urn, 'guid', guid);
+    const svf = await deserialize(urn, guid, auth);
+    await serialize(svf, folder);
 }
 
 program
-    .version(version, '-v, --version')
+    .version(require('./package.json').version, '-v, --version')
     .option('-o, --output-folder [folder]', 'output folder', '.')
     .option('-t, --output-type [type]', 'output file format (gltf)', 'gltf')
     .arguments('<urn> [guid]')
     .action(async function(urn, guid) {
-        const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
-        if (!FORGE_CLIENT_ID || !FORGE_CLIENT_SECRET) {
-            console.warn('FORGE_CLIENT_ID or FORGE_CLIENT_SECRET env. variables missing.');
-            return;
-        }
         try {
-            const authClient = new AuthenticationClient(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET);
-            const token = await authClient.authenticate(['viewables:read']);
-            await convertUrn(urn, guid, token.access_token, program.outputFolder, program.outputType);
+            if (!auth) {
+                console.warn('Missing environment variables for Autodesk Forge authentication.');
+                console.warn('Provide FORGE_CLIENT_ID and FORGE_CLIENT_SECRET, or FORGE_ACCESS_TOKEN.');
+                return;
+            }
+
+            const client = new ModelDerivativeClient(auth);
+            const helper = new ManifestHelper(await client.getManifest(urn))
+            const folder = path.join(program.outputFolder, urn);
+            if (guid) {
+                await convert(urn, guid, folder);
+            } else {
+                const derivatives = helper.search({ type: 'resource', role: 'graphics' });
+                const guids = derivatives.filter(d => d.mime === 'application/autodesk-svf').map(d => d.guid);
+                for (const guid of guids) {
+                    await convert(urn, guid, path.join(folder, guid));
+                }
+            }
+
+            // Store the property database within the <urn> subfolder
+            // as it is shared by all viewables
+            const pdbDerivatives = helper.search({ type: 'resource', role: 'Autodesk.CloudPlatform.PropertyDatabase' });
+            if (pdbDerivatives.length > 0) {
+                const pdb = await client.getDerivative(urn, pdbDerivatives[0].urn);
+                fse.writeFileSync(path.join(folder, 'properties.sqlite'), pdb);
+            }
         } catch(err) {
             console.error(err);
         }

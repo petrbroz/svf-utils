@@ -1,7 +1,9 @@
 .vscode/
 node_modules/
-lib/
+test/
 tmp/
 *.log
 .DS_Store
 Thumbs.db
+.gitignore
+.travis.yml

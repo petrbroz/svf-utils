@@ -17,8 +17,36 @@ Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file f
 - install the package: `npm install --global forge-extract`
 - run the command without parameters for usage info: `forge-extract`
 - run the command with parameters, providing either Forge client credentials or access token:
-    - `FORGE_CLIENT_ID=<client id> FORGE_CLIENT_SECRET=<client secret> forge-extract --output-folder=test <urn>`, or
-    - `FORGE_ACCESS_TOKEN=<access token> forge-extract --output-folder=test <urn>`
+
+On Windows
+
+```
+set FORGE_CLIENT_ID=<client id>
+set FORGE_CLIENT_SECRET=<client secret>
+forge-extract --output-folder=test <urn>
+```
+
+or
+
+```
+set FORGE_ACCESS_TOKEN=<access token>>
+forge-extract --output-folder=test <urn>
+```
+
+On macOS/Linux
+
+```
+export FORGE_CLIENT_ID=<client id>
+export FORGE_CLIENT_SECRET=<client secret>
+forge-extract --output-folder=test <urn>
+```
+
+or
+
+```
+export FORGE_ACCESS_TOKEN=<access token>>
+forge-extract --output-folder=test <urn>
+```
 
 ### From Node.js
 

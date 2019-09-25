@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as fse from 'fs-extra';
 
 import { ISvf } from './svf';
-import { IFragment, IMaterial, IMesh } from 'forge-server-utils/dist/svf';
+import { IFragment, IMaterial, IMesh, IMaterialMap } from 'forge-server-utils/dist/svf';
 import { isUndefined } from 'util';
 
 const BufferSizeLimit = 5 << 20;
@@ -26,11 +26,48 @@ export interface IGltfMesh {
 }
 
 export interface IGltfMaterial {
+    name?: string;
+    pbrMetallicRoughness: {
+        baseColorFactor?: number[];
+        baseColorTexture?: {
+            index: number;
+            texCoord: number;
+        };
+        metallicFactor?: number;
+        metallicRoughnessTexture?: {
+            index: number;
+            texCoord: number;
+        };
+        roughnessFactor?: number;
+    };
+    normalTexture?: {
+        scale: number;
+        index: number;
+        texCoord: number;
+    };
+    alphaMode?: string;
 }
+
+export interface IGltfTexture {
+    source?: number;
+}
+
+export interface IGltfImage {
+    uri?: string;
+}
+
+const DefaultMaterial: IGltfMaterial = {
+    pbrMetallicRoughness: {
+        baseColorFactor: [0.25, 0.25, 0.25, 1.0],
+        metallicFactor: 0.0,
+        roughnessFactor: 0.5
+    }
+};
 
 export class GltfSerializer {
     protected manifest: any;
 
+    protected downloads: Promise<string>[] = [];
     protected bufferStream: fse.WriteStream | null;
     protected bufferSize: number;
 
@@ -50,15 +87,18 @@ export class GltfSerializer {
             materials: [],
             nodes: [],
             scenes: [],
+            textures: [],
+            images: [],
             scene: -1
         };
     }
 
-    serialize(svf: ISvf) {
+    async serialize(svf: ISvf) {
         this.manifest.scenes.push(this.serializeScene(svf));
         this.manifest.scene = 0;
         const gltfPath = path.join(this.baseDir, 'output.gltf');
         fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
+        await Promise.all(this.downloads);
     }
 
     protected serializeScene(svf: ISvf): IGltfScene {
@@ -290,37 +330,53 @@ export class GltfSerializer {
         return mesh;
     }
 
-    protected serializeMaterial(mat: IMaterial, svf: ISvf): IGltfMaterial {
-        switch (mat.definition) {
-            case 'SimplePhong':
-                if (mat.properties.colors && mat.properties.colors.generic_diffuse) {
-                    const color = mat.properties.colors.generic_diffuse.values[0];
-                    let material = {
-                        pbrMetallicRoughness:{
-                                baseColorFactor: [color.r, color.g, color.b, color.a],
-                                //baseColorTexture: {},
-                                //metallicRoughnessTexture: {},
-                                metallicFactor: 0.1,
-                                roughnessFactor: 0.2
-                        },
-                        alphaMode: 'BLEND'
-                    }
-                    if (mat.transparent) {
-                        material.pbrMetallicRoughness.baseColorFactor[3] = 1.0 - mat.properties.scalars.generic_transparency.values[0];
-                    }
-                    return material;
-                } else {
-                    console.warn('Could not obtain diffuse color', mat);
-                    return {};
-                }
-            default:
-                console.warn('Unknown material definition', mat.definition);
-                return {};
+    protected serializeMaterial(mat: IMaterial | null, svf: ISvf): IGltfMaterial {
+        if (!mat) {
+            return DefaultMaterial;
         }
+
+        let material: IGltfMaterial = {
+            pbrMetallicRoughness: {
+                baseColorFactor: mat.diffuse,
+                metallicFactor: mat.metal ? 1.0 : 0.0,
+                roughnessFactor: mat.glossiness
+            }
+        };
+        if (!isUndefined(mat.opacity) && material.pbrMetallicRoughness.baseColorFactor) {
+            material.alphaMode = 'BLEND';
+            material.pbrMetallicRoughness.baseColorFactor[3] = mat.opacity;
+        }
+        if (mat.maps) {
+            if (mat.maps.diffuse) {
+                const textureID = this.manifest.textures.length;
+                this.manifest.textures.push(this.serializeTexture(mat.maps.diffuse, svf));
+                material.pbrMetallicRoughness.baseColorTexture = {
+                    index: textureID,
+                    texCoord: 1
+                };
+            }
+        }
+        return material;
+    }
+
+    protected serializeTexture(map: IMaterialMap, svf: ISvf): IGltfTexture {
+        this.downloads.push(this.downloadTexture(map.uri, svf));
+        const imageID = this.manifest.images.length;
+        this.manifest.images.push({ uri: map.uri });
+        return {
+            source: imageID
+        };
+    }
+
+    protected async downloadTexture(uri: string, svf: ISvf): Promise<string> {
+        const img = await svf.getDerivative(uri);
+        fse.writeFileSync(path.join(this.baseDir, uri), img);
+        return uri;
     }
 }
 
 export async function serialize(svf: ISvf, baseDir: string) {
     fse.ensureDirSync(baseDir);
-    new GltfSerializer(baseDir).serialize(svf);
+    const serializer = new GltfSerializer(baseDir);
+    return serializer.serialize(svf);
 }

@@ -7,7 +7,8 @@ export interface ISvf {
     fragments: svf.IFragment[];
     geometries: svf.IGeometryMetadata[];
     meshpacks: (svf.IMesh | null)[][];
-    materials: svf.IMaterial[];
+    materials: (svf.IMaterial | null)[];
+    getDerivative: (uri: string) => Promise<Buffer>;
 }
 
 export async function deserialize(urn: string, guid: string, auth: IAuthOptions): Promise<ISvf> {
@@ -26,7 +27,11 @@ export async function deserialize(urn: string, guid: string, auth: IAuthOptions)
         fragments: [],
         geometries: [],
         meshpacks: [],
-        materials: []
+        materials: [],
+        getDerivative: async (uri: string) => {
+            const buffer = await modelDerivativeClient.getDerivative(urn, baseUri + '/' + uri) as Buffer;
+            return buffer;
+        }
     };
     let tasks: Promise<void>[] = [];
     for (const asset of manifest.assets) {
@@ -53,6 +58,9 @@ export async function deserialize(urn: string, guid: string, auth: IAuthOptions)
                 }
                 break;
             case svf.AssetType.ProteinMaterials:
+                if (assetUri.indexOf('ProteinMaterials.json.gz') !== -1) {
+                    continue; // Ignore the advanced materials, we only support basic materials (Materials.json.gz)
+                }
                 console.log(`Parsing materials (${assetUri})...`);
                 tasks.push(deserializeMaterials(urn, assetUri, output, modelDerivativeClient));
                 break;

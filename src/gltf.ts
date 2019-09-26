@@ -193,8 +193,7 @@ export class GltfSerializer {
         const buffer = this.manifest.buffers[bufferID];
         const bufferViews = this.manifest.bufferViews;
         const accessors = this.manifest.accessors;
-        // Don't output UVs until we specify the UV channels in materials
-        const hasUVs = false; // fragmesh.uvmaps && fragmesh.uvmaps.length > 0;
+        const hasUVs = fragmesh.uvmaps && fragmesh.uvmaps.length > 0;
 
         const indexBufferViewID = bufferViews.length;
         let indexBufferView = {
@@ -339,7 +338,7 @@ export class GltfSerializer {
             pbrMetallicRoughness: {
                 baseColorFactor: mat.diffuse,
                 metallicFactor: mat.metal ? 1.0 : 0.0,
-                roughnessFactor: mat.glossiness
+                // roughnessFactor: (mat.glossiness || 0) / 255.0
             }
         };
         if (!isUndefined(mat.opacity) && material.pbrMetallicRoughness.baseColorFactor) {
@@ -352,7 +351,7 @@ export class GltfSerializer {
                 this.manifest.textures.push(this.serializeTexture(mat.maps.diffuse, svf));
                 material.pbrMetallicRoughness.baseColorTexture = {
                     index: textureID,
-                    texCoord: 1
+                    texCoord: 0
                 };
             }
         }
@@ -369,8 +368,10 @@ export class GltfSerializer {
     }
 
     protected async downloadTexture(uri: string, svf: ISvf): Promise<string> {
-        const img = await svf.getDerivative(uri);
-        fse.writeFileSync(path.join(this.baseDir, uri), img);
+        const img = await svf.getDerivative(uri.toLowerCase());
+        const filepath = path.join(this.baseDir, uri);
+        fse.ensureDirSync(path.dirname(filepath));
+        fse.writeFileSync(filepath, img);
         return uri;
     }
 }

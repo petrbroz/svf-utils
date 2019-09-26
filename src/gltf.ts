@@ -317,13 +317,14 @@ export class GltfSerializer {
     }
 
     protected serializeTexture(map: IMaterialMap, svf: ISvf): gltf.Texture {
-        this.downloads.push(this.downloadTexture(map.uri, svf));
         const manifestImages = this.manifest.images as gltf.Image[];
-        const imageID = manifestImages.length;
-        manifestImages.push({ uri: map.uri });
-        return {
-            source: imageID
-        };
+        let imageID = manifestImages.findIndex(image => image.uri === map.uri);
+        if (imageID === -1) {
+            imageID = manifestImages.length;
+            manifestImages.push({ uri: map.uri });
+            this.downloads.push(this.downloadTexture(map.uri, svf));
+        }
+        return { source: imageID };
     }
 
     protected async downloadTexture(uri: string, svf: ISvf): Promise<string> {

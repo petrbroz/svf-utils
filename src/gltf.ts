@@ -1,62 +1,13 @@
 import * as path from 'path';
 import * as fse from 'fs-extra';
 
+import * as gltf from './helpers/gltf-schema';
 import { ISvf } from './svf';
 import { IFragment, IMaterial, IMesh, IMaterialMap } from 'forge-server-utils/dist/svf';
 import { isUndefined } from 'util';
 
 const BufferSizeLimit = 5 << 20;
-
-export interface IGltfScene {
-    name: string;
-    nodes: IGltfNode[];
-}
-
-export interface IGltfNode {
-    name: string;
-    mesh?: number;
-    translation?: number[];
-    scale?: number[];
-    rotation?: number[];
-    matrix?: number[];
-}
-
-export interface IGltfMesh {
-    primitives: any[];
-}
-
-export interface IGltfMaterial {
-    name?: string;
-    pbrMetallicRoughness: {
-        baseColorFactor?: number[];
-        baseColorTexture?: {
-            index: number;
-            texCoord: number;
-        };
-        metallicFactor?: number;
-        metallicRoughnessTexture?: {
-            index: number;
-            texCoord: number;
-        };
-        roughnessFactor?: number;
-    };
-    normalTexture?: {
-        scale: number;
-        index: number;
-        texCoord: number;
-    };
-    alphaMode?: string;
-}
-
-export interface IGltfTexture {
-    source?: number;
-}
-
-export interface IGltfImage {
-    uri?: string;
-}
-
-const DefaultMaterial: IGltfMaterial = {
+const DefaultMaterial: gltf.MaterialPbrMetallicRoughness = {
     pbrMetallicRoughness: {
         baseColorFactor: [0.25, 0.25, 0.25, 1.0],
         metallicFactor: 0.0,
@@ -65,8 +16,7 @@ const DefaultMaterial: IGltfMaterial = {
 };
 
 export class GltfSerializer {
-    protected manifest: any;
-
+    protected manifest: gltf.GlTf;
     protected downloads: Promise<string>[] = [];
     protected bufferStream: fse.WriteStream | null;
     protected bufferSize: number;
@@ -94,39 +44,42 @@ export class GltfSerializer {
     }
 
     async serialize(svf: ISvf) {
-        this.manifest.scenes.push(this.serializeScene(svf));
+        const manifestScenes = this.manifest.scenes as gltf.Scene[];
+        manifestScenes.push(this.serializeScene(svf));
         this.manifest.scene = 0;
         const gltfPath = path.join(this.baseDir, 'output.gltf');
         fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
-        await Promise.all(this.downloads);
+        await Promise.all(this.downloads); // Wait for all pending downloads to finish
     }
 
-    protected serializeScene(svf: ISvf): IGltfScene {
-        let scene: IGltfScene = {
+    protected serializeScene(svf: ISvf): gltf.Scene {
+        let scene: gltf.Scene = {
             name: 'main',
             nodes: []
         };
-    
+        const manifestNodes = this.manifest.nodes as gltf.Node[];
+        const manifestMaterials = this.manifest.materials as gltf.MaterialPbrMetallicRoughness[];
+
         for (const fragment of svf.fragments) {
             const node = this.serializeFragment(fragment, svf);
             // Only output nodes that have a mesh
             if (!isUndefined(node.mesh)) {
-                const index = this.manifest.nodes.length;
-                this.manifest.nodes.push(node);
-                scene.nodes.push(index);
+                const index = manifestNodes.length;
+                manifestNodes.push(node);
+                (scene.nodes as number[]).push(index);
             }
         }
-    
+
         for (const material of svf.materials) {
             const mat = this.serializeMaterial(material, svf);
-            this.manifest.materials.push(mat);
+            manifestMaterials.push(mat);
         }
 
         return scene;
     }
 
-    protected serializeFragment(fragment: IFragment, svf: ISvf): IGltfNode {
-        let node: IGltfNode = {
+    protected serializeFragment(fragment: IFragment, svf: ISvf): gltf.Node {
+        let node: gltf.Node = {
             name: fragment.dbID.toString()
         };
 
@@ -159,10 +112,11 @@ export class GltfSerializer {
     
         const geometry = svf.geometries[fragment.geometryID];
         const fragmesh = svf.meshpacks[geometry.packID][geometry.entityID];
+        const manifestMeshes = this.manifest.meshes as gltf.Mesh[];
         if (fragmesh) {
             const mesh = this.serializeMesh(fragmesh, svf);
-            node.mesh = this.manifest.meshes.length;
-            this.manifest.meshes.push(mesh);
+            node.mesh = manifestMeshes.length;
+            manifestMeshes.push(mesh);
             for (const primitive of mesh.primitives) {
                 primitive.material = fragment.materialID;
             }
@@ -172,10 +126,12 @@ export class GltfSerializer {
         return node;
     }
 
-    protected serializeMesh(fragmesh: IMesh, svf: ISvf): IGltfMesh {
-        let mesh: IGltfMesh = {
+    protected serializeMesh(fragmesh: IMesh, svf: ISvf): gltf.Mesh {
+        let mesh: gltf.Mesh = {
             primitives: []
         };
+
+        const manifestBuffers = this.manifest.buffers as gltf.Buffer[];
 
         // Prepare new writable stream if needed
         if (this.bufferStream === null || this.bufferSize > BufferSizeLimit) {
@@ -184,15 +140,15 @@ export class GltfSerializer {
                 this.bufferStream = null;
                 this.bufferSize = 0;
             }
-            const bufferUri = `${this.manifest.buffers.length}.bin`;
-            this.manifest.buffers.push({ uri: bufferUri, byteLength: 0 });
+            const bufferUri = `${manifestBuffers.length}.bin`;
+            manifestBuffers.push({ uri: bufferUri, byteLength: 0 });
             this.bufferStream = fse.createWriteStream(path.join(this.baseDir, bufferUri));
         }
 
-        const bufferID = this.manifest.buffers.length - 1;
-        const buffer = this.manifest.buffers[bufferID];
-        const bufferViews = this.manifest.bufferViews;
-        const accessors = this.manifest.accessors;
+        const bufferID = manifestBuffers.length - 1;
+        const buffer = manifestBuffers[bufferID];
+        const bufferViews = this.manifest.bufferViews as gltf.BufferView[];
+        const accessors = this.manifest.accessors as gltf.Accessor[];
         const hasUVs = fragmesh.uvmaps && fragmesh.uvmaps.length > 0;
 
         const indexBufferViewID = bufferViews.length;
@@ -329,12 +285,12 @@ export class GltfSerializer {
         return mesh;
     }
 
-    protected serializeMaterial(mat: IMaterial | null, svf: ISvf): IGltfMaterial {
+    protected serializeMaterial(mat: IMaterial | null, svf: ISvf): gltf.MaterialPbrMetallicRoughness {
         if (!mat) {
             return DefaultMaterial;
         }
 
-        let material: IGltfMaterial = {
+        let material: gltf.MaterialPbrMetallicRoughness = {
             pbrMetallicRoughness: {
                 baseColorFactor: mat.diffuse,
                 metallicFactor: mat.metal ? 1.0 : 0.0,
@@ -345,10 +301,12 @@ export class GltfSerializer {
             material.alphaMode = 'BLEND';
             material.pbrMetallicRoughness.baseColorFactor[3] = mat.opacity;
         }
+
         if (mat.maps) {
+            const manifestTextures = this.manifest.textures as gltf.Texture[];
             if (mat.maps.diffuse) {
-                const textureID = this.manifest.textures.length;
-                this.manifest.textures.push(this.serializeTexture(mat.maps.diffuse, svf));
+                const textureID = manifestTextures.length;
+                manifestTextures.push(this.serializeTexture(mat.maps.diffuse, svf));
                 material.pbrMetallicRoughness.baseColorTexture = {
                     index: textureID,
                     texCoord: 0
@@ -358,10 +316,11 @@ export class GltfSerializer {
         return material;
     }
 
-    protected serializeTexture(map: IMaterialMap, svf: ISvf): IGltfTexture {
+    protected serializeTexture(map: IMaterialMap, svf: ISvf): gltf.Texture {
         this.downloads.push(this.downloadTexture(map.uri, svf));
-        const imageID = this.manifest.images.length;
-        this.manifest.images.push({ uri: map.uri });
+        const manifestImages = this.manifest.images as gltf.Image[];
+        const imageID = manifestImages.length;
+        manifestImages.push({ uri: map.uri });
         return {
             source: imageID
         };

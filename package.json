@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "commander": "^2.19.0",
-    "forge-server-utils": "^6.1.0",
+    "forge-server-utils": "^6.2.0",
     "fs-extra": "^8.1.0"
   }
 }

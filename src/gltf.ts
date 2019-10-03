@@ -355,8 +355,7 @@ export class GltfSerializer {
         mesh.primitives.push({
             mode: 1, // LINES
             attributes: {
-                POSITION: positionAccessorID,
-                // COLOR_0 // TODO
+                POSITION: positionAccessorID
             },
             indices: indexAccessorID
         });
@@ -385,6 +384,38 @@ export class GltfSerializer {
         positionBufferView.byteOffset = buffer.byteLength;
         positionBufferView.byteLength = vertices.byteLength;
         buffer.byteLength += vertices.byteLength;
+
+        // Colors, if available
+        if (fragmesh.colors) {
+            const colorBufferViewID = bufferViews.length;
+            let colorBufferView = {
+                buffer: bufferID,
+                byteOffset: -1,
+                byteLength: -1
+            };
+            bufferViews.push(colorBufferView);
+
+            const colorAccessorID = accessors.length;
+            let colorAccessor = {
+                bufferView: colorBufferViewID,
+                componentType: 5126, // FLOAT
+                count: -1,
+                type: 'VEC3',
+                //min: // TODO
+                //max: // TODO
+            };
+            accessors.push(colorAccessor);
+
+            mesh.primitives[0].attributes['COLOR_0'] = colorAccessorID;
+
+            const colors = Buffer.from(fragmesh.colors.buffer);
+            this.bufferStream.write(colors);
+            this.bufferSize += colors.byteLength;
+            colorAccessor.count = colors.byteLength / 4 / 3;
+            colorBufferView.byteOffset = buffer.byteLength;
+            colorBufferView.byteLength = colors.byteLength;
+            buffer.byteLength += colors.byteLength;
+        }
 
         return mesh;
     }
@@ -435,8 +466,7 @@ export class GltfSerializer {
         mesh.primitives.push({
             mode: 0, // POINTS
             attributes: {
-                POSITION: positionAccessorID,
-                // COLOR_0 // TODO
+                POSITION: positionAccessorID
             }
         });
 
@@ -448,6 +478,38 @@ export class GltfSerializer {
         positionBufferView.byteOffset = buffer.byteLength;
         positionBufferView.byteLength = vertices.byteLength;
         buffer.byteLength += vertices.byteLength;
+
+        // Colors, if available
+        if (fragmesh.colors) {
+            const colorBufferViewID = bufferViews.length;
+            let colorBufferView = {
+                buffer: bufferID,
+                byteOffset: -1,
+                byteLength: -1
+            };
+            bufferViews.push(colorBufferView);
+
+            const colorAccessorID = accessors.length;
+            let colorAccessor = {
+                bufferView: colorBufferViewID,
+                componentType: 5126, // FLOAT
+                count: -1,
+                type: 'VEC3',
+                //min: // TODO
+                //max: // TODO
+            };
+            accessors.push(colorAccessor);
+
+            mesh.primitives[0].attributes['COLOR_0'] = colorAccessorID;
+
+            const colors = Buffer.from(fragmesh.colors.buffer);
+            this.bufferStream.write(colors);
+            this.bufferSize += colors.byteLength;
+            colorAccessor.count = colors.byteLength / 4 / 3;
+            colorBufferView.byteOffset = buffer.byteLength;
+            colorBufferView.byteLength = colors.byteLength;
+            buffer.byteLength += colors.byteLength;
+        }
 
         return mesh;
     }

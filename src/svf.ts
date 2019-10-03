@@ -5,7 +5,7 @@ export interface ISvf {
     metadata: SvfUtils.ISvfMetadata;
     fragments: SvfUtils.IFragment[];
     geometries: SvfUtils.IGeometryMetadata[];
-    meshpacks: (SvfUtils.IMesh | null)[][];
+    meshpacks: (SvfUtils.IMesh | SvfUtils.ILines | SvfUtils.IPoints | null)[][];
     materials: (SvfUtils.IMaterial | null)[];
     getDerivative: (uri: string) => Promise<Buffer>;
 }

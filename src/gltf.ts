@@ -3,7 +3,7 @@ import * as fse from 'fs-extra';
 
 import * as gltf from './helpers/gltf-schema';
 import { ISvf } from './svf';
-import { IFragment, IMaterial, IMesh, IMaterialMap } from 'forge-server-utils/dist/svf';
+import { IFragment, IMaterial, IMesh, IMaterialMap, ILines, IPoints } from 'forge-server-utils/dist/svf';
 import { isUndefined } from 'util';
 
 const BufferSizeLimit = 5 << 20;
@@ -109,12 +109,19 @@ export class GltfSerializer {
                 delete node.translation; // Translation is already included in the 4x4 matrix
             }
         }
-    
+
         const geometry = svf.geometries[fragment.geometryID];
         const fragmesh = svf.meshpacks[geometry.packID][geometry.entityID];
         const manifestMeshes = this.manifest.meshes as gltf.Mesh[];
         if (fragmesh) {
-            const mesh = this.serializeMesh(fragmesh, svf);
+            let mesh: gltf.Mesh;
+            if ('isLines' in fragmesh) {
+                mesh = this.serializeLines(fragmesh, svf);
+            } else if ('isPoints' in fragmesh) {
+                mesh = this.serializePoints(fragmesh, svf);
+            } else {
+                mesh = this.serializeMesh(fragmesh, svf);
+            }
             node.mesh = manifestMeshes.length;
             manifestMeshes.push(mesh);
             for (const primitive of mesh.primitives) {
@@ -282,6 +289,166 @@ export class GltfSerializer {
             uvBufferView.byteLength = uvs.byteLength;
             buffer.byteLength += uvs.byteLength;
         }
+        return mesh;
+    }
+
+    protected serializeLines(fragmesh: ILines, svf: ISvf): gltf.Mesh {
+        let mesh: gltf.Mesh = {
+            primitives: []
+        };
+
+        const manifestBuffers = this.manifest.buffers as gltf.Buffer[];
+
+        // Prepare new writable stream if needed
+        if (this.bufferStream === null || this.bufferSize > BufferSizeLimit) {
+            if (this.bufferStream) {
+                this.bufferStream.close();
+                this.bufferStream = null;
+                this.bufferSize = 0;
+            }
+            const bufferUri = `${manifestBuffers.length}.bin`;
+            manifestBuffers.push({ uri: bufferUri, byteLength: 0 });
+            this.bufferStream = fse.createWriteStream(path.join(this.baseDir, bufferUri));
+        }
+
+        const bufferID = manifestBuffers.length - 1;
+        const buffer = manifestBuffers[bufferID];
+        const bufferViews = this.manifest.bufferViews as gltf.BufferView[];
+        const accessors = this.manifest.accessors as gltf.Accessor[];
+
+        const indexBufferViewID = bufferViews.length;
+        let indexBufferView = {
+            buffer: bufferID,
+            byteOffset: -1,
+            byteLength: -1
+        };
+        bufferViews.push(indexBufferView);
+
+        const positionBufferViewID = bufferViews.length;
+        let positionBufferView = {
+            buffer: bufferID,
+            byteOffset: -1,
+            byteLength: -1
+        };
+        bufferViews.push(positionBufferView);
+
+        const indexAccessorID = accessors.length;
+        let indexAccessor = {
+            bufferView: indexBufferViewID,
+            componentType: 5123, // UNSIGNED_SHORT
+            count: -1,
+            type: 'SCALAR'
+        };
+        accessors.push(indexAccessor);
+
+        const positionAccessorID = accessors.length;
+        let positionAccessor = {
+            bufferView: positionBufferViewID,
+            componentType: 5126, // FLOAT
+            count: -1,
+            type: 'VEC3',
+            //min: // TODO
+            //max: // TODO
+        };
+        accessors.push(positionAccessor);
+
+        mesh.primitives.push({
+            mode: 1, // LINES
+            attributes: {
+                POSITION: positionAccessorID,
+                // COLOR_0 // TODO
+            },
+            indices: indexAccessorID
+        });
+
+        // Indices
+        const indices = Buffer.from(fragmesh.indices.buffer);
+        this.bufferStream.write(indices);
+        this.bufferSize += indices.byteLength;
+        indexAccessor.count = indices.byteLength / 2;
+        indexBufferView.byteOffset = buffer.byteLength;
+        indexBufferView.byteLength = indices.byteLength;
+        buffer.byteLength += indices.byteLength;
+        if (buffer.byteLength % 4 !== 0) {
+            // Pad to 4-byte multiples
+            const pad = 4 - buffer.byteLength % 4;
+            this.bufferStream.write(new Uint8Array(pad));
+            this.bufferSize += pad;
+            buffer.byteLength += pad;
+        }
+
+        // Vertices
+        const vertices = Buffer.from(fragmesh.vertices.buffer);
+        this.bufferStream.write(vertices);
+        this.bufferSize += vertices.byteLength;
+        positionAccessor.count = vertices.byteLength / 4 / 3;
+        positionBufferView.byteOffset = buffer.byteLength;
+        positionBufferView.byteLength = vertices.byteLength;
+        buffer.byteLength += vertices.byteLength;
+
+        return mesh;
+    }
+
+    protected serializePoints(fragmesh: IPoints, svf: ISvf): gltf.Mesh {
+        let mesh: gltf.Mesh = {
+            primitives: []
+        };
+
+        const manifestBuffers = this.manifest.buffers as gltf.Buffer[];
+
+        // Prepare new writable stream if needed
+        if (this.bufferStream === null || this.bufferSize > BufferSizeLimit) {
+            if (this.bufferStream) {
+                this.bufferStream.close();
+                this.bufferStream = null;
+                this.bufferSize = 0;
+            }
+            const bufferUri = `${manifestBuffers.length}.bin`;
+            manifestBuffers.push({ uri: bufferUri, byteLength: 0 });
+            this.bufferStream = fse.createWriteStream(path.join(this.baseDir, bufferUri));
+        }
+
+        const bufferID = manifestBuffers.length - 1;
+        const buffer = manifestBuffers[bufferID];
+        const bufferViews = this.manifest.bufferViews as gltf.BufferView[];
+        const accessors = this.manifest.accessors as gltf.Accessor[];
+
+        const positionBufferViewID = bufferViews.length;
+        let positionBufferView = {
+            buffer: bufferID,
+            byteOffset: -1,
+            byteLength: -1
+        };
+        bufferViews.push(positionBufferView);
+
+        const positionAccessorID = accessors.length;
+        let positionAccessor = {
+            bufferView: positionBufferViewID,
+            componentType: 5126, // FLOAT
+            count: -1,
+            type: 'VEC3',
+            //min: // TODO
+            //max: // TODO
+        };
+        accessors.push(positionAccessor);
+
+        mesh.primitives.push({
+            mode: 0, // POINTS
+            attributes: {
+                POSITION: positionAccessorID,
+                // COLOR_0 // TODO
+            }
+        });
+
+        // Vertices
+        const vertices = Buffer.from(fragmesh.vertices.buffer);
+        this.bufferStream.write(vertices);
+        this.bufferSize += vertices.byteLength;
+        positionAccessor.count = vertices.byteLength / 4 / 3;
+        positionBufferView.byteOffset = buffer.byteLength;
+        positionBufferView.byteLength = vertices.byteLength;
+        buffer.byteLength += vertices.byteLength;
+
         return mesh;
     }
 

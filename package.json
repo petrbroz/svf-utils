@@ -1,6 +1,6 @@
 {
   "name": "forge-extract",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "Tools for converting Autodesk Forge models into glTF.",
   "main": "lib/index.js",
   "bin": {

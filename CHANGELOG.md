@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added
+  - Parsing individual SVF assets in parallel
+  - CI/CD pipeline setup
+  - Support for basic material textures (texture transforms not yet supported)
+- Changed
+  - Moved to TypeScript for additional type security, incl. official typings for the glTF 2.0 schema
+  - Moved to yarn
+  - Reusing SVF parser from [forge-server-utils](https://www.npmjs.com/package/forge-server-utils) module
 - Fixed
   - Crash when no materials are available
 

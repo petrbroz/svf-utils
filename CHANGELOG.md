@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed
+  - Images now extracted with both lower-cased and unmodified URIs
+
 ## [0.2.0] - 2019-10-03
 
 - Added

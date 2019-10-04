@@ -557,7 +557,19 @@ export class GltfSerializer {
     }
 
     protected async downloadTexture(uri: string, svf: ISvf): Promise<string> {
-        const img = await svf.getDerivative(uri.toLowerCase());
+        // In same cases the derivative URI is expected to be lower case...
+        let img = null;
+        try {
+            img = await svf.getDerivative(uri);
+        } catch(err) {}
+        if (!img) {
+            try {
+                img = await svf.getDerivative(uri.toLowerCase());
+            } catch(err) {}
+        }
+        if (!img) {
+            throw new Error('Texture not found.');
+        }
         const filepath = path.join(this.baseDir, uri);
         fse.ensureDirSync(path.dirname(filepath));
         fse.writeFileSync(filepath, img);

@@ -100,10 +100,10 @@ follow-redirects@1.5.10:
   dependencies:
     debug "=3.1.0"
 
-forge-server-utils@^6.3.0:
-  version "6.3.0"
-  resolved "https://registry.yarnpkg.com/forge-server-utils/-/forge-server-utils-6.3.0.tgz#f0a0e63212458ebee806503e376f768a4307b62d"
-  integrity sha512-zZ4s2oUwi5UxGls6thOz8UlwJtcWFIHF3eu58woNFqUEA9Y786krPlNjiqKcvs5QmhKjzqJJ75xN5ygyW4IvFQ==
+forge-server-utils@^6.4.0:
+  version "6.4.0"
+  resolved "https://registry.yarnpkg.com/forge-server-utils/-/forge-server-utils-6.4.0.tgz#b388374cde89946c7fb69e36ce795f4e2b5370ba"
+  integrity sha512-/Vn31CTrLg7DpgJl/xfSFTjsu5RhTI4sZHoMUl9PCh2+uZw3sNhs3wWbYmt6I98nX84l5p9KJeQDeDGa7J7r7A==
   dependencies:
     "@types/adm-zip" "^0.4.32"
     "@types/fs-extra" "^8.0.0"

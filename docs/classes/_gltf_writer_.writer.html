@@ -101,19 +101,23 @@
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_gltf_writer_.writer.html#buffersize" class="tsd-kind-icon">buffer<wbr>Size</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_gltf_writer_.writer.html#bufferstream" class="tsd-kind-icon">buffer<wbr>Stream</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_gltf_writer_.writer.html#downloads" class="tsd-kind-icon">downloads</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_gltf_writer_.writer.html#ignorelinegeometry" class="tsd-kind-icon">ignore<wbr>Line<wbr>Geometry</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_gltf_writer_.writer.html#ignoremeshgeometry" class="tsd-kind-icon">ignore<wbr>Mesh<wbr>Geometry</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_gltf_writer_.writer.html#ignorepointgeometry" class="tsd-kind-icon">ignore<wbr>Point<wbr>Geometry</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_gltf_writer_.writer.html#manifest" class="tsd-kind-icon">manifest</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><a href="_gltf_writer_.writer.html#maxbuffersize" class="tsd-kind-icon">max<wbr>Buffer<wbr>Size</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_gltf_writer_.writer.html#close" class="tsd-kind-icon">close</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_gltf_writer_.writer.html#write" class="tsd-kind-icon">write</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="_gltf_writer_.writer.html#writefragment" class="tsd-kind-icon">write<wbr>Fragment</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="_gltf_writer_.writer.html#writelinegeometry" class="tsd-kind-icon">write<wbr>Line<wbr>Geometry</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="_gltf_writer_.writer.html#writematerial" class="tsd-kind-icon">write<wbr>Material</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="_gltf_writer_.writer.html#writemeshgeometry" class="tsd-kind-icon">write<wbr>Mesh<wbr>Geometry</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="_gltf_writer_.writer.html#writepointgeometry" class="tsd-kind-icon">write<wbr>Point<wbr>Geometry</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="_gltf_writer_.writer.html#writescene" class="tsd-kind-icon">write<wbr>Scene</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><a href="_gltf_writer_.writer.html#writetexture" class="tsd-kind-icon">write<wbr>Texture</a></li>
 							</ul>
 						</section>
@@ -126,13 +130,13 @@
 					<a name="constructor" class="tsd-anchor"></a>
 					<h3>constructor</h3>
 					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>Writer<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_gltf_writer_.writer.html" class="tsd-signature-type">Writer</a></li>
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Writer<span class="tsd-signature-symbol">(</span>baseDir<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, options<span class="tsd-signature-symbol">?: </span><a href="../interfaces/_gltf_writer_.iwriteroptions.html" class="tsd-signature-type">IWriterOptions</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_gltf_writer_.writer.html" class="tsd-signature-type">Writer</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/472460d/src/gltf/writer.ts#L26">gltf/writer.ts:26</a></li>
+									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/8fb89ba/src/gltf/writer.ts#L36">gltf/writer.ts:36</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -140,6 +144,20 @@
 									<p>Initializes the writer.</p>
 								</div>
 							</div>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>baseDir: <span class="tsd-signature-type">string</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<div class="lead">
+											<p>Output folder for the glTF manifest and all its assets.</p>
+										</div>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> options: <a href="../interfaces/_gltf_writer_.iwriteroptions.html" class="tsd-signature-type">IWriterOptions</a><span class="tsd-signature-symbol"> =&nbsp;{}</span></h5>
+								</li>
+							</ul>
 							<h4 class="tsd-returns-title">Returns <a href="_gltf_writer_.writer.html" class="tsd-signature-type">Writer</a></h4>
 						</li>
 					</ul>
@@ -153,9 +171,14 @@
 					<div class="tsd-signature tsd-kind-icon">base<wbr>Dir<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/472460d/src/gltf/writer.ts#L26">gltf/writer.ts:26</a></li>
+							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/8fb89ba/src/gltf/writer.ts#L43">gltf/writer.ts:43</a></li>
 						</ul>
 					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>Output folder for the glTF manifest and all its assets.</p>
+						</div>
+					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
 					<a name="buffersize" class="tsd-anchor"></a>
@@ -163,7 +186,7 @@
 					<div class="tsd-signature tsd-kind-icon">buffer<wbr>Size<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/472460d/src/gltf/writer.ts#L25">gltf/writer.ts:25</a></li>
+							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/8fb89ba/src/gltf/writer.ts#L32">gltf/writer.ts:32</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -173,7 +196,7 @@
 					<div class="tsd-signature tsd-kind-icon">buffer<wbr>Stream<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">WriteStream</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/472460d/src/gltf/writer.ts#L24">gltf/writer.ts:24</a></li>
+							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/8fb89ba/src/gltf/writer.ts#L31">gltf/writer.ts:31</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -183,7 +206,37 @@
 					<div class="tsd-signature tsd-kind-icon">downloads<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> =&nbsp;[]</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/472460d/src/gltf/writer.ts#L23">gltf/writer.ts:23</a></li>
+							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/8fb89ba/src/gltf/writer.ts#L30">gltf/writer.ts:30</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
+					<a name="ignorelinegeometry" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> ignore<wbr>Line<wbr>Geometry</h3>
+					<div class="tsd-signature tsd-kind-icon">ignore<wbr>Line<wbr>Geometry<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/8fb89ba/src/gltf/writer.ts#L35">gltf/writer.ts:35</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
+					<a name="ignoremeshgeometry" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> ignore<wbr>Mesh<wbr>Geometry</h3>
+					<div class="tsd-signature tsd-kind-icon">ignore<wbr>Mesh<wbr>Geometry<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/8fb89ba/src/gltf/writer.ts#L34">gltf/writer.ts:34</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
+					<a name="ignorepointgeometry" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> ignore<wbr>Point<wbr>Geometry</h3>
+					<div class="tsd-signature tsd-kind-icon">ignore<wbr>Point<wbr>Geometry<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/8fb89ba/src/gltf/writer.ts#L36">gltf/writer.ts:36</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -193,7 +246,17 @@
 					<div class="tsd-signature tsd-kind-icon">manifest<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">GlTf</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/472460d/src/gltf/writer.ts#L22">gltf/writer.ts:22</a></li>
+							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/8fb89ba/src/gltf/writer.ts#L29">gltf/writer.ts:29</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-protected">
+					<a name="maxbuffersize" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagProtected">Protected</span> max<wbr>Buffer<wbr>Size</h3>
+					<div class="tsd-signature tsd-kind-icon">max<wbr>Buffer<wbr>Size<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/8fb89ba/src/gltf/writer.ts#L33">gltf/writer.ts:33</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -201,21 +264,44 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="write" class="tsd-anchor"></a>
-					<h3>write</h3>
+					<a name="close" class="tsd-anchor"></a>
+					<h3>close</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">write<span class="tsd-signature-symbol">(</span>svf<span class="tsd-signature-symbol">: </span><a href="../interfaces/_svf_reader_.isvfcontent.html" class="tsd-signature-type">ISvfContent</a>, baseDir<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+						<li class="tsd-signature tsd-kind-icon">close<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/472460d/src/gltf/writer.ts#L59">gltf/writer.ts:59</a></li>
+									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/8fb89ba/src/gltf/writer.ts#L105">gltf/writer.ts:105</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
 								<div class="lead">
-									<p>Outputs entire SVF as a glTF scene.</p>
+									<p>Finalizes the glTF output.</p>
+								</div>
+							</div>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="write" class="tsd-anchor"></a>
+					<h3>write</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">write<span class="tsd-signature-symbol">(</span>svf<span class="tsd-signature-symbol">: </span><a href="../interfaces/_svf_reader_.isvfcontent.html" class="tsd-signature-type">ISvfContent</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/8fb89ba/src/gltf/writer.ts#L74">gltf/writer.ts:74</a></li>
+								</ul>
+							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>Outputs entire SVF as a glTF scene.
+									Can be called multiple times to create a glTF with multiple scenes.</p>
 								</div>
 							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -224,12 +310,6 @@
 									<h5>svf: <a href="../interfaces/_svf_reader_.isvfcontent.html" class="tsd-signature-type">ISvfContent</a></h5>
 									<div class="tsd-comment tsd-typography">
 										<p>SVF content loaded in memory.</p>
-									</div>
-								</li>
-								<li>
-									<h5>baseDir: <span class="tsd-signature-type">string</span></h5>
-									<div class="tsd-comment tsd-typography">
-										<p>Output folder for the glTF manifest and all its assets.</p>
 									</div>
 								</li>
 							</ul>
@@ -247,7 +327,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/472460d/src/gltf/writer.ts#L116">gltf/writer.ts:116</a></li>
+									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/8fb89ba/src/gltf/writer.ts#L115">gltf/writer.ts:115</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -273,7 +353,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/472460d/src/gltf/writer.ts#L330">gltf/writer.ts:330</a></li>
+									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/8fb89ba/src/gltf/writer.ts#L333">gltf/writer.ts:333</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -299,7 +379,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/472460d/src/gltf/writer.ts#L552">gltf/writer.ts:552</a></li>
+									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/8fb89ba/src/gltf/writer.ts#L563">gltf/writer.ts:563</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -325,7 +405,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/472460d/src/gltf/writer.ts#L171">gltf/writer.ts:171</a></li>
+									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/8fb89ba/src/gltf/writer.ts#L170">gltf/writer.ts:170</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -351,7 +431,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/472460d/src/gltf/writer.ts#L458">gltf/writer.ts:458</a></li>
+									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/8fb89ba/src/gltf/writer.ts#L465">gltf/writer.ts:465</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -368,29 +448,6 @@
 					</ul>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected">
-					<a name="writescene" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagProtected">Protected</span> write<wbr>Scene</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
-						<li class="tsd-signature tsd-kind-icon">write<wbr>Scene<span class="tsd-signature-symbol">(</span>svf<span class="tsd-signature-symbol">: </span><a href="../interfaces/_svf_reader_.isvfcontent.html" class="tsd-signature-type">ISvfContent</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Scene</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/472460d/src/gltf/writer.ts#L90">gltf/writer.ts:90</a></li>
-								</ul>
-							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>svf: <a href="../interfaces/_svf_reader_.isvfcontent.html" class="tsd-signature-type">ISvfContent</a></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Scene</span></h4>
-						</li>
-					</ul>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-protected">
 					<a name="writetexture" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagProtected">Protected</span> write<wbr>Texture</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-protected">
@@ -400,7 +457,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/472460d/src/gltf/writer.ts#L583">gltf/writer.ts:583</a></li>
+									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/8fb89ba/src/gltf/writer.ts#L594">gltf/writer.ts:594</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -482,7 +539,22 @@
 								<a href="_gltf_writer_.writer.html#downloads" class="tsd-kind-icon">downloads</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-protected">
+								<a href="_gltf_writer_.writer.html#ignorelinegeometry" class="tsd-kind-icon">ignore<wbr>Line<wbr>Geometry</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-protected">
+								<a href="_gltf_writer_.writer.html#ignoremeshgeometry" class="tsd-kind-icon">ignore<wbr>Mesh<wbr>Geometry</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-protected">
+								<a href="_gltf_writer_.writer.html#ignorepointgeometry" class="tsd-kind-icon">ignore<wbr>Point<wbr>Geometry</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-protected">
 								<a href="_gltf_writer_.writer.html#manifest" class="tsd-kind-icon">manifest</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-protected">
+								<a href="_gltf_writer_.writer.html#maxbuffersize" class="tsd-kind-icon">max<wbr>Buffer<wbr>Size</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_gltf_writer_.writer.html#close" class="tsd-kind-icon">close</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="_gltf_writer_.writer.html#write" class="tsd-kind-icon">write</a>
@@ -503,17 +575,17 @@
 								<a href="_gltf_writer_.writer.html#writepointgeometry" class="tsd-kind-icon">write<wbr>Point<wbr>Geometry</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-protected">
-								<a href="_gltf_writer_.writer.html#writescene" class="tsd-kind-icon">write<wbr>Scene</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-protected">
 								<a href="_gltf_writer_.writer.html#writetexture" class="tsd-kind-icon">write<wbr>Texture</a>
 							</li>
 						</ul>
 					</li>
 				</ul>
 				<ul class="after-current">
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
+						<a href="../interfaces/_gltf_writer_.iwriteroptions.html" class="tsd-kind-icon">IWriter<wbr>Options</a>
+					</li>
 					<li class=" tsd-kind-variable tsd-parent-kind-external-module tsd-is-not-exported">
-						<a href="../modules/_gltf_writer_.html#buffersizelimit" class="tsd-kind-icon">Buffer<wbr>Size<wbr>Limit</a>
+						<a href="../modules/_gltf_writer_.html#maxbuffersize" class="tsd-kind-icon">Max<wbr>Buffer<wbr>Size</a>
 					</li>
 					<li class=" tsd-kind-object-literal tsd-parent-kind-external-module tsd-is-not-exported">
 						<a href="../modules/_gltf_writer_.html#defaultmaterial" class="tsd-kind-icon">Default<wbr>Material</a>

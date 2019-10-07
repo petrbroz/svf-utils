@@ -83,25 +83,32 @@
 				</a>
 				<ul>
 					<li>install the package: <code>npm install --global forge-convert-utils</code></li>
-					<li>run the command without parameters for usage info: <code>forge-convert</code></li>
-					<li>run the command with parameters, providing either Forge client credentials or access token:</li>
+					<li>run the <code>forge-convert</code> command without parameters for usage info</li>
+					<li>run the command with a path to a local SVF file</li>
+					<li>run the command with a Model Derivative URN (and optionally viewable GUID)<ul>
+							<li>to access Forge you must also specify credentials (<code>FORGE_CLIENT_ID</code> and <code>FORGE_CLIENT_SECRET</code>)
+							or an authentication token (<code>FORGE_ACCESS_TOKEN</code>) as env. variables</li>
+						</ul>
+					</li>
 				</ul>
 				<a href="#unixmacos" id="unixmacos" style="color: inherit; text-decoration: none;">
 					<h4>Unix/macOS</h4>
 				</a>
+				<pre><code>forge-<span class="hljs-built_in">convert</span> &lt;path <span class="hljs-built_in">to</span> <span class="hljs-built_in">local</span> svf&gt; <span class="hljs-comment">--output-folder &lt;path to output folder&gt;</span></code></pre><p>or</p>
 				<pre><code><span class="hljs-builtin-name">export</span> <span class="hljs-attribute">FORGE_CLIENT_ID</span>=&lt;client id&gt;
 <span class="hljs-builtin-name">export</span> <span class="hljs-attribute">FORGE_CLIENT_SECRET</span>=&lt;client secret&gt;
-forge-convert --output-folder tmp &lt;urn&gt;</code></pre><p>or</p>
+forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to</span> output folder&gt;</code></pre><p>or</p>
 				<pre><code><span class="hljs-builtin-name">export</span> <span class="hljs-attribute">FORGE_ACCESS_TOKEN</span>=&lt;access token&gt;&gt;
-forge-convert --output-folder tmp &lt;urn&gt;</code></pre>
+forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to</span> output folder&gt;</code></pre>
 				<a href="#windows" id="windows" style="color: inherit; text-decoration: none;">
 					<h4>Windows</h4>
 				</a>
+				<pre><code>forge-<span class="hljs-built_in">convert</span> &lt;path <span class="hljs-built_in">to</span> <span class="hljs-built_in">local</span> svf&gt; <span class="hljs-comment">--output-folder &lt;path to output folder&gt;</span></code></pre><p>or</p>
 				<pre><code><span class="hljs-builtin-name">set</span> <span class="hljs-attribute">FORGE_CLIENT_ID</span>=&lt;client id&gt;
 <span class="hljs-builtin-name">set</span> <span class="hljs-attribute">FORGE_CLIENT_SECRET</span>=&lt;client secret&gt;
-forge-convert --output-folder tmp &lt;urn&gt;</code></pre><p>or</p>
-				<pre><code><span class="hljs-built_in">set</span> FORGE_ACCESS_TOKEN=&lt;access <span class="hljs-keyword">token</span>&gt;&gt;
-forge-<span class="hljs-built_in">convert</span> <span class="hljs-comment">--output-folder tmp &lt;urn&gt;</span></code></pre>
+forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to</span> output folder&gt;</code></pre><p>or</p>
+				<pre><code><span class="hljs-builtin-name">set</span> <span class="hljs-attribute">FORGE_ACCESS_TOKEN</span>=&lt;access token&gt;&gt;
+forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to</span> output folder&gt;</code></pre>
 				<a href="#nodejs" id="nodejs" style="color: inherit; text-decoration: none;">
 					<h3>Node.js</h3>
 				</a>
@@ -119,12 +126,13 @@ forge-<span class="hljs-built_in">convert</span> <span class="hljs-comment">--ou
     <span class="hljs-keyword">const</span> modelDerivativeClient = <span class="hljs-keyword">new</span> ModelDerivativeClient(auth);
     <span class="hljs-keyword">const</span> helper = <span class="hljs-keyword">new</span> ManifestHelper(<span class="hljs-keyword">await</span> modelDerivativeClient.getManifest(urn));
     <span class="hljs-keyword">const</span> derivatives = helper.search({ <span class="hljs-attr">type</span>: <span class="hljs-string">'resource'</span>, <span class="hljs-attr">role</span>: <span class="hljs-string">'graphics'</span> });
+    <span class="hljs-keyword">const</span> writer = <span class="hljs-keyword">new</span> GltfWriter(outputDir);
     <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> derivative <span class="hljs-keyword">of</span> derivatives.filter(<span class="hljs-function"><span class="hljs-params">d</span> =&gt;</span> d.mime === <span class="hljs-string">'application/autodesk-svf'</span>)) {
         <span class="hljs-keyword">const</span> reader = <span class="hljs-keyword">await</span> SvfReader.FromDerivativeService(urn, derivative.guid, auth);
         <span class="hljs-keyword">const</span> svf = <span class="hljs-keyword">await</span> reader.read();
-        <span class="hljs-keyword">const</span> writer = <span class="hljs-keyword">new</span> GltfWriter();
-        writer.write(svf, outputDir);
+        writer.write(svf);
     }
+    writer.close();
 }
 
 run(<span class="hljs-string">'your model urn'</span>, <span class="hljs-string">'path/to/output/folder'</span>);</code></pre>
@@ -134,7 +142,7 @@ run(<span class="hljs-string">'your model urn'</span>, <span class="hljs-string"
 					or <a href="https://petrbroz.github.io/forge-convert-utils/docs/classes/_svf_reader_.reader.html#enumerategeometries">SvfReader#enumerateGeometries</a>
 				to <em>asynchronously</em> iterate over individual elements:</p>
 				<pre><code class="language-js"><span class="hljs-keyword">const</span> { ModelDerivativeClient, ManifestHelper } = <span class="hljs-built_in">require</span>(<span class="hljs-string">'forge-server-utils'</span>);
-<span class="hljs-keyword">const</span> { SvfReader, GltfWriter } = <span class="hljs-built_in">require</span>(<span class="hljs-string">'forge-convert-utils'</span>);
+<span class="hljs-keyword">const</span> { SvfReader } = <span class="hljs-built_in">require</span>(<span class="hljs-string">'forge-convert-utils'</span>);
 
 <span class="hljs-keyword">const</span> { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
 

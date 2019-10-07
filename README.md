@@ -53,7 +53,8 @@ forge-convert --output-folder tmp <urn>
 The library is structured so that you can use it at different levels of control.
 
 The easiest way to convert an SVF file is to read the entire model into memory
-using `SvfReader#read` method, and save the model into glTF using `GltfWriter#write`:
+using [SvfReader#read](https://petrbroz.github.io/forge-convert-utils/docs/classes/_svf_reader_.reader.html#read)
+method, and save the model into glTF using [GltfWriter#write](https://petrbroz.github.io/forge-convert-utils/docs/classes/_gltf_writer_.writer.html#write):
 
 ```js
 const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
@@ -79,8 +80,9 @@ run('your model urn', 'path/to/output/folder');
 
 If you don't want to read the entire model into memory (for example, when distributing
 the parsing of an SVF over multiple server instances), you can use methods like
-`SvfReader#enumerateFragments` or `SvfReader#enumerateGeometries` to _asynchronously_
-iterate over individual elements:
+[SvfReader#enumerateFragments](https://petrbroz.github.io/forge-convert-utils/docs/classes/_svf_reader_.reader.html#enumeratefragments)
+or [SvfReader#enumerateGeometries](https://petrbroz.github.io/forge-convert-utils/docs/classes/_svf_reader_.reader.html#enumerategeometries)
+to _asynchronously_ iterate over individual elements:
 
 ```js
 const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
@@ -105,7 +107,7 @@ run('your model urn');
 ```
 
 And finally, if you already have the individual SVF assets in memory, you can parse the binary data
-directly using _synchronous_ iterators like `parseMeshes`:
+directly using _synchronous_ iterators like [parseMeshes](https://petrbroz.github.io/forge-convert-utils/docs/modules/_svf_meshes_.html#parsemeshes):
 
 ```js
 const { parseMeshes } = require('forge-convert-utils/lib/svf/meshes');

@@ -1,13 +1,13 @@
 /*
- * Example: parsing object properties in SVF from Model Derivative service
+ * Example: parsing object properties for all viewables in a Model Derivative URN
  * Usage:
  *     export FORGE_CLIENT_ID=<your client id>
  *     export FORGE_CLIENT_SECRET=<your client secret>
- *     node derivative-svf-props.js <your model urn>
+ *     node remote-svf-props.js <your model urn>
  */
 
 const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
-const { SvfReader } = require('../lib');
+const { SvfReader } = require('..');
 
 const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
 

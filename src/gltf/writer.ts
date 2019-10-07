@@ -2,11 +2,11 @@ import * as path from 'path';
 import * as fse from 'fs-extra';
 
 import * as gltf from './schema';
-import { isUndefined } from 'util';
+import { isUndefined, isNullOrUndefined } from 'util';
 import { IMaterial, IFragment, IMesh, ILines, IPoints, IMaterialMap } from '../svf/schema';
 import { ISvfContent } from '../svf/reader';
 
-const BufferSizeLimit = 5 << 20;
+const MaxBufferSize = 5 << 20;
 const DefaultMaterial: gltf.MaterialPbrMetallicRoughness = {
     pbrMetallicRoughness: {
         baseColorFactor: [0.25, 0.25, 0.25, 1.0],
@@ -15,14 +15,36 @@ const DefaultMaterial: gltf.MaterialPbrMetallicRoughness = {
     }
 };
 
+export interface IWriterOptions {
+    maxBufferSize?: number; /** Approx. size limit (in bytes) of binary buffers with mesh data (5 << 20 by default) */
+    ignoreMeshGeometry?: boolean; /** Don't output mesh geometry */
+    ignoreLineGeometry?: boolean; /** Don't output line geometry */
+    ignorePointGeometry?: boolean; /** Don't output point geometry */
+}
+
+/**
+ * Utility class for serializing SVF content to local file system as glTF (2.0).
+ */
 export class Writer {
     protected manifest: gltf.GlTf;
     protected downloads: Promise<string>[] = [];
     protected bufferStream: fse.WriteStream | null;
     protected bufferSize: number;
-    protected baseDir: string;
+    protected maxBufferSize: number;
+    protected ignoreMeshGeometry: boolean;
+    protected ignoreLineGeometry: boolean;
+    protected ignorePointGeometry: boolean;
 
-    constructor() {
+    /**
+     * Initializes the writer.
+     * @param {string} baseDir Output folder for the glTF manifest and all its assets.
+     * @param {IWriterOptions} [options={}] Additional writer options.
+     */
+    constructor(protected baseDir: string, options: IWriterOptions = {}) {
+        this.maxBufferSize = isNullOrUndefined(options.maxBufferSize) ? MaxBufferSize : options.maxBufferSize;
+        this.ignoreMeshGeometry = !!options.ignoreMeshGeometry;
+        this.ignoreLineGeometry = !!options.ignoreLineGeometry;
+        this.ignorePointGeometry = !!options.ignorePointGeometry;
         this.manifest = {
             asset: {
                 version: '2.0',
@@ -38,50 +60,25 @@ export class Writer {
             scenes: [],
             textures: [],
             images: [],
-            scene: -1
+            scene: 0 // For now, we always mark the first scene as the default one
         };
         this.bufferStream = null;
         this.bufferSize = 0;
-        this.baseDir = '';
     }
 
-    write(svf: ISvfContent, baseDir: string) {
-        this.baseDir = baseDir;
-        this.bufferStream = null;
-        this.bufferSize = 0;
-        this.manifest = {
-            asset: {
-                version: '2.0',
-                generator: 'forge-svf-utils',
-                copyright: '2019 (c) Autodesk'
-            },
-            buffers: [],
-            bufferViews: [],
-            accessors: [],
-            meshes: [],
-            materials: [],
-            nodes: [],
-            scenes: [],
-            textures: [],
-            images: [],
-            scene: -1
-        };
-
-        const manifestScenes = this.manifest.scenes as gltf.Scene[];
-        fse.ensureDirSync(this.baseDir);
-        manifestScenes.push(this.writeScene(svf));
-        this.manifest.scene = 0;
-        const gltfPath = path.join(this.baseDir, 'output.gltf');
-        fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
-    }
-
-    protected writeScene(svf: ISvfContent): gltf.Scene {
+    /**
+     * Outputs entire SVF as a glTF scene.
+     * Can be called multiple times to create a glTF with multiple scenes.
+     * @param {ISvfContent} svf SVF content loaded in memory.
+     */
+    write(svf: ISvfContent) {
         let scene: gltf.Scene = {
-            name: 'main',
             nodes: []
         };
         const manifestNodes = this.manifest.nodes as gltf.Node[];
         const manifestMaterials = this.manifest.materials as gltf.MaterialPbrMetallicRoughness[];
+
+        fse.ensureDirSync(this.baseDir);
 
         for (const fragment of svf.fragments) {
             const node = this.writeFragment(fragment, svf);
@@ -98,7 +95,21 @@ export class Writer {
             manifestMaterials.push(mat);
         }
 
-        return scene;
+        const manifestScenes = this.manifest.scenes as gltf.Scene[];
+        manifestScenes.push(scene);
+    }
+
+    /**
+     * Finalizes the glTF output.
+     */
+    close() {
+        if (this.bufferStream) {
+            this.bufferStream.close();
+            this.bufferStream = null;
+            this.bufferSize = 0;
+        }
+        const gltfPath = path.join(this.baseDir, 'output.gltf');
+        fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
     }
 
     protected writeFragment(fragment: IFragment, svf: ISvfContent): gltf.Node {
@@ -161,10 +172,14 @@ export class Writer {
             primitives: []
         };
 
+        if (this.ignoreMeshGeometry) {
+            return mesh;
+        }
+
         const manifestBuffers = this.manifest.buffers as gltf.Buffer[];
 
         // Prepare new writable stream if needed
-        if (this.bufferStream === null || this.bufferSize > BufferSizeLimit) {
+        if (this.bufferStream === null || this.bufferSize > this.maxBufferSize) {
             if (this.bufferStream) {
                 this.bufferStream.close();
                 this.bufferStream = null;
@@ -320,10 +335,14 @@ export class Writer {
             primitives: []
         };
 
+        if (this.ignoreLineGeometry) {
+            return mesh;
+        }
+
         const manifestBuffers = this.manifest.buffers as gltf.Buffer[];
 
         // Prepare new writable stream if needed
-        if (this.bufferStream === null || this.bufferSize > BufferSizeLimit) {
+        if (this.bufferStream === null || this.bufferSize > this.maxBufferSize) {
             if (this.bufferStream) {
                 this.bufferStream.close();
                 this.bufferStream = null;
@@ -448,10 +467,14 @@ export class Writer {
             primitives: []
         };
 
+        if (this.ignorePointGeometry) {
+            return mesh;
+        }
+
         const manifestBuffers = this.manifest.buffers as gltf.Buffer[];
 
         // Prepare new writable stream if needed
-        if (this.bufferStream === null || this.bufferSize > BufferSizeLimit) {
+        if (this.bufferStream === null || this.bufferSize > this.maxBufferSize) {
             if (this.bufferStream) {
                 this.bufferStream.close();
                 this.bufferStream = null;

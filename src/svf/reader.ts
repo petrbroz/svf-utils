@@ -32,7 +32,7 @@ export interface ISvfContent {
  * The class can only be instantiated using one of the two async static methods:
  * {@link Reader.FromFileSystem}, or {@link Reader.FromDerivativeService}.
  * After that, you can parse the entire SVF into memory using {@link parse}, or parse
- * individual SVF objects using methods like {@link listFragments} or {@link enumerateGeometries}.
+ * individual SVF objects using methods like {@link readFragments} or {@link enumerateGeometries}.
  *
  * @example
  * const auth = { client_id: 'forge client id', client_secret: 'forge client secreet' };
@@ -107,7 +107,7 @@ export class Reader {
      * Reads the entire SVF and all its referenced assets into memory.
      * In cases where a more granular control is needed (for example, when trying to control
      * memory consumption), consider parsing the different SVF elements individually,
-     * using methods like {@link listFragments}, {@link enumerateGeometries}, etc.
+     * using methods like {@link readFragments}, {@link enumerateGeometries}, etc.
      */
     async read(): Promise<ISvfContent> {
         let output: any = {

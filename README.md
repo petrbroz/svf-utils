@@ -12,43 +12,64 @@ Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file f
 
 ## Usage
 
-### From Command line
+### Command line
 
 - install the package: `npm install --global forge-convert-utils`
-- run the command without parameters for usage info: `forge-convert`
-- run the command with parameters, providing either Forge client credentials or access token:
+- run the `forge-convert` command without parameters for usage info
+- run the command with a path to a local SVF file
+- run the command with a Model Derivative URN (and optionally viewable GUID)
+    - to access Forge you must also specify credentials (`FORGE_CLIENT_ID` and `FORGE_CLIENT_SECRET`)
+    or an authentication token (`FORGE_ACCESS_TOKEN`) as env. variables
 
-On Windows
+#### Unix/macOS
 
 ```
-set FORGE_CLIENT_ID=<client id>
-set FORGE_CLIENT_SECRET=<client secret>
-forge-convert --output-folder=test <urn>
+forge-convert <path to local svf> --output-folder <path to output folder>
 ```
 
 or
 
 ```
-set FORGE_ACCESS_TOKEN=<access token>>
-forge-convert --output-folder=test <urn>
-```
-
-On macOS/Linux
-
-```
 export FORGE_CLIENT_ID=<client id>
 export FORGE_CLIENT_SECRET=<client secret>
-forge-convert --output-folder=test <urn>
+forge-convert <urn> --output-folder <path to output folder>
 ```
 
 or
 
 ```
 export FORGE_ACCESS_TOKEN=<access token>>
-forge-convert --output-folder=test <urn>
+forge-convert <urn> --output-folder <path to output folder>
 ```
 
-### From Node.js
+#### Windows
+
+```
+forge-convert <path to local svf> --output-folder <path to output folder>
+```
+
+or
+
+```
+set FORGE_CLIENT_ID=<client id>
+set FORGE_CLIENT_SECRET=<client secret>
+forge-convert <urn> --output-folder <path to output folder>
+```
+
+or
+
+```
+set FORGE_ACCESS_TOKEN=<access token>>
+forge-convert <urn> --output-folder <path to output folder>
+```
+
+### Node.js
+
+The library is structured so that you can use it at different levels of control.
+
+The easiest way to convert an SVF file is to read the entire model into memory
+using [SvfReader#read](https://petrbroz.github.io/forge-convert-utils/docs/classes/_svf_reader_.reader.html#read)
+method, and save the model into glTF using [GltfWriter#write](https://petrbroz.github.io/forge-convert-utils/docs/classes/_gltf_writer_.writer.html#write):
 
 ```js
 const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
@@ -61,15 +82,54 @@ async function run (urn, outputDir) {
     const modelDerivativeClient = new ModelDerivativeClient(auth);
     const helper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
     const derivatives = helper.search({ type: 'resource', role: 'graphics' });
+    const writer = new GltfWriter(outputDir);
     for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
         const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
         const svf = await reader.read();
-        const writer = new GltfWriter();
-        writer.write(svf, outputDir);
+        writer.write(svf);
     }
+    writer.close();
 }
 
 run('your model urn', 'path/to/output/folder');
 ```
 
-> For more examples, see the [test](./test) subfolder.
+If you don't want to read the entire model into memory (for example, when distributing
+the parsing of an SVF over multiple server instances), you can use methods like
+[SvfReader#enumerateFragments](https://petrbroz.github.io/forge-convert-utils/docs/classes/_svf_reader_.reader.html#enumeratefragments)
+or [SvfReader#enumerateGeometries](https://petrbroz.github.io/forge-convert-utils/docs/classes/_svf_reader_.reader.html#enumerategeometries)
+to _asynchronously_ iterate over individual elements:
+
+```js
+const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
+const { SvfReader } = require('forge-convert-utils');
+
+const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
+
+async function run (urn) {
+    const auth = { client_id: FORGE_CLIENT_ID, client_secret: FORGE_CLIENT_SECRET };
+    const modelDerivativeClient = new ModelDerivativeClient(auth);
+    const helper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
+    const derivatives = helper.search({ type: 'resource', role: 'graphics' });
+    for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
+        const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
+        for await (const fragment of reader.enumerateFragments()) {
+            console.log(fragment);
+        }
+    }
+}
+
+run('your model urn');
+```
+
+And finally, if you already have the individual SVF assets in memory, you can parse the binary data
+directly using _synchronous_ iterators like [parseMeshes](https://petrbroz.github.io/forge-convert-utils/docs/modules/_svf_meshes_.html#parsemeshes):
+
+```js
+const { parseMeshes } = require('forge-convert-utils/lib/svf/meshes');
+for (const mesh of parseMeshes(buffer)) {
+    console.log(mesh);
+}
+```
+
+> For additional examples, see the [test](./test) subfolder.

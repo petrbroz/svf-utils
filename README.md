@@ -15,10 +15,19 @@ Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file f
 ### Command line
 
 - install the package: `npm install --global forge-convert-utils`
-- run the command without parameters for usage info: `forge-convert`
-- run the command with parameters, providing either Forge client credentials or access token:
+- run the `forge-convert` command without parameters for usage info
+- run the command with a path to a local SVF file
+- run the command with a Model Derivative URN (and optionally viewable GUID)
+    - to access Forge you must also specify credentials (`FORGE_CLIENT_ID` and `FORGE_CLIENT_SECRET`)
+    or an authentication token (`FORGE_ACCESS_TOKEN`) as env. variables
 
 #### Unix/macOS
+
+```
+forge-convert --output-folder tmp path/to/local.svf
+```
+
+or
 
 ```
 export FORGE_CLIENT_ID=<client id>
@@ -34,6 +43,12 @@ forge-convert --output-folder tmp <urn>
 ```
 
 #### Windows
+
+```
+forge-convert --output-folder tmp path\to\local.svf
+```
+
+or
 
 ```
 set FORGE_CLIENT_ID=<client id>

@@ -7,7 +7,7 @@
  */
 
 const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
-const { SvfReader } = require('../lib');
+const { SvfReader } = require('..');
 
 const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
 

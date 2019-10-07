@@ -1,5 +1,5 @@
 /*
- * Example: converting an SVF from local file system
+ * Example: converting an SVF (without property database) from local file system into glTF
  * Usage:
  *     node filesystem-svf-to-gltf.js <path to svf file> <path to output folder>
  */

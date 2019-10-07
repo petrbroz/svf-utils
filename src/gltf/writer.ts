@@ -1,10 +1,10 @@
 import * as path from 'path';
 import * as fse from 'fs-extra';
 
-import * as gltf from './helpers/gltf-schema';
-import { ISvf } from './svf';
-import { IFragment, IMaterial, IMesh, IMaterialMap, ILines, IPoints } from 'forge-server-utils/dist/svf';
+import * as gltf from './schema';
 import { isUndefined } from 'util';
+import { IMaterial, IFragment, IMesh, ILines, IPoints, IMaterialMap } from '../svf/schema';
+import { ISvfContent } from '../svf/reader';
 
 const BufferSizeLimit = 5 << 20;
 const DefaultMaterial: gltf.MaterialPbrMetallicRoughness = {
@@ -15,19 +15,18 @@ const DefaultMaterial: gltf.MaterialPbrMetallicRoughness = {
     }
 };
 
-export class GltfSerializer {
+export class Writer {
     protected manifest: gltf.GlTf;
     protected downloads: Promise<string>[] = [];
     protected bufferStream: fse.WriteStream | null;
     protected bufferSize: number;
+    protected baseDir: string;
 
-    constructor(protected baseDir: string) {
-        this.bufferStream = null;
-        this.bufferSize = 0;
+    constructor() {
         this.manifest = {
             asset: {
                 version: '2.0',
-                generator: 'forge-extract',
+                generator: 'forge-svf-utils',
                 copyright: '2019 (c) Autodesk'
             },
             buffers: [],
@@ -41,18 +40,42 @@ export class GltfSerializer {
             images: [],
             scene: -1
         };
+        this.bufferStream = null;
+        this.bufferSize = 0;
+        this.baseDir = '';
     }
 
-    async serialize(svf: ISvf) {
+    write(svf: ISvfContent, baseDir: string) {
+        this.baseDir = baseDir;
+        this.bufferStream = null;
+        this.bufferSize = 0;
+        this.manifest = {
+            asset: {
+                version: '2.0',
+                generator: 'forge-svf-utils',
+                copyright: '2019 (c) Autodesk'
+            },
+            buffers: [],
+            bufferViews: [],
+            accessors: [],
+            meshes: [],
+            materials: [],
+            nodes: [],
+            scenes: [],
+            textures: [],
+            images: [],
+            scene: -1
+        };
+
         const manifestScenes = this.manifest.scenes as gltf.Scene[];
-        manifestScenes.push(this.serializeScene(svf));
+        fse.ensureDirSync(this.baseDir);
+        manifestScenes.push(this.writeScene(svf));
         this.manifest.scene = 0;
         const gltfPath = path.join(this.baseDir, 'output.gltf');
         fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
-        await Promise.all(this.downloads); // Wait for all pending downloads to finish
     }
 
-    protected serializeScene(svf: ISvf): gltf.Scene {
+    protected writeScene(svf: ISvfContent): gltf.Scene {
         let scene: gltf.Scene = {
             name: 'main',
             nodes: []
@@ -61,7 +84,7 @@ export class GltfSerializer {
         const manifestMaterials = this.manifest.materials as gltf.MaterialPbrMetallicRoughness[];
 
         for (const fragment of svf.fragments) {
-            const node = this.serializeFragment(fragment, svf);
+            const node = this.writeFragment(fragment, svf);
             // Only output nodes that have a mesh
             if (!isUndefined(node.mesh)) {
                 const index = manifestNodes.length;
@@ -71,14 +94,14 @@ export class GltfSerializer {
         }
 
         for (const material of svf.materials) {
-            const mat = this.serializeMaterial(material, svf);
+            const mat = this.writeMaterial(material, svf);
             manifestMaterials.push(mat);
         }
 
         return scene;
     }
 
-    protected serializeFragment(fragment: IFragment, svf: ISvf): gltf.Node {
+    protected writeFragment(fragment: IFragment, svf: ISvfContent): gltf.Node {
         let node: gltf.Node = {
             name: fragment.dbID.toString()
         };
@@ -116,11 +139,11 @@ export class GltfSerializer {
         if (fragmesh) {
             let mesh: gltf.Mesh;
             if ('isLines' in fragmesh) {
-                mesh = this.serializeLines(fragmesh, svf);
+                mesh = this.writeLineGeometry(fragmesh, svf);
             } else if ('isPoints' in fragmesh) {
-                mesh = this.serializePoints(fragmesh, svf);
+                mesh = this.writePointGeometry(fragmesh, svf);
             } else {
-                mesh = this.serializeMesh(fragmesh, svf);
+                mesh = this.writeMeshGeometry(fragmesh, svf);
             }
             node.mesh = manifestMeshes.length;
             manifestMeshes.push(mesh);
@@ -133,7 +156,7 @@ export class GltfSerializer {
         return node;
     }
 
-    protected serializeMesh(fragmesh: IMesh, svf: ISvf): gltf.Mesh {
+    protected writeMeshGeometry(fragmesh: IMesh, svf: ISvfContent): gltf.Mesh {
         let mesh: gltf.Mesh = {
             primitives: []
         };
@@ -292,7 +315,7 @@ export class GltfSerializer {
         return mesh;
     }
 
-    protected serializeLines(fragmesh: ILines, svf: ISvf): gltf.Mesh {
+    protected writeLineGeometry(fragmesh: ILines, svf: ISvfContent): gltf.Mesh {
         let mesh: gltf.Mesh = {
             primitives: []
         };
@@ -420,7 +443,7 @@ export class GltfSerializer {
         return mesh;
     }
 
-    protected serializePoints(fragmesh: IPoints, svf: ISvf): gltf.Mesh {
+    protected writePointGeometry(fragmesh: IPoints, svf: ISvfContent): gltf.Mesh {
         let mesh: gltf.Mesh = {
             primitives: []
         };
@@ -514,7 +537,7 @@ export class GltfSerializer {
         return mesh;
     }
 
-    protected serializeMaterial(mat: IMaterial | null, svf: ISvf): gltf.MaterialPbrMetallicRoughness {
+    protected writeMaterial(mat: IMaterial | null, svf: ISvfContent): gltf.MaterialPbrMetallicRoughness {
         if (!mat) {
             return DefaultMaterial;
         }
@@ -535,7 +558,7 @@ export class GltfSerializer {
             const manifestTextures = this.manifest.textures as gltf.Texture[];
             if (mat.maps.diffuse) {
                 const textureID = manifestTextures.length;
-                manifestTextures.push(this.serializeTexture(mat.maps.diffuse, svf));
+                manifestTextures.push(this.writeTexture(mat.maps.diffuse, svf));
                 material.pbrMetallicRoughness.baseColorTexture = {
                     index: textureID,
                     texCoord: 0
@@ -545,40 +568,17 @@ export class GltfSerializer {
         return material;
     }
 
-    protected serializeTexture(map: IMaterialMap, svf: ISvf): gltf.Texture {
+    protected writeTexture(map: IMaterialMap, svf: ISvfContent): gltf.Texture {
         const manifestImages = this.manifest.images as gltf.Image[];
         let imageID = manifestImages.findIndex(image => image.uri === map.uri);
         if (imageID === -1) {
             imageID = manifestImages.length;
-            manifestImages.push({ uri: map.uri });
-            this.downloads.push(this.downloadTexture(map.uri, svf));
+            const uri = map.uri.toLowerCase();
+            manifestImages.push({ uri });
+            const filepath = path.join(this.baseDir, uri);
+            fse.ensureDirSync(path.dirname(filepath));
+            fse.writeFileSync(filepath, svf.images[uri]);
         }
         return { source: imageID };
     }
-
-    protected async downloadTexture(uri: string, svf: ISvf): Promise<string> {
-        // In same cases the derivative URI is expected to be lower case...
-        let img = null;
-        try {
-            img = await svf.getDerivative(uri);
-        } catch(err) {}
-        if (!img) {
-            try {
-                img = await svf.getDerivative(uri.toLowerCase());
-            } catch(err) {}
-        }
-        if (!img) {
-            throw new Error('Texture not found.');
-        }
-        const filepath = path.join(this.baseDir, uri);
-        fse.ensureDirSync(path.dirname(filepath));
-        fse.writeFileSync(filepath, img);
-        return uri;
-    }
-}
-
-export async function serialize(svf: ISvf, baseDir: string) {
-    fse.ensureDirSync(baseDir);
-    const serializer = new GltfSerializer(baseDir);
-    return serializer.serialize(svf);
 }

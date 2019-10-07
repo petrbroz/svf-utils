@@ -5,7 +5,7 @@ const path = require('path');
 const fse = require('fs-extra');
 const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
 
-const { deserialize, serialize } = require('.');
+const { SvfReader, GltfWriter } = require('.');
 
 const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET, FORGE_ACCESS_TOKEN } = process.env;
 let auth = null;
@@ -17,8 +17,10 @@ if (FORGE_ACCESS_TOKEN) {
 
 async function convert(urn, guid, folder) {
     console.log('Converting urn', urn, 'guid', guid);
-    const svf = await deserialize(urn, guid, auth);
-    await serialize(svf, folder);
+    const reader = await SvfReader.FromDerivativeService(urn, guid, auth);
+    const svf = await reader.read();
+    const writer = new GltfWriter();
+    writer.write(svf, folder);
 }
 
 program
@@ -35,20 +37,20 @@ program
             }
 
             const client = new ModelDerivativeClient(auth);
-            const helper = new ManifestHelper(await client.getManifest(urn))
+            const helper = new ManifestHelper(await client.getManifest(urn));
+
+            // Convert input guid or all guids
             const folder = path.join(program.outputFolder, urn);
             if (guid) {
                 await convert(urn, guid, folder);
             } else {
                 const derivatives = helper.search({ type: 'resource', role: 'graphics' });
-                const guids = derivatives.filter(d => d.mime === 'application/autodesk-svf').map(d => d.guid);
-                for (const guid of guids) {
-                    await convert(urn, guid, path.join(folder, guid));
+                for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
+                    await convert(urn, derivative.guid, path.join(folder, derivative.guid));
                 }
             }
 
-            // Store the property database within the <urn> subfolder
-            // as it is shared by all viewables
+            // Store the property database within the <urn> subfolder (it is shared by all viewables)
             const pdbDerivatives = helper.search({ type: 'resource', role: 'Autodesk.CloudPlatform.PropertyDatabase' });
             if (pdbDerivatives.length > 0) {
                 const pdb = await client.getDerivative(urn, pdbDerivatives[0].urn);

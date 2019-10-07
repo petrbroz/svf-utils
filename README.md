@@ -1,9 +1,9 @@
-# forge-extract
+# forge-convert-utils
 
-[![build status](https://travis-ci.org/petrbroz/forge-extract.svg?branch=master)](https://travis-ci.org/petrbroz/forge-extract)
-[![npm version](https://badge.fury.io/js/forge-extract.svg)](https://badge.fury.io/js/forge-extract)
-![node](https://img.shields.io/node/v/forge-extract.svg)
-![npm downloads](https://img.shields.io/npm/dw/forge-extract.svg)
+[![build status](https://travis-ci.org/petrbroz/forge-convert-utils.svg?branch=master)](https://travis-ci.org/petrbroz/forge-convert-utils)
+[![npm version](https://badge.fury.io/js/forge-convert-utils.svg)](https://badge.fury.io/js/forge-convert-utils)
+![node](https://img.shields.io/node/v/forge-convert-utils.svg)
+![npm downloads](https://img.shields.io/npm/dw/forge-convert-utils.svg)
 ![platforms](https://img.shields.io/badge/platform-windows%20%7C%20osx%20%7C%20linux-lightgray.svg)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](http://opensource.org/licenses/MIT)
 
@@ -14,8 +14,8 @@ Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file f
 
 ### From Command line
 
-- install the package: `npm install --global forge-extract`
-- run the command without parameters for usage info: `forge-extract`
+- install the package: `npm install --global forge-convert-utils`
+- run the command without parameters for usage info: `forge-convert`
 - run the command with parameters, providing either Forge client credentials or access token:
 
 On Windows
@@ -23,14 +23,14 @@ On Windows
 ```
 set FORGE_CLIENT_ID=<client id>
 set FORGE_CLIENT_SECRET=<client secret>
-forge-extract --output-folder=test <urn>
+forge-convert --output-folder=test <urn>
 ```
 
 or
 
 ```
 set FORGE_ACCESS_TOKEN=<access token>>
-forge-extract --output-folder=test <urn>
+forge-convert --output-folder=test <urn>
 ```
 
 On macOS/Linux
@@ -38,21 +38,21 @@ On macOS/Linux
 ```
 export FORGE_CLIENT_ID=<client id>
 export FORGE_CLIENT_SECRET=<client secret>
-forge-extract --output-folder=test <urn>
+forge-convert --output-folder=test <urn>
 ```
 
 or
 
 ```
 export FORGE_ACCESS_TOKEN=<access token>>
-forge-extract --output-folder=test <urn>
+forge-convert --output-folder=test <urn>
 ```
 
 ### From Node.js
 
 ```js
 const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
-const { SvfReader, GltfWriter } = require('forge-extract');
+const { SvfReader, GltfWriter } = require('forge-convert-utils');
 
 const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
 

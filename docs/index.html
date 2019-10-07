@@ -127,11 +127,37 @@ forge-<span class="hljs-built_in">convert</span> <span class="hljs-comment">--ou
 }
 
 run(<span class="hljs-string">'your model urn'</span>, <span class="hljs-string">'path/to/output/folder'</span>);</code></pre>
-				<p>If you don&#39;t want to read the entire model into memory, for example, when distributing
-					the parsing of an SVF over multiple server instances, you can use methods like
-				<code>SvfReader#enumerateFragments</code></p>
+				<p>If you don&#39;t want to read the entire model into memory (for example, when distributing
+					the parsing of an SVF over multiple server instances), you can use methods like
+					<code>SvfReader#enumerateFragments</code> or <code>SvfReader#enumerateGeometries</code> to <em>asynchronously</em>
+				iterate over individual elements:</p>
+				<pre><code class="language-js"><span class="hljs-keyword">const</span> { ModelDerivativeClient, ManifestHelper } = <span class="hljs-built_in">require</span>(<span class="hljs-string">'forge-server-utils'</span>);
+<span class="hljs-keyword">const</span> { SvfReader, GltfWriter } = <span class="hljs-built_in">require</span>(<span class="hljs-string">'forge-convert-utils'</span>);
+
+<span class="hljs-keyword">const</span> { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
+
+<span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">run</span> (<span class="hljs-params">urn</span>) </span>{
+    <span class="hljs-keyword">const</span> auth = { <span class="hljs-attr">client_id</span>: FORGE_CLIENT_ID, <span class="hljs-attr">client_secret</span>: FORGE_CLIENT_SECRET };
+    <span class="hljs-keyword">const</span> modelDerivativeClient = <span class="hljs-keyword">new</span> ModelDerivativeClient(auth);
+    <span class="hljs-keyword">const</span> helper = <span class="hljs-keyword">new</span> ManifestHelper(<span class="hljs-keyword">await</span> modelDerivativeClient.getManifest(urn));
+    <span class="hljs-keyword">const</span> derivatives = helper.search({ <span class="hljs-attr">type</span>: <span class="hljs-string">'resource'</span>, <span class="hljs-attr">role</span>: <span class="hljs-string">'graphics'</span> });
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> derivative <span class="hljs-keyword">of</span> derivatives.filter(<span class="hljs-function"><span class="hljs-params">d</span> =&gt;</span> d.mime === <span class="hljs-string">'application/autodesk-svf'</span>)) {
+        <span class="hljs-keyword">const</span> reader = <span class="hljs-keyword">await</span> SvfReader.FromDerivativeService(urn, derivative.guid, auth);
+        <span class="hljs-keyword">for</span> <span class="hljs-keyword">await</span> (<span class="hljs-keyword">const</span> fragment <span class="hljs-keyword">of</span> reader.enumerateFragments()) {
+            <span class="hljs-built_in">console</span>.log(fragment);
+        }
+    }
+}
+
+run(<span class="hljs-string">'your model urn'</span>);</code></pre>
+				<p>And finally, if you already have the individual SVF assets in memory, you can parse the binary data
+				directly using <em>synchronous</em> iterators like <code>parseMeshes</code>:</p>
+				<pre><code class="language-js"><span class="hljs-keyword">const</span> { parseMeshes } = <span class="hljs-built_in">require</span>(<span class="hljs-string">'forge-convert-utils/lib/svf/meshes'</span>);
+<span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> mesh <span class="hljs-keyword">of</span> parseMeshes(buffer)) {
+    <span class="hljs-built_in">console</span>.log(mesh);
+}</code></pre>
 				<blockquote>
-					<p>For more examples, see the <a href="./test">test</a> subfolder.</p>
+					<p>For additional examples, see the <a href="./test">test</a> subfolder.</p>
 				</blockquote>
 			</div>
 		</div>

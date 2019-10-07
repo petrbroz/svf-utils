@@ -15,6 +15,9 @@ const DefaultMaterial: gltf.MaterialPbrMetallicRoughness = {
     }
 };
 
+/**
+ * Utility class for serializing SVF content to local file system as glTF (2.0).
+ */
 export class Writer {
     protected manifest: gltf.GlTf;
     protected downloads: Promise<string>[] = [];
@@ -22,6 +25,9 @@ export class Writer {
     protected bufferSize: number;
     protected baseDir: string;
 
+    /**
+     * Initializes the writer.
+     */
     constructor() {
         this.manifest = {
             asset: {
@@ -45,7 +51,13 @@ export class Writer {
         this.baseDir = '';
     }
 
+    /**
+     * Outputs entire SVF as a glTF scene.
+     * @param {ISvfContent} svf SVF content loaded in memory.
+     * @param {string} baseDir Output folder for the glTF manifest and all its assets.
+     */
     write(svf: ISvfContent, baseDir: string) {
+        // TODO: support multiple calls to write to create glTFs with multiple scenes
         this.baseDir = baseDir;
         this.bufferStream = null;
         this.bufferSize = 0;

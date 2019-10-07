@@ -24,7 +24,7 @@ Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file f
 #### Unix/macOS
 
 ```
-forge-convert --output-folder tmp path/to/local.svf
+forge-convert <path to local svf> --output-folder <path to output folder>
 ```
 
 or
@@ -32,20 +32,20 @@ or
 ```
 export FORGE_CLIENT_ID=<client id>
 export FORGE_CLIENT_SECRET=<client secret>
-forge-convert --output-folder tmp <urn>
+forge-convert <urn> --output-folder <path to output folder>
 ```
 
 or
 
 ```
 export FORGE_ACCESS_TOKEN=<access token>>
-forge-convert --output-folder tmp <urn>
+forge-convert <urn> --output-folder <path to output folder>
 ```
 
 #### Windows
 
 ```
-forge-convert --output-folder tmp path\to\local.svf
+forge-convert <path to local svf> --output-folder <path to output folder>
 ```
 
 or
@@ -53,14 +53,14 @@ or
 ```
 set FORGE_CLIENT_ID=<client id>
 set FORGE_CLIENT_SECRET=<client secret>
-forge-convert --output-folder tmp <urn>
+forge-convert <urn> --output-folder <path to output folder>
 ```
 
 or
 
 ```
 set FORGE_ACCESS_TOKEN=<access token>>
-forge-convert --output-folder tmp <urn>
+forge-convert <urn> --output-folder <path to output folder>
 ```
 
 ### Node.js
@@ -82,12 +82,13 @@ async function run (urn, outputDir) {
     const modelDerivativeClient = new ModelDerivativeClient(auth);
     const helper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
     const derivatives = helper.search({ type: 'resource', role: 'graphics' });
+    const writer = new GltfWriter(outputDir);
     for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
         const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
         const svf = await reader.read();
-        const writer = new GltfWriter();
-        writer.write(svf, outputDir);
+        writer.write(svf);
     }
+    writer.close();
 }
 
 run('your model urn', 'path/to/output/folder');
@@ -101,7 +102,7 @@ to _asynchronously_ iterate over individual elements:
 
 ```js
 const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
-const { SvfReader, GltfWriter } = require('forge-convert-utils');
+const { SvfReader } = require('forge-convert-utils');
 
 const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
 

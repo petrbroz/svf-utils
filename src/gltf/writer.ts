@@ -30,7 +30,6 @@ export class Writer {
     protected downloads: Promise<string>[] = [];
     protected bufferStream: fse.WriteStream | null;
     protected bufferSize: number;
-    protected baseDir: string;
     protected maxBufferSize: number;
     protected ignoreMeshGeometry: boolean;
     protected ignoreLineGeometry: boolean;
@@ -38,9 +37,10 @@ export class Writer {
 
     /**
      * Initializes the writer.
+     * @param {string} baseDir Output folder for the glTF manifest and all its assets.
      * @param {IWriterOptions} [options={}] Additional writer options.
      */
-    constructor(options: IWriterOptions = {}) {
+    constructor(protected baseDir: string, options: IWriterOptions = {}) {
         this.maxBufferSize = isNullOrUndefined(options.maxBufferSize) ? MaxBufferSize : options.maxBufferSize;
         this.ignoreMeshGeometry = !!options.ignoreMeshGeometry;
         this.ignoreLineGeometry = !!options.ignoreLineGeometry;
@@ -60,56 +60,25 @@ export class Writer {
             scenes: [],
             textures: [],
             images: [],
-            scene: -1
+            scene: 0 // For now, we always mark the first scene as the default one
         };
         this.bufferStream = null;
         this.bufferSize = 0;
-        this.baseDir = '';
     }
 
     /**
      * Outputs entire SVF as a glTF scene.
+     * Can be called multiple times to create a glTF with multiple scenes.
      * @param {ISvfContent} svf SVF content loaded in memory.
-     * @param {string} baseDir Output folder for the glTF manifest and all its assets.
      */
-    write(svf: ISvfContent, baseDir: string) {
-        // TODO: support multiple calls to write to create glTFs with multiple scenes
-        this.baseDir = baseDir;
-        this.bufferStream = null;
-        this.bufferSize = 0;
-        this.manifest = {
-            asset: {
-                version: '2.0',
-                generator: 'forge-svf-utils',
-                copyright: '2019 (c) Autodesk'
-            },
-            buffers: [],
-            bufferViews: [],
-            accessors: [],
-            meshes: [],
-            materials: [],
-            nodes: [],
-            scenes: [],
-            textures: [],
-            images: [],
-            scene: -1
-        };
-
-        fse.ensureDirSync(this.baseDir);
-        const manifestScenes = this.manifest.scenes as gltf.Scene[];
-        manifestScenes.push(this.writeScene(svf));
-        this.manifest.scene = 0;
-        const gltfPath = path.join(this.baseDir, 'output.gltf');
-        fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
-    }
-
-    protected writeScene(svf: ISvfContent): gltf.Scene {
+    write(svf: ISvfContent) {
         let scene: gltf.Scene = {
-            name: 'main',
             nodes: []
         };
         const manifestNodes = this.manifest.nodes as gltf.Node[];
         const manifestMaterials = this.manifest.materials as gltf.MaterialPbrMetallicRoughness[];
+
+        fse.ensureDirSync(this.baseDir);
 
         for (const fragment of svf.fragments) {
             const node = this.writeFragment(fragment, svf);
@@ -126,7 +95,21 @@ export class Writer {
             manifestMaterials.push(mat);
         }
 
-        return scene;
+        const manifestScenes = this.manifest.scenes as gltf.Scene[];
+        manifestScenes.push(scene);
+    }
+
+    /**
+     * Finalizes the glTF output.
+     */
+    close() {
+        if (this.bufferStream) {
+            this.bufferStream.close();
+            this.bufferStream = null;
+            this.bufferSize = 0;
+        }
+        const gltfPath = path.join(this.baseDir, 'output.gltf');
+        fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
     }
 
     protected writeFragment(fragment: IFragment, svf: ISvfContent): gltf.Node {

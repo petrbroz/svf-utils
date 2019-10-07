@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added
   - Support for converting both remote and local SVFs using the CLI tool
   - Support for configuring glTF output (max. size of binary files, ignoring line/point geometries, ...)
+  - Outputting multiple scenes in one glTF
 - Changed
   - Moved to new version of forge-server-utils
 

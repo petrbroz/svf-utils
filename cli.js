@@ -11,16 +11,16 @@ async function convertRemote(urn, guid, outputFolder) {
     console.log('Converting urn', urn, 'guid', guid);
     const reader = await SvfReader.FromDerivativeService(urn, guid, auth);
     const svf = await reader.read();
-    const writer = new GltfWriter();
-    writer.write(svf, outputFolder);
+    const writer = new GltfWriter(outputFolder);
+    writer.write(svf);
 }
 
 async function convertLocal(svfPath, outputFolder) {
     console.log('Converting local file', svfPath);
     const reader = await SvfReader.FromFileSystem(svfPath);
     const svf = await reader.read();
-    const writer = new GltfWriter();
-    writer.write(svf, outputFolder);
+    const writer = new GltfWriter(outputFolder);
+    writer.write(svf);
 }
 
 program

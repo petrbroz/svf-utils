@@ -16,12 +16,13 @@ async function run (urn, outputDir) {
     const modelDerivativeClient = new ModelDerivativeClient(auth);
     const helper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
     const derivatives = helper.search({ type: 'resource', role: 'graphics' });
+    const writer = new GltfWriter(outputDir);
     for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
         const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
         const svf = await reader.read();
-        const writer = new GltfWriter();
-        writer.write(svf, outputDir);
+        writer.write(svf);
     }
+    writer.close();
 }
 
 run(process.argv[2], process.argv[3]);

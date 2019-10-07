@@ -107,7 +107,8 @@ forge-<span class="hljs-built_in">convert</span> <span class="hljs-comment">--ou
 				</a>
 				<p>The library is structured so that you can use it at different levels of control.</p>
 				<p>The easiest way to convert an SVF file is to read the entire model into memory
-				using <code>SvfReader#read</code> method, and save the model into glTF using <code>GltfWriter#write</code>:</p>
+					using <a href="https://petrbroz.github.io/forge-convert-utils/docs/classes/_svf_reader_.reader.html#read">SvfReader#read</a>
+				method, and save the model into glTF using <a href="https://petrbroz.github.io/forge-convert-utils/docs/classes/_gltf_writer_.writer.html#write">GltfWriter#write</a>:</p>
 				<pre><code class="language-js"><span class="hljs-keyword">const</span> { ModelDerivativeClient, ManifestHelper } = <span class="hljs-built_in">require</span>(<span class="hljs-string">'forge-server-utils'</span>);
 <span class="hljs-keyword">const</span> { SvfReader, GltfWriter } = <span class="hljs-built_in">require</span>(<span class="hljs-string">'forge-convert-utils'</span>);
 
@@ -129,8 +130,9 @@ forge-<span class="hljs-built_in">convert</span> <span class="hljs-comment">--ou
 run(<span class="hljs-string">'your model urn'</span>, <span class="hljs-string">'path/to/output/folder'</span>);</code></pre>
 				<p>If you don&#39;t want to read the entire model into memory (for example, when distributing
 					the parsing of an SVF over multiple server instances), you can use methods like
-					<code>SvfReader#enumerateFragments</code> or <code>SvfReader#enumerateGeometries</code> to <em>asynchronously</em>
-				iterate over individual elements:</p>
+					<a href="https://petrbroz.github.io/forge-convert-utils/docs/classes/_svf_reader_.reader.html#enumeratefragments">SvfReader#enumerateFragments</a>
+					or <a href="https://petrbroz.github.io/forge-convert-utils/docs/classes/_svf_reader_.reader.html#enumerategeometries">SvfReader#enumerateGeometries</a>
+				to <em>asynchronously</em> iterate over individual elements:</p>
 				<pre><code class="language-js"><span class="hljs-keyword">const</span> { ModelDerivativeClient, ManifestHelper } = <span class="hljs-built_in">require</span>(<span class="hljs-string">'forge-server-utils'</span>);
 <span class="hljs-keyword">const</span> { SvfReader, GltfWriter } = <span class="hljs-built_in">require</span>(<span class="hljs-string">'forge-convert-utils'</span>);
 
@@ -151,7 +153,7 @@ run(<span class="hljs-string">'your model urn'</span>, <span class="hljs-string"
 
 run(<span class="hljs-string">'your model urn'</span>);</code></pre>
 				<p>And finally, if you already have the individual SVF assets in memory, you can parse the binary data
-				directly using <em>synchronous</em> iterators like <code>parseMeshes</code>:</p>
+				directly using <em>synchronous</em> iterators like <a href="https://petrbroz.github.io/forge-convert-utils/docs/modules/_svf_meshes_.html#parsemeshes">parseMeshes</a>:</p>
 				<pre><code class="language-js"><span class="hljs-keyword">const</span> { parseMeshes } = <span class="hljs-built_in">require</span>(<span class="hljs-string">'forge-convert-utils/lib/svf/meshes'</span>);
 <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> mesh <span class="hljs-keyword">of</span> parseMeshes(buffer)) {
     <span class="hljs-built_in">console</span>.log(mesh);

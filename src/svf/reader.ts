@@ -180,6 +180,15 @@ export class Reader {
     }
 
     /**
+     * Retrieves parsed SVF manifest.
+     * @async
+     * @returns {Promise<schema.ISvfManifest>} SVF manifest.
+     */
+    async getManifest(): Promise<schema.ISvfManifest> {
+        return this.svf.manifest;
+    }
+
+    /**
      * Retrieves, parses, and iterates over all SVF fragments.
      * @async
      * @generator

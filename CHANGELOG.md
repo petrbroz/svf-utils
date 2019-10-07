@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2019-10-07
+
+- Added
+  - TypeScript definition files with glTF and SVF schemas
+- Changed
+  - Code restructure
+  - SVF parsing code moved from forge-server-utils back here
+
 ## [0.2.1] - 2019-10-04
 
 - Fixed

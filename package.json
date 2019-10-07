@@ -1,10 +1,10 @@
 {
-  "name": "forge-extract",
-  "version": "0.2.1",
-  "description": "Tools for converting Autodesk Forge models into glTF.",
+  "name": "forge-convert-utils",
+  "version": "0.3.0",
+  "description": "Tools for converting Autodesk Forge file formats.",
   "main": "lib/index.js",
   "bin": {
-    "forge-extract": "./cli.js"
+    "forge-convert": "./cli.js"
   },
   "scripts": {
     "build": "tsc",
@@ -21,20 +21,22 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/petrbroz/forge-extract.git"
+    "url": "git+https://github.com/petrbroz/forge-convert-utils.git"
   },
   "bugs": {
-    "url": "https://github.com/petrbroz/forge-extract/issues"
+    "url": "https://github.com/petrbroz/forge-convert-utils/issues"
   },
-  "homepage": "https://github.com/petrbroz/forge-extract#readme",
+  "homepage": "https://github.com/petrbroz/forge-convert-utils#readme",
   "devDependencies": {
+    "@types/adm-zip": "^0.4.32",
     "@types/fs-extra": "^8.0.0",
     "typedoc": "^0.15.0",
     "typescript": "^3.6.3"
   },
   "dependencies": {
-    "commander": "^2.19.0",
-    "forge-server-utils": "^6.4.0",
+    "adm-zip": "^0.4.13",
+    "commander": "^3.0.2",
+    "forge-server-utils": "^6.6.0",
     "fs-extra": "^8.1.0"
   }
 }

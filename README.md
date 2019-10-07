@@ -51,8 +51,25 @@ forge-extract --output-folder=test <urn>
 ### From Node.js
 
 ```js
-const { deserialize } = require('forge-extract/lib/svf');
-const { serialize } = require('forge-extract/lib/gltf');
-const svf = await deserialize('<model urn>', '<viewable guid>', { client_id: '<client id>', client_secret: '<client secret>' });
-await serialize(svf, path.join(__dirname, 'tmp', FORGE_MODEL_URN, FORGE_VIEWABLE_GUID));
+const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
+const { SvfReader, GltfWriter } = require('forge-extract');
+
+const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
+
+async function run (urn, outputDir) {
+    const auth = { client_id: FORGE_CLIENT_ID, client_secret: FORGE_CLIENT_SECRET };
+    const modelDerivativeClient = new ModelDerivativeClient(auth);
+    const helper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
+    const derivatives = helper.search({ type: 'resource', role: 'graphics' });
+    for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
+        const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
+        const svf = await reader.read();
+        const writer = new GltfWriter();
+        writer.write(svf, outputDir);
+    }
+}
+
+run('your model urn', 'path/to/output/folder');
 ```
+
+> For more examples, see the [test](./test) subfolder.

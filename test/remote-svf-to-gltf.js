@@ -3,7 +3,7 @@
  * Usage:
  *     export FORGE_CLIENT_ID=<your client id>
  *     export FORGE_CLIENT_SECRET=<your client secret>
- *     node derivative-svf-to-gltf.js <your model urn> <path to output folder>
+ *     node remote-svf-to-gltf.js <your model urn> <path to output folder>
  */
 
 const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');

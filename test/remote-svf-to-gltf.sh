@@ -5,7 +5,7 @@
 #     npm install --global forge-convert-utils
 #     export FORGE_CLIENT_ID=<your client id>
 #     export FORGE_CLIENT_SECRET=<your client secret>
-#     forge-convert <your model urn> [guid] --output-folder <path to output folder>
+#     ./remote-svf-to-gltf.sh <your model urn> <path to output folder>
 
 npm install --global forge-convert-utils
-forge-convert $1 --output-folder ./tmp
+forge-convert $1 --output-folder $2

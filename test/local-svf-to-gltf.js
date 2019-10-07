@@ -1,7 +1,7 @@
 /*
- * Example: converting an SVF (without property database) from local file system into glTF
+ * Example: converting an SVF (without property database) from local file system to glTF
  * Usage:
- *     node filesystem-svf-to-gltf.js <path to svf file> <path to output folder>
+ *     node local-svf-to-gltf.js <path to svf file> <path to output folder>
  */
 
 const { SvfReader, GltfWriter } = require('..');

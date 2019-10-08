@@ -28,12 +28,13 @@ export class PropDbReader {
     }
 
     /**
-     * Finds properties of given object.
+     * Enumerates all properties (including internal ones such as "__child__" property
+     * establishing the parent-child relationships) of given object.
+     * @generator
      * @param {number} id Object ID.
-     * @returns {{ [name: string]: any }} Dictionary of property names and values.
+     * @returns {Iterable<{ name: string; category: string; value: any }>} Name, category, and value of each property.
      */
-    findProperties(id: number): { [name: string]: any } {
-        let props: { [name: string]: any } = {};
+    *enumerateProperties(id: number): Iterable<{ name: string; category: string; value: any }> {
         if (id > 0 && id < this._offsets.length) {
             const avStart = this._offsets[id];
             const avEnd = (id + 1 < this._offsets.length) ? this._offsets[id + 1] : this._avs.length;
@@ -42,9 +43,41 @@ export class PropDbReader {
                 const valOffset = this._avs[i + 1];
                 const attr = this._attrs[attrOffset];
                 const value = this._vals[valOffset];
-                props[attr[0]] = value;
+                yield { name: attr[0], category: attr[1], value };
+            }
+        }
+    }
+
+    /**
+     * Finds "public" properties of given object.
+     * Additional properties like parent-child relationships are not included in the output.
+     * @param {number} id Object ID.
+     * @returns {{ [name: string]: any }} Dictionary of property names and values.
+     */
+    getProperties(id: number): { [name: string]: any } {
+        let props: { [name: string]: any } = {};
+        for (const prop of this.enumerateProperties(id)) {
+            if (prop.category.match(/^__\w+__$/)) {
+                // Skip internal attributes
+            } else {
+                props[prop.name] = prop.value;
             }
         }
         return props;
+    }
+
+    /**
+     * Finds IDs of all children of given object.
+     * @param {number} id Object ID.
+     * @returns {number[]} Children IDs.
+     */
+    getChildren(id: number): number[] {
+        let children: number[] = [];
+        for (const prop of this.enumerateProperties(id)) {
+            if (prop.category === '__child__') {
+                children.push(prop.value as number);
+            }
+        }
+        return children;
     }
 }

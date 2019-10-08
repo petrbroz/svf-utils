@@ -19,10 +19,11 @@ async function run (urn) {
     for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
         const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
         const propdb = await reader.getPropertyDb();
-        const props = propdb.findProperties(1);
+        const props = propdb.getProperties(1);
         for (const name of Object.keys(props)) {
-            console.log(name, props[name]);
+            console.log(`${name}: ${props[name]}`);
         }
+        console.log(`Children: ${propdb.getChildren(1).join(',')}`);
     }
 }
 

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added
+  - Listing IDs of object children from SVF property database
+- Changed
+  - Excluding internal attributes when parsing SVF property database
+
 ## [0.4.1] - 2019-10-07
 
 - Added

@@ -1,4 +1,5 @@
 import * as path from 'path';
+import * as crypto from 'crypto';
 import * as fse from 'fs-extra';
 
 import * as gltf from './schema';
@@ -20,6 +21,7 @@ export interface IWriterOptions {
     ignoreMeshGeometry?: boolean; /** Don't output mesh geometry */
     ignoreLineGeometry?: boolean; /** Don't output line geometry */
     ignorePointGeometry?: boolean; /** Don't output point geometry */
+    deduplicate?: boolean; /** Find and remove mesh geometry duplicates (increases the processing time) */
 }
 
 /**
@@ -34,6 +36,9 @@ export class Writer {
     protected ignoreMeshGeometry: boolean;
     protected ignoreLineGeometry: boolean;
     protected ignorePointGeometry: boolean;
+    protected deduplicate: boolean;
+
+    private hashMeshCache /* :D */ = new Map<string, gltf.Mesh>();
 
     /**
      * Initializes the writer.
@@ -45,6 +50,7 @@ export class Writer {
         this.ignoreMeshGeometry = !!options.ignoreMeshGeometry;
         this.ignoreLineGeometry = !!options.ignoreLineGeometry;
         this.ignorePointGeometry = !!options.ignorePointGeometry;
+        this.deduplicate = !!options.deduplicate;
         this.manifest = {
             asset: {
                 version: '2.0',
@@ -154,7 +160,19 @@ export class Writer {
             } else if ('isPoints' in fragmesh) {
                 mesh = this.writePointGeometry(fragmesh, svf);
             } else {
-                mesh = this.writeMeshGeometry(fragmesh, svf);
+                if (this.deduplicate) {
+                    // Check if a similar already exists
+                    const hash = this.computeMeshHash(fragmesh);
+                    const cache = this.hashMeshCache.get(hash);
+                    if (cache) {
+                        mesh = cache;
+                    } else {
+                        mesh = this.writeMeshGeometry(fragmesh, svf);
+                        this.hashMeshCache.set(hash, mesh);
+                    }
+                } else {
+                    mesh = this.writeMeshGeometry(fragmesh, svf);
+                }
             }
             node.mesh = manifestMeshes.length;
             manifestMeshes.push(mesh);
@@ -603,5 +621,26 @@ export class Writer {
             fse.writeFileSync(filepath, svf.images[uri]);
         }
         return { source: imageID };
+    }
+
+    /**
+     * Computes a hash for given mesh by combining values like vertex count and
+     * triangle count with an MD5 hash of the actual index/vertex/normal/uv buffer data.
+     * Some properties (attrs, comments, min, max) are not included in the hash.
+     * @param {IMesh} mesh Input mesh.
+     * @returns {string} Hash-like string that can be used for caching the mesh.
+     */
+    private computeMeshHash(mesh: IMesh): string {
+        const hash = crypto.createHash('md5');
+        const { vcount, tcount, uvcount, attrs, flags, comment, min, max } = mesh;
+        hash.update(mesh.vertices);
+        hash.update(mesh.indices);
+        for (const uvmap of mesh.uvmaps) {
+            hash.update(uvmap.uvs);
+        }
+        if (mesh.normals) {
+            hash.update(mesh.normals);
+        }
+        return [vcount, tcount, uvcount, flags, hash.digest('hex')].join('/');
     }
 }

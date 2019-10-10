@@ -7,11 +7,11 @@ const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
 
 const { SvfReader, GltfWriter } = require('.');
 
-async function convertRemote(urn, guid, outputFolder) {
+async function convertRemote(urn, guid, outputFolder, deduplicate) {
     console.log('Converting urn', urn, 'guid', guid);
     const reader = await SvfReader.FromDerivativeService(urn, guid, auth);
     const svf = await reader.read();
-    const writer = new GltfWriter(outputFolder);
+    const writer = new GltfWriter(outputFolder, { deduplicate });
     writer.write(svf);
 }
 
@@ -27,6 +27,7 @@ program
     .version(require('./package.json').version, '-v, --version')
     .option('-o, --output-folder [folder]', 'output folder', '.')
     .option('-t, --output-type [type]', 'output file format (gltf)', 'gltf')
+    .option('-d, --deduplicate', 'deduplicate geometries (may increase processing time)', false)
     .arguments('<URN or path/to/svf> [GUID]')
     .action(async function (id, guid) {
         try {
@@ -55,11 +56,11 @@ program
                 const helper = new ManifestHelper(await client.getManifest(urn));
                 const folder = path.join(program.outputFolder, urn);
                 if (guid) {
-                    await convertRemote(urn, guid, folder);
+                    await convertRemote(urn, guid, folder, program.deduplicate);
                 } else {
                     const derivatives = helper.search({ type: 'resource', role: 'graphics' });
                     for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
-                        await convertRemote(urn, derivative.guid, path.join(folder, derivative.guid));
+                        await convertRemote(urn, derivative.guid, path.join(folder, derivative.guid), program.deduplicate);
                     }
                 }
 

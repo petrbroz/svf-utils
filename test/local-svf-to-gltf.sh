@@ -6,4 +6,4 @@
 #     ./local-svf-to-gltf.sh <path to svf file> <path to output folder>
 
 npm install --global forge-convert-utils
-forge-convert $1 --output-folder $2
+forge-convert $1 --output-folder $2 --deduplicate

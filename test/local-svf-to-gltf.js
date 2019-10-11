@@ -9,9 +9,9 @@ const { SvfReader, GltfWriter } = require('..');
 async function run (filepath, outputDir) {
     const reader = await SvfReader.FromFileSystem(filepath);
     const svf = await reader.read();
-    const writer = new GltfWriter(outputDir, { deduplicate: true });
+    const writer = new GltfWriter(outputDir, { deduplicate: true, compress: true });
     writer.write(svf);
-    writer.close();
+    await writer.close();
 }
 
 run(process.argv[2], process.argv[3]);

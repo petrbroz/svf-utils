@@ -13,6 +13,7 @@ async function convertRemote(urn, guid, outputFolder, deduplicate) {
     const svf = await reader.read();
     const writer = new GltfWriter(outputFolder, { deduplicate });
     writer.write(svf);
+    await writer.close();
 }
 
 async function convertLocal(svfPath, outputFolder) {
@@ -21,6 +22,7 @@ async function convertLocal(svfPath, outputFolder) {
     const svf = await reader.read();
     const writer = new GltfWriter(outputFolder);
     writer.write(svf);
+    await writer.close();
 }
 
 program

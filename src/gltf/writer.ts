@@ -23,6 +23,7 @@ export interface IWriterOptions {
     ignoreLineGeometry?: boolean; /** Don't output line geometry */
     ignorePointGeometry?: boolean; /** Don't output point geometry */
     deduplicate?: boolean; /** Find and remove mesh geometry duplicates (increases the processing time) */
+    compress?: boolean; /** Compress output using Draco. */
 }
 
 /**
@@ -38,8 +39,10 @@ export class Writer {
     protected ignoreLineGeometry: boolean;
     protected ignorePointGeometry: boolean;
     protected deduplicate: boolean;
+    protected compress: boolean;
 
     private hashMeshCache /* :D */ = new Map<string, gltf.Mesh>();
+    private completeBuffers: Promise<void>[] = [];
 
     /**
      * Initializes the writer.
@@ -52,6 +55,7 @@ export class Writer {
         this.ignoreLineGeometry = !!options.ignoreLineGeometry;
         this.ignorePointGeometry = !!options.ignorePointGeometry;
         this.deduplicate = !!options.deduplicate;
+        this.compress = !!options.compress;
         this.manifest = {
             asset: {
                 version: '2.0',
@@ -109,29 +113,36 @@ export class Writer {
     /**
      * Finalizes the glTF output.
      */
-    close() {
+    async close() {
         if (this.bufferStream) {
+            const stream = this.bufferStream as fse.WriteStream;
+            this.completeBuffers.push(new Promise((resolve, reject) => {
+                stream.on('finish', resolve);
+            }));
             this.bufferStream.close();
             this.bufferStream = null;
             this.bufferSize = 0;
         }
+
+        await Promise.all(this.completeBuffers);
         const gltfPath = path.join(this.baseDir, 'output.gltf');
         fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
-        // TODO: make the draco compression configurable
-        // const options = {
-        //     separate: false,
-        //     resourceDirectory: this.baseDir,
-        //     dracoOptions: {
-        //         compressionLevel: 10
-        //     }
-        // };
-        // pipeline.processGltf(this.manifest, options)
-        //     .then((result: any) => {
-        //         fse.writeFileSync(gltfPath, JSON.stringify(result.gltf, null, 4));
-        //     })
-        //     .catch((err: any) => {
-        //         console.error(err);
-        //     });
+
+        if (this.compress) {
+            const options = {
+                separate: false,
+                resourceDirectory: this.baseDir,
+                dracoOptions: {
+                    compressionLevel: 10
+                }
+            };
+            try {
+                const result = await pipeline.processGltf(this.manifest, options);
+                fse.writeFileSync(gltfPath.replace('.gltf', '.glb'), JSON.stringify(result.gltf, null, 4));
+            } catch(err) {
+                console.error('Could not compress output', err);
+            }
+        }
     }
 
     protected writeFragment(fragment: IFragment, svf: ISvfContent): gltf.Node {
@@ -215,6 +226,10 @@ export class Writer {
         // Prepare new writable stream if needed
         if (this.bufferStream === null || this.bufferSize > this.maxBufferSize) {
             if (this.bufferStream) {
+                const stream = this.bufferStream as fse.WriteStream;
+                this.completeBuffers.push(new Promise((resolve, reject) => {
+                    stream.on('finish', resolve);
+                }));
                 this.bufferStream.close();
                 this.bufferStream = null;
                 this.bufferSize = 0;
@@ -378,6 +393,10 @@ export class Writer {
         // Prepare new writable stream if needed
         if (this.bufferStream === null || this.bufferSize > this.maxBufferSize) {
             if (this.bufferStream) {
+                const stream = this.bufferStream as fse.WriteStream;
+                this.completeBuffers.push(new Promise((resolve, reject) => {
+                    stream.on('finish', resolve);
+                }));
                 this.bufferStream.close();
                 this.bufferStream = null;
                 this.bufferSize = 0;
@@ -510,6 +529,10 @@ export class Writer {
         // Prepare new writable stream if needed
         if (this.bufferStream === null || this.bufferSize > this.maxBufferSize) {
             if (this.bufferStream) {
+                const stream = this.bufferStream as fse.WriteStream;
+                this.completeBuffers.push(new Promise((resolve, reject) => {
+                    stream.on('finish', resolve);
+                }));
                 this.bufferStream.close();
                 this.bufferStream = null;
                 this.bufferSize = 0;

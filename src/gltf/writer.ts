@@ -24,12 +24,14 @@ export interface IWriterOptions {
     ignorePointGeometry?: boolean; /** Don't output point geometry */
     deduplicate?: boolean; /** Find and remove mesh geometry duplicates (increases the processing time) */
     compress?: boolean; /** Compress output using Draco. */
+    binary?: boolean; /** Output GLB instead of GLTF. */
 }
 
 /**
  * Utility class for serializing SVF content to local file system as glTF (2.0).
  */
 export class Writer {
+    protected baseDir: string;
     protected manifest: gltf.GlTf;
     protected downloads: Promise<string>[] = [];
     protected bufferStream: fse.WriteStream | null;
@@ -40,22 +42,24 @@ export class Writer {
     protected ignorePointGeometry: boolean;
     protected deduplicate: boolean;
     protected compress: boolean;
+    protected binary: boolean;
 
     private hashMeshCache /* :D */ = new Map<string, gltf.Mesh>();
     private completeBuffers: Promise<void>[] = [];
 
     /**
      * Initializes the writer.
-     * @param {string} baseDir Output folder for the glTF manifest and all its assets.
+     * @param {string} dir Output folder for the glTF manifest and all its assets.
      * @param {IWriterOptions} [options={}] Additional writer options.
      */
-    constructor(protected baseDir: string, options: IWriterOptions = {}) {
+    constructor(dir: string, options: IWriterOptions = {}) {
         this.maxBufferSize = isNullOrUndefined(options.maxBufferSize) ? MaxBufferSize : options.maxBufferSize;
         this.ignoreMeshGeometry = !!options.ignoreMeshGeometry;
         this.ignoreLineGeometry = !!options.ignoreLineGeometry;
         this.ignorePointGeometry = !!options.ignorePointGeometry;
         this.deduplicate = !!options.deduplicate;
         this.compress = !!options.compress;
+        this.binary = !!options.binary;
         this.manifest = {
             asset: {
                 version: '2.0',
@@ -75,6 +79,7 @@ export class Writer {
         };
         this.bufferStream = null;
         this.bufferSize = 0;
+        this.baseDir = (this.compress || this.binary) ? path.join(dir, 'tmp') : dir;
     }
 
     /**
@@ -128,28 +133,39 @@ export class Writer {
         const gltfPath = path.join(this.baseDir, 'output.gltf');
         fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
 
-        if (this.compress) {
-            const options = {
+        if (this.compress || this.binary) {
+            const options: any = {
                 resourceDirectory: this.baseDir,
                 separate: false,
                 separateTextures: false,
                 stats: false,
-                name: 'output',
-                dracoOptions: {
-                    compressionLevel: 10
-                }
+                name: 'output'
             };
+            if (this.compress) {
+                options.dracoOptions = {
+                    compressionLevel: 10
+                };
+            }
+            /*
+             * For some reason, when trying to use the manifest that's already in memory,
+             * the call to gltfToGlb fails with "Draco Runtime Error". When we re-read
+             * the manifest we just serialized couple lines above, gltfToGlb works fine...
+             */
+            const manifest = fse.readJsonSync(gltfPath);
+            const newPath = this.baseDir.replace(/tmp$/, this.binary ? 'output.glb' : 'output.gltf');
             try {
-                /*
-                 * For some reason, when trying to use the manifest that's already in memory,
-                 * the call to gltfToGlb fails with "Draco Runtime Error". When we re-read
-                 * the manifest we just serialized couple lines above, gltfToGlb works fine...
-                 */
-                const manifest = fse.readJsonSync(gltfPath);
-                const result = await pipeline.gltfToGlb(manifest, options);
-                fse.writeFileSync(gltfPath.replace('.gltf', '.glb'), result.glb);
+                if (this.binary) {
+                    const result = await pipeline.gltfToGlb(manifest, options);
+                    fse.writeFileSync(newPath, result.glb);
+                    // Delete the original gltf file
+                    fse.unlinkSync(gltfPath);
+                } else {
+                    const result = await pipeline.processGltf(manifest, options);
+                    fse.writeJsonSync(newPath, result.gltf);
+                }
+                fse.removeSync(this.baseDir);
             } catch(err) {
-                console.error('Could not compress output', err);
+                console.error('Could not post-process the output', err);
             }
         }
     }
@@ -245,7 +261,8 @@ export class Writer {
             }
             const bufferUri = `${manifestBuffers.length}.bin`;
             manifestBuffers.push({ uri: bufferUri, byteLength: 0 });
-            this.bufferStream = fse.createWriteStream(path.join(this.baseDir, bufferUri));
+            const bufferPath = path.join(this.baseDir, bufferUri);
+            this.bufferStream = fse.createWriteStream(bufferPath);
         }
 
         const bufferID = manifestBuffers.length - 1;
@@ -412,7 +429,8 @@ export class Writer {
             }
             const bufferUri = `${manifestBuffers.length}.bin`;
             manifestBuffers.push({ uri: bufferUri, byteLength: 0 });
-            this.bufferStream = fse.createWriteStream(path.join(this.baseDir, bufferUri));
+            const bufferPath = path.join(this.baseDir, bufferUri);
+            this.bufferStream = fse.createWriteStream(bufferPath);
         }
 
         const bufferID = manifestBuffers.length - 1;
@@ -548,7 +566,8 @@ export class Writer {
             }
             const bufferUri = `${manifestBuffers.length}.bin`;
             manifestBuffers.push({ uri: bufferUri, byteLength: 0 });
-            this.bufferStream = fse.createWriteStream(path.join(this.baseDir, bufferUri));
+            const bufferPath = path.join(this.baseDir, bufferUri);
+            this.bufferStream = fse.createWriteStream(bufferPath);
         }
 
         const bufferID = manifestBuffers.length - 1;

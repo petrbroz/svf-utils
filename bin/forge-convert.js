@@ -7,20 +7,20 @@ const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
 
 const { SvfReader, GltfWriter } = require('..');
 
-async function convertRemote(urn, guid, outputFolder, deduplicate) {
+async function convertRemote(urn, guid, outputFolder, options) {
     console.log('Converting urn', urn, 'guid', guid);
     const reader = await SvfReader.FromDerivativeService(urn, guid, auth);
     const svf = await reader.read();
-    const writer = new GltfWriter(outputFolder, { deduplicate });
+    const writer = new GltfWriter(outputFolder, options);
     writer.write(svf);
     await writer.close();
 }
 
-async function convertLocal(svfPath, outputFolder) {
+async function convertLocal(svfPath, outputFolder, options) {
     console.log('Converting local file', svfPath);
     const reader = await SvfReader.FromFileSystem(svfPath);
     const svf = await reader.read();
-    const writer = new GltfWriter(outputFolder);
+    const writer = new GltfWriter(outputFolder, options);
     writer.write(svf);
     await writer.close();
 }
@@ -28,15 +28,21 @@ async function convertLocal(svfPath, outputFolder) {
 program
     .version(require('./package.json').version, '-v, --version')
     .option('-o, --output-folder [folder]', 'output folder', '.')
-    .option('-t, --output-type [type]', 'output file format (gltf)', 'gltf')
+    .option('-t, --output-type [type]', 'output file format (gltf, glb)', 'gltf')
     .option('-d, --deduplicate', 'deduplicate geometries (may increase processing time)', false)
+    .option('-c, --compress', 'compress meshes using Draco (may increase processing time)', false)
     .arguments('<URN or path/to/svf> [GUID]')
     .action(async function (id, guid) {
+        const options = {
+            binary: program.outputType === 'glb',
+            compress: program.compress,
+            deduplicate: program.deduplicate
+        };
         try {
             if (id.endsWith('.svf')) {
                 // ID is a path to local SVF file
                 const filepath = id;
-                convertLocal(filepath, program.outputFolder);
+                convertLocal(filepath, program.outputFolder, options);
             } else {
                 // ID is the Model Derivative URN
                 // Convert input guid or all guids
@@ -58,11 +64,11 @@ program
                 const helper = new ManifestHelper(await client.getManifest(urn));
                 const folder = path.join(program.outputFolder, urn);
                 if (guid) {
-                    await convertRemote(urn, guid, folder, program.deduplicate);
+                    await convertRemote(urn, guid, folder, options);
                 } else {
                     const derivatives = helper.search({ type: 'resource', role: 'graphics' });
                     for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
-                        await convertRemote(urn, derivative.guid, path.join(folder, derivative.guid), program.deduplicate);
+                        await convertRemote(urn, derivative.guid, path.join(folder, derivative.guid), options);
                     }
                 }
 

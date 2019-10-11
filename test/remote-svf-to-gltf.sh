@@ -8,4 +8,4 @@
 #     ./remote-svf-to-gltf.sh <your model urn> <path to output folder>
 
 npm install --global forge-convert-utils
-forge-convert $1 --output-folder $2
+forge-convert $1 --output-folder $2 --deduplicate

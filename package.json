@@ -1,10 +1,10 @@
 {
   "name": "forge-convert-utils",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Tools for converting Autodesk Forge file formats.",
   "main": "lib/index.js",
   "bin": {
-    "forge-convert": "./cli.js"
+    "forge-convert": "./bin/forge-convert.js"
   },
   "scripts": {
     "build": "tsc",
@@ -30,6 +30,7 @@
   "devDependencies": {
     "@types/adm-zip": "^0.4.32",
     "@types/fs-extra": "^8.0.0",
+    "gltf-validator": "^2.0.0-dev.2.7",
     "typedoc": "^0.15.0",
     "typescript": "^3.6.3"
   },
@@ -37,6 +38,7 @@
     "adm-zip": "^0.4.13",
     "commander": "^3.0.2",
     "forge-server-utils": "^7.0.0",
-    "fs-extra": "^8.1.0"
+    "fs-extra": "^8.1.0",
+    "gltf-pipeline": "^2.1.4"
   }
 }

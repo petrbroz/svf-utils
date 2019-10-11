@@ -1,5 +1,7 @@
 import * as path from 'path';
+import * as crypto from 'crypto';
 import * as fse from 'fs-extra';
+import * as pipeline from 'gltf-pipeline';
 
 import * as gltf from './schema';
 import { isUndefined, isNullOrUndefined } from 'util';
@@ -20,12 +22,16 @@ export interface IWriterOptions {
     ignoreMeshGeometry?: boolean; /** Don't output mesh geometry */
     ignoreLineGeometry?: boolean; /** Don't output line geometry */
     ignorePointGeometry?: boolean; /** Don't output point geometry */
+    deduplicate?: boolean; /** Find and remove mesh geometry duplicates (increases the processing time) */
+    compress?: boolean; /** Compress output using Draco. */
+    binary?: boolean; /** Output GLB instead of GLTF. */
 }
 
 /**
  * Utility class for serializing SVF content to local file system as glTF (2.0).
  */
 export class Writer {
+    protected baseDir: string;
     protected manifest: gltf.GlTf;
     protected downloads: Promise<string>[] = [];
     protected bufferStream: fse.WriteStream | null;
@@ -34,17 +40,26 @@ export class Writer {
     protected ignoreMeshGeometry: boolean;
     protected ignoreLineGeometry: boolean;
     protected ignorePointGeometry: boolean;
+    protected deduplicate: boolean;
+    protected compress: boolean;
+    protected binary: boolean;
+
+    private hashMeshCache /* :D */ = new Map<string, gltf.Mesh>();
+    private completeBuffers: Promise<void>[] = [];
 
     /**
      * Initializes the writer.
-     * @param {string} baseDir Output folder for the glTF manifest and all its assets.
+     * @param {string} dir Output folder for the glTF manifest and all its assets.
      * @param {IWriterOptions} [options={}] Additional writer options.
      */
-    constructor(protected baseDir: string, options: IWriterOptions = {}) {
+    constructor(dir: string, options: IWriterOptions = {}) {
         this.maxBufferSize = isNullOrUndefined(options.maxBufferSize) ? MaxBufferSize : options.maxBufferSize;
         this.ignoreMeshGeometry = !!options.ignoreMeshGeometry;
         this.ignoreLineGeometry = !!options.ignoreLineGeometry;
         this.ignorePointGeometry = !!options.ignorePointGeometry;
+        this.deduplicate = !!options.deduplicate;
+        this.compress = !!options.compress;
+        this.binary = !!options.binary;
         this.manifest = {
             asset: {
                 version: '2.0',
@@ -64,6 +79,7 @@ export class Writer {
         };
         this.bufferStream = null;
         this.bufferSize = 0;
+        this.baseDir = (this.compress || this.binary) ? path.join(dir, 'tmp') : dir;
     }
 
     /**
@@ -102,14 +118,56 @@ export class Writer {
     /**
      * Finalizes the glTF output.
      */
-    close() {
+    async close() {
         if (this.bufferStream) {
+            const stream = this.bufferStream as fse.WriteStream;
+            this.completeBuffers.push(new Promise((resolve, reject) => {
+                stream.on('finish', resolve);
+            }));
             this.bufferStream.close();
             this.bufferStream = null;
             this.bufferSize = 0;
         }
+
+        await Promise.all(this.completeBuffers);
         const gltfPath = path.join(this.baseDir, 'output.gltf');
         fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
+
+        if (this.compress || this.binary) {
+            const options: any = {
+                resourceDirectory: this.baseDir,
+                separate: false,
+                separateTextures: false,
+                stats: false,
+                name: 'output'
+            };
+            if (this.compress) {
+                options.dracoOptions = {
+                    compressionLevel: 10
+                };
+            }
+            /*
+             * For some reason, when trying to use the manifest that's already in memory,
+             * the call to gltfToGlb fails with "Draco Runtime Error". When we re-read
+             * the manifest we just serialized couple lines above, gltfToGlb works fine...
+             */
+            const manifest = fse.readJsonSync(gltfPath);
+            const newPath = this.baseDir.replace(/tmp$/, this.binary ? 'output.glb' : 'output.gltf');
+            try {
+                if (this.binary) {
+                    const result = await pipeline.gltfToGlb(manifest, options);
+                    fse.writeFileSync(newPath, result.glb);
+                    // Delete the original gltf file
+                    fse.unlinkSync(gltfPath);
+                } else {
+                    const result = await pipeline.processGltf(manifest, options);
+                    fse.writeJsonSync(newPath, result.gltf);
+                }
+                fse.removeSync(this.baseDir);
+            } catch(err) {
+                console.error('Could not post-process the output', err);
+            }
+        }
     }
 
     protected writeFragment(fragment: IFragment, svf: ISvfContent): gltf.Node {
@@ -154,7 +212,19 @@ export class Writer {
             } else if ('isPoints' in fragmesh) {
                 mesh = this.writePointGeometry(fragmesh, svf);
             } else {
-                mesh = this.writeMeshGeometry(fragmesh, svf);
+                if (this.deduplicate) {
+                    // Check if a similar already exists
+                    const hash = this.computeMeshHash(fragmesh);
+                    const cache = this.hashMeshCache.get(hash);
+                    if (cache) {
+                        mesh = cache;
+                    } else {
+                        mesh = this.writeMeshGeometry(fragmesh, svf);
+                        this.hashMeshCache.set(hash, mesh);
+                    }
+                } else {
+                    mesh = this.writeMeshGeometry(fragmesh, svf);
+                }
             }
             node.mesh = manifestMeshes.length;
             manifestMeshes.push(mesh);
@@ -181,13 +251,18 @@ export class Writer {
         // Prepare new writable stream if needed
         if (this.bufferStream === null || this.bufferSize > this.maxBufferSize) {
             if (this.bufferStream) {
+                const stream = this.bufferStream as fse.WriteStream;
+                this.completeBuffers.push(new Promise((resolve, reject) => {
+                    stream.on('finish', resolve);
+                }));
                 this.bufferStream.close();
                 this.bufferStream = null;
                 this.bufferSize = 0;
             }
             const bufferUri = `${manifestBuffers.length}.bin`;
             manifestBuffers.push({ uri: bufferUri, byteLength: 0 });
-            this.bufferStream = fse.createWriteStream(path.join(this.baseDir, bufferUri));
+            const bufferPath = path.join(this.baseDir, bufferUri);
+            this.bufferStream = fse.createWriteStream(bufferPath);
         }
 
         const bufferID = manifestBuffers.length - 1;
@@ -344,13 +419,18 @@ export class Writer {
         // Prepare new writable stream if needed
         if (this.bufferStream === null || this.bufferSize > this.maxBufferSize) {
             if (this.bufferStream) {
+                const stream = this.bufferStream as fse.WriteStream;
+                this.completeBuffers.push(new Promise((resolve, reject) => {
+                    stream.on('finish', resolve);
+                }));
                 this.bufferStream.close();
                 this.bufferStream = null;
                 this.bufferSize = 0;
             }
             const bufferUri = `${manifestBuffers.length}.bin`;
             manifestBuffers.push({ uri: bufferUri, byteLength: 0 });
-            this.bufferStream = fse.createWriteStream(path.join(this.baseDir, bufferUri));
+            const bufferPath = path.join(this.baseDir, bufferUri);
+            this.bufferStream = fse.createWriteStream(bufferPath);
         }
 
         const bufferID = manifestBuffers.length - 1;
@@ -476,13 +556,18 @@ export class Writer {
         // Prepare new writable stream if needed
         if (this.bufferStream === null || this.bufferSize > this.maxBufferSize) {
             if (this.bufferStream) {
+                const stream = this.bufferStream as fse.WriteStream;
+                this.completeBuffers.push(new Promise((resolve, reject) => {
+                    stream.on('finish', resolve);
+                }));
                 this.bufferStream.close();
                 this.bufferStream = null;
                 this.bufferSize = 0;
             }
             const bufferUri = `${manifestBuffers.length}.bin`;
             manifestBuffers.push({ uri: bufferUri, byteLength: 0 });
-            this.bufferStream = fse.createWriteStream(path.join(this.baseDir, bufferUri));
+            const bufferPath = path.join(this.baseDir, bufferUri);
+            this.bufferStream = fse.createWriteStream(bufferPath);
         }
 
         const bufferID = manifestBuffers.length - 1;
@@ -596,12 +681,33 @@ export class Writer {
         let imageID = manifestImages.findIndex(image => image.uri === map.uri);
         if (imageID === -1) {
             imageID = manifestImages.length;
-            const uri = map.uri.toLowerCase();
-            manifestImages.push({ uri });
-            const filepath = path.join(this.baseDir, uri);
-            fse.ensureDirSync(path.dirname(filepath));
-            fse.writeFileSync(filepath, svf.images[uri]);
+            const normalizedUri = map.uri.toLowerCase().split(/[\/\\]/).join(path.sep);
+            manifestImages.push({ uri: normalizedUri });
+            const filePath = path.join(this.baseDir, normalizedUri);
+            fse.ensureDirSync(path.dirname(filePath));
+            fse.writeFileSync(filePath, svf.images[normalizedUri]);
         }
         return { source: imageID };
+    }
+
+    /**
+     * Computes a hash for given mesh by combining values like vertex count and
+     * triangle count with an MD5 hash of the actual index/vertex/normal/uv buffer data.
+     * Some properties (attrs, comments, min, max) are not included in the hash.
+     * @param {IMesh} mesh Input mesh.
+     * @returns {string} Hash-like string that can be used for caching the mesh.
+     */
+    private computeMeshHash(mesh: IMesh): string {
+        const hash = crypto.createHash('md5');
+        const { vcount, tcount, uvcount, attrs, flags, comment, min, max } = mesh;
+        hash.update(mesh.vertices);
+        hash.update(mesh.indices);
+        for (const uvmap of mesh.uvmaps) {
+            hash.update(uvmap.uvs);
+        }
+        if (mesh.normals) {
+            hash.update(mesh.normals);
+        }
+        return [vcount, tcount, uvcount, flags, hash.digest('hex')].join('/');
     }
 }

@@ -5,7 +5,7 @@ const path = require('path');
 const fse = require('fs-extra');
 const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
 
-const { SvfReader, GltfWriter } = require('.');
+const { SvfReader, GltfWriter } = require('..');
 
 async function convertRemote(urn, guid, outputFolder, deduplicate) {
     console.log('Converting urn', urn, 'guid', guid);

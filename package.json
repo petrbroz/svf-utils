@@ -30,6 +30,7 @@
   "devDependencies": {
     "@types/adm-zip": "^0.4.32",
     "@types/fs-extra": "^8.0.0",
+    "gltf-validator": "^2.0.0-dev.2.7",
     "typedoc": "^0.15.0",
     "typescript": "^3.6.3"
   },

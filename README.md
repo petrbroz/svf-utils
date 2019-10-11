@@ -20,12 +20,15 @@ Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file f
 - run the command with a Model Derivative URN (and optionally viewable GUID)
     - to access Forge you must also specify credentials (`FORGE_CLIENT_ID` and `FORGE_CLIENT_SECRET`)
     or an authentication token (`FORGE_ACCESS_TOKEN`) as env. variables
-- run the command with `--deduplicate` to deduplicate geometries (may increase the processing time)
+- optionally use any combination of the following command line args:
+  - `--output-type glb` to output _glb_ file instead of _gltf_
+  - `--deduplicate` to try and remove duplicate geometries
+  - `--compress` to compress meshes using Draco
 
 #### Unix/macOS
 
 ```
-forge-convert <path to local svf> --output-folder <path to output folder> --deduplicate
+forge-convert <path to local svf> --output-folder <path to output folder>
 ```
 
 or
@@ -46,7 +49,7 @@ forge-convert <urn> --output-folder <path to output folder>
 #### Windows
 
 ```
-forge-convert <path to local svf> --output-folder <path to output folder> --deduplicate
+forge-convert <path to local svf> --output-folder <path to output folder>
 ```
 
 or

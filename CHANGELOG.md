@@ -8,7 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 - Added
-  - Deduplication of exported geometries (opt-in)
+  - Opt-in deduplication of exported geometries
+  - Opt-in output to GLB
+  - Opt-in output with Draco compression
 - Fixed
   - Normalizing windows/posix paths of SVF assets
 

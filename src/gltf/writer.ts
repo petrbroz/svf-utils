@@ -614,11 +614,11 @@ export class Writer {
         let imageID = manifestImages.findIndex(image => image.uri === map.uri);
         if (imageID === -1) {
             imageID = manifestImages.length;
-            const uri = map.uri.toLowerCase();
-            manifestImages.push({ uri });
-            const filepath = path.join(this.baseDir, uri);
-            fse.ensureDirSync(path.dirname(filepath));
-            fse.writeFileSync(filepath, svf.images[uri]);
+            const normalizedUri = map.uri.toLowerCase().split(/[\/\\]/).join(path.sep);
+            manifestImages.push({ uri: normalizedUri });
+            const filePath = path.join(this.baseDir, normalizedUri);
+            fse.ensureDirSync(path.dirname(filePath));
+            fse.writeFileSync(filePath, svf.images[normalizedUri]);
         }
         return { source: imageID };
     }

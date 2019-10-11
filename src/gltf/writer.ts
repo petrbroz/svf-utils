@@ -129,13 +129,6 @@ export class Writer {
         fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
 
         if (this.compress) {
-            // const options = {
-            //     separate: false,
-            //     resourceDirectory: this.baseDir,
-            //     dracoOptions: {
-            //         compressionLevel: 10
-            //     }
-            // };
             const options = {
                 resourceDirectory: this.baseDir,
                 separate: false,
@@ -143,28 +136,18 @@ export class Writer {
                 stats: false,
                 name: 'output',
                 dracoOptions: {
-                    'compress-meshes': true,
-                    'compression-level': 7,
-                    'compressionLevel': 7,
-                    'compressMeshes': true,
-                    'quantize-color-bits': 8,
-                    'quantize-generic-bits': 12,
-                    'quantize-normal-bits': 10,
-                    'quantize-position-bits': 14,
-                    'quantize-texcoord-bits': 12,
-                    'quantizeColorBits': 8,
-                    'quantizeGenericBits': 12,
-                    'quantizeNormalBits': 10,
-                    'quantizePositionBits': 14,
-                    'quantizeTexcoordBits': 12,
-                    'uncompressed-fallback': false,
-                    'uncompressedFallback': false,
-                    'unified-quantization': false
+                    compressionLevel: 10
                 }
             };
             try {
-                const result = await pipeline.processGltf(this.manifest, options);
-                fse.writeFileSync(gltfPath.replace('.gltf', '.glb'), JSON.stringify(result.gltf, null, 4));
+                /*
+                 * For some reason, when trying to use the manifest that's already in memory,
+                 * the call to gltfToGlb fails with "Draco Runtime Error". When we re-read
+                 * the manifest we just serialized couple lines above, gltfToGlb works fine...
+                 */
+                const manifest = fse.readJsonSync(gltfPath);
+                const result = await pipeline.gltfToGlb(manifest, options);
+                fse.writeFileSync(gltfPath.replace('.gltf', '.glb'), result.glb);
             } catch(err) {
                 console.error('Could not compress output', err);
             }

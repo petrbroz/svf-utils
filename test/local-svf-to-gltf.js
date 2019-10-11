@@ -1,5 +1,7 @@
 /*
- * Example: converting an SVF (without property database) from local file system to glTF
+ * Example: converting an SVF (without property database) from local file system
+ * into (1) vanilla glTF, (2) glTF with Draco compression, (3) binary glTF, and
+ * (4) binary glTF with Draco compression.
  * Usage:
  *     node local-svf-to-gltf.js <path to svf file> <path to output folder>
  */

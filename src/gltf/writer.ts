@@ -129,11 +129,37 @@ export class Writer {
         fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
 
         if (this.compress) {
+            // const options = {
+            //     separate: false,
+            //     resourceDirectory: this.baseDir,
+            //     dracoOptions: {
+            //         compressionLevel: 10
+            //     }
+            // };
             const options = {
-                separate: false,
                 resourceDirectory: this.baseDir,
+                separate: false,
+                separateTextures: false,
+                stats: false,
+                name: 'output',
                 dracoOptions: {
-                    compressionLevel: 10
+                    'compress-meshes': true,
+                    'compression-level': 7,
+                    'compressionLevel': 7,
+                    'compressMeshes': true,
+                    'quantize-color-bits': 8,
+                    'quantize-generic-bits': 12,
+                    'quantize-normal-bits': 10,
+                    'quantize-position-bits': 14,
+                    'quantize-texcoord-bits': 12,
+                    'quantizeColorBits': 8,
+                    'quantizeGenericBits': 12,
+                    'quantizeNormalBits': 10,
+                    'quantizePositionBits': 14,
+                    'quantizeTexcoordBits': 12,
+                    'uncompressed-fallback': false,
+                    'uncompressedFallback': false,
+                    'unified-quantization': false
                 }
             };
             try {

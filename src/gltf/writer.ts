@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as crypto from 'crypto';
 import * as fse from 'fs-extra';
+import * as pipeline from 'gltf-pipeline';
 
 import * as gltf from './schema';
 import { isUndefined, isNullOrUndefined } from 'util';
@@ -116,6 +117,21 @@ export class Writer {
         }
         const gltfPath = path.join(this.baseDir, 'output.gltf');
         fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
+        // TODO: make the draco compression configurable
+        // const options = {
+        //     separate: false,
+        //     resourceDirectory: this.baseDir,
+        //     dracoOptions: {
+        //         compressionLevel: 10
+        //     }
+        // };
+        // pipeline.processGltf(this.manifest, options)
+        //     .then((result: any) => {
+        //         fse.writeFileSync(gltfPath, JSON.stringify(result.gltf, null, 4));
+        //     })
+        //     .catch((err: any) => {
+        //         console.error(err);
+        //     });
     }
 
     protected writeFragment(fragment: IFragment, svf: ISvfContent): gltf.Node {

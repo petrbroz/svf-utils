@@ -26,7 +26,7 @@ async function convertLocal(svfPath, outputFolder, options) {
 }
 
 program
-    .version(require('./package.json').version, '-v, --version')
+    .version(require('../package.json').version, '-v, --version')
     .option('-o, --output-folder [folder]', 'output folder', '.')
     .option('-t, --output-type [type]', 'output file format (gltf, glb)', 'gltf')
     .option('-d, --deduplicate', 'deduplicate geometries (may increase processing time)', false)

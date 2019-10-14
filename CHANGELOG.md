@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2019-10-14
+
+- Added
+  - Progress logging when parsing SVF and writing glTF
+- Fixed
+  - Typo in reference to package.json in CLI tool
+  - Typo in CLI when accessing Forge credentials
+
 ## [0.6.0] - 2019-10-11
 
 - Added

@@ -25,6 +25,7 @@ export interface IWriterOptions {
     deduplicate?: boolean; /** Find and remove mesh geometry duplicates (increases the processing time) */
     compress?: boolean; /** Compress output using Draco. */
     binary?: boolean; /** Output GLB instead of GLTF. */
+    log?: (msg: string) => void; /** Optional logging function. */
 }
 
 /**
@@ -43,6 +44,7 @@ export class Writer {
     protected deduplicate: boolean;
     protected compress: boolean;
     protected binary: boolean;
+    protected log: (msg: string) => void;
 
     private hashMeshCache /* :D */ = new Map<string, gltf.Mesh>();
     private completeBuffers: Promise<void>[] = [];
@@ -60,6 +62,7 @@ export class Writer {
         this.deduplicate = !!options.deduplicate;
         this.compress = !!options.compress;
         this.binary = !!options.binary;
+        this.log = (options && options.log) || function (msg: string) {};
         this.manifest = {
             asset: {
                 version: '2.0',
@@ -96,6 +99,7 @@ export class Writer {
 
         fse.ensureDirSync(this.baseDir);
 
+        this.log(`Writing scene...`);
         for (const fragment of svf.fragments) {
             const node = this.writeFragment(fragment, svf);
             // Only output nodes that have a mesh
@@ -113,12 +117,14 @@ export class Writer {
 
         const manifestScenes = this.manifest.scenes as gltf.Scene[];
         manifestScenes.push(scene);
+        this.log(`Writing scene: done`);
     }
 
     /**
      * Finalizes the glTF output.
      */
     async close() {
+        this.log(`Closing gltf output...`);
         if (this.bufferStream) {
             const stream = this.bufferStream as fse.WriteStream;
             this.completeBuffers.push(new Promise((resolve, reject) => {
@@ -132,8 +138,10 @@ export class Writer {
         await Promise.all(this.completeBuffers);
         const gltfPath = path.join(this.baseDir, 'output.gltf');
         fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
+        this.log(`Closing gltf output: done`);
 
         if (this.compress || this.binary) {
+            this.log(`Post-processing gltf output...`);
             const options: any = {
                 resourceDirectory: this.baseDir,
                 separate: false,
@@ -167,6 +175,7 @@ export class Writer {
             } catch(err) {
                 console.error('Could not post-process the output', err);
             }
+            this.log(`Post-processing gltf output: done`);
         }
     }
 

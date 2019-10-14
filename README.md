@@ -20,15 +20,16 @@ Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file f
 - run the command with a Model Derivative URN (and optionally viewable GUID)
     - to access Forge you must also specify credentials (`FORGE_CLIENT_ID` and `FORGE_CLIENT_SECRET`)
     or an authentication token (`FORGE_ACCESS_TOKEN`) as env. variables
-- optionally use any combination of the following command line args:
+- optionally, use any combination of the following command line args:
   - `--output-type glb` to output _glb_ file instead of _gltf_
   - `--deduplicate` to try and remove duplicate geometries
   - `--compress` to compress meshes using Draco
+- optionally, set env. variable `DEBUG` to `cli:*` to see additional logs
 
 #### Unix/macOS
 
 ```
-forge-convert <path to local svf> --output-folder <path to output folder>
+DEBUG=cli:* forge-convert <path to local svf> --output-folder <path to output folder>
 ```
 
 or
@@ -36,19 +37,20 @@ or
 ```
 export FORGE_CLIENT_ID=<client id>
 export FORGE_CLIENT_SECRET=<client secret>
-forge-convert <urn> --output-folder <path to output folder>
+DEBUG=cli:* forge-convert <urn> --output-folder <path to output folder>
 ```
 
 or
 
 ```
 export FORGE_ACCESS_TOKEN=<access token>>
-forge-convert <urn> --output-folder <path to output folder>
+DEBUG=cli:* forge-convert <urn> --output-folder <path to output folder>
 ```
 
 #### Windows
 
 ```
+set DEBUG=cli:*
 forge-convert <path to local svf> --output-folder <path to output folder>
 ```
 
@@ -57,13 +59,15 @@ or
 ```
 set FORGE_CLIENT_ID=<client id>
 set FORGE_CLIENT_SECRET=<client secret>
+set DEBUG=cli:*
 forge-convert <urn> --output-folder <path to output folder>
 ```
 
 or
 
 ```
-set FORGE_ACCESS_TOKEN=<access token>>
+set FORGE_ACCESS_TOKEN=<access token>
+set DEBUG=cli:*
 forge-convert <urn> --output-folder <path to output folder>
 ```
 
@@ -86,10 +90,10 @@ async function run (urn, outputDir) {
     const modelDerivativeClient = new ModelDerivativeClient(auth);
     const helper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
     const derivatives = helper.search({ type: 'resource', role: 'graphics' });
-    const writer = new GltfWriter(outputDir, { deduplicate: true });
+    const writer = new GltfWriter(outputDir, { deduplicate: true, log: (msg) => console.info('Writer', msg) });
     for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
         const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
-        const svf = await reader.read();
+        const svf = await reader.read({ log: (msg) => console.info('Reader', msg) });
         writer.write(svf);
     }
     writer.close();

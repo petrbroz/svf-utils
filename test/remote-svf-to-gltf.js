@@ -4,10 +4,11 @@
  * Usage:
  *     export FORGE_CLIENT_ID=<your client id>
  *     export FORGE_CLIENT_SECRET=<your client secret>
- *     node remote-svf-to-gltf.js <your model urn> <path to output folder>
+ *     DEBUG=reader,writer:* node remote-svf-to-gltf.js <your model urn> <path to output folder>
  */
 
 const path = require('path');
+const debug = require('debug');
 const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
 const { SvfReader, GltfWriter } = require('..');
 
@@ -18,11 +19,11 @@ async function run (urn, outputDir) {
     const modelDerivativeClient = new ModelDerivativeClient(auth);
     const helper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
     const derivatives = helper.search({ type: 'resource', role: 'graphics' });
-    const writer1 = new GltfWriter(path.join(outputDir, 'gltf'), { deduplicate: true, binary: false, compress: false });
-    const writer2 = new GltfWriter(path.join(outputDir, '/glb-draco'), { deduplicate: true, binary: true, compress: true });
+    const writer1 = new GltfWriter(path.join(outputDir, 'gltf'), { deduplicate: true, binary: false, compress: false, log: debug('writer:1') });
+    const writer2 = new GltfWriter(path.join(outputDir, '/glb-draco'), { deduplicate: true, binary: true, compress: true, log: debug('writer:2') });
     for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
         const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
-        const svf = await reader.read();
+        const svf = await reader.read({ log: debug('reader') });
         writer1.write(svf);
         writer2.write(svf);
     }

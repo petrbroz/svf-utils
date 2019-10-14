@@ -26,6 +26,13 @@ export interface ISvfContent {
 }
 
 /**
+ * Additional options when reading the entire SVF.
+ */
+export interface IReaderOptions {
+    log?: (msg: string) => void;
+}
+
+/**
  * Utility class for parsing & reading SVF content from Model Derivative service
  * or from local file system.
  *
@@ -108,8 +115,9 @@ export class Reader {
      * In cases where a more granular control is needed (for example, when trying to control
      * memory consumption), consider parsing the different SVF elements individually,
      * using methods like {@link readFragments}, {@link enumerateGeometries}, etc.
+     * @param {IReaderOptions} [options] Additional reading options.
      */
-    async read(): Promise<ISvfContent> {
+    async read(options?: IReaderOptions): Promise<ISvfContent> {
         let output: any = {
             metadata: await this.getMetadata(),
             fragments: [],
@@ -120,26 +128,38 @@ export class Reader {
             images: {}
         };
         let tasks: Promise<void>[] = [];
+        const log = (options && options.log) || function (msg: string) {};
 
         tasks.push((async () => {
+            log(`Reading fragments...`);
             output.fragments = await this.readFragments();
+            log(`Reading fragments: done`);
         })());
         tasks.push((async () => {
+            log(`Reading geometries...`);
             output.geometries = await this.readGeometries();
+            log(`Reading geometries: done`);
         })());
         tasks.push((async () => {
+            log(`Reading materials...`);
             output.materials = await this.readMaterials();
+            log(`Reading materials: done`);
         })());
         tasks.push((async () => {
+            log(`Reading property database...`);
             output.properties = await this.getPropertyDb();
+            log(`Reading property database: done`);
         })());
         for (let i = 0, len = this.getMeshPackCount(); i < len; i++) {
             tasks.push((async (id: number) => {
+                log(`Reading meshpack #${id}...`);
                 output.meshpacks[id] = await this.readMeshPack(id);
+                log(`Reading meshpack #${id}: done`);
             })(i));
         }
         for (const img of this.listImages()) {
             tasks.push((async (uri: string) => {
+                log(`Downloading image ${uri}...`);
                 const normalizedUri = uri.toLowerCase().split(/[\/\\]/).join(path.sep);
                 try {
                     // Sometimes, Model Derivative service URIs must be left unmodified...
@@ -148,6 +168,7 @@ export class Reader {
                     // ... and sometimes they must be lower-cased :/
                     output.images[normalizedUri] = await this.getAsset(uri.toLowerCase());
                 }
+                log(`Downloading image ${uri}: done`);
             })(img));
         }
         await Promise.all(tasks);

@@ -37,6 +37,7 @@
   "dependencies": {
     "adm-zip": "^0.4.13",
     "commander": "^3.0.2",
+    "debug": "^4.1.1",
     "forge-server-utils": "^7.0.0",
     "fs-extra": "^8.1.0",
     "gltf-pipeline": "^2.1.4"

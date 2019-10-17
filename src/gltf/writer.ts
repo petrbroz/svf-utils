@@ -1,5 +1,5 @@
 import * as path from 'path';
-import * as crypto from 'crypto';
+import crypto from 'crypto';
 import * as fse from 'fs-extra';
 import * as pipeline from 'gltf-pipeline';
 

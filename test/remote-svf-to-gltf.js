@@ -1,6 +1,6 @@
 /*
  * Example: converting an SVF (without property database) from Model Derivative service
- * into (1) vanilla glTF, and (2) binary glTF with Draco compression.
+ * with different output options.
  * Usage:
  *     export FORGE_CLIENT_ID=<your client id>
  *     export FORGE_CLIENT_SECRET=<your client secret>
@@ -19,14 +19,17 @@ async function run (urn, outputDir) {
         const modelDerivativeClient = new ModelDerivativeClient(auth);
         const helper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
         const derivatives = helper.search({ type: 'resource', role: 'graphics' });
+        const writer0 = new GltfWriter(path.join(outputDir, 'gltf-nodedup'), { deduplicate: false, binary: false, compress: false, log: console.log });
         const writer1 = new GltfWriter(path.join(outputDir, 'gltf'), { deduplicate: true, binary: false, compress: false, log: console.log });
         const writer2 = new GltfWriter(path.join(outputDir, 'glb-draco'), { deduplicate: true, binary: true, compress: true, log: console.log });
         for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
             const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
             const svf = await reader.read({ log: console.log });
+            writer0.write(svf);
             writer1.write(svf);
             writer2.write(svf);
         }
+        await writer0.close();
         await writer1.close();
         await writer2.close();
     } catch(err) {

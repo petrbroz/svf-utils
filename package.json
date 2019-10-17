@@ -6,6 +6,9 @@
   "bin": {
     "forge-convert": "./bin/forge-convert.js"
   },
+  "engines": {
+    "node": ">=10.16.3"
+  },
   "scripts": {
     "build": "tsc",
     "docs": "typedoc --out lib/docs src"
@@ -16,7 +19,6 @@
     "autodesk",
     "forge",
     "gltf",
-    "node.js",
     "typescript"
   ],
   "repository": {

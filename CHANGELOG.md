@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.3] - 2019-10-17
+
+- Changed
+  - Geometry deduplication now on BufferView (instead of Mesh) level
+  - Sample scripts now using proper error catching
+
 ## [0.6.2] - 2019-10-17
 
 - Added

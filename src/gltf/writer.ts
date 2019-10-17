@@ -1,5 +1,5 @@
 import * as path from 'path';
-import * as crypto from 'crypto';
+import crypto from 'crypto';
 import * as fse from 'fs-extra';
 import * as pipeline from 'gltf-pipeline';
 
@@ -46,7 +46,7 @@ export class Writer {
     protected binary: boolean;
     protected log: (msg: string) => void;
 
-    private hashMeshCache /* :D */ = new Map<string, gltf.Mesh>();
+    private bufferViewCache = new Map<string, gltf.BufferView>();
     private completeBuffers: Promise<void>[] = [];
 
     /**
@@ -249,28 +249,11 @@ export class Writer {
             } else if ('isPoints' in fragmesh) {
                 mesh = this.writePointGeometry(fragmesh, svf);
             } else {
-                if (this.deduplicate) {
-                    // Check if a similar already exists
-                    // Note: for now, since meshes in the glTF sense of the word include a specific material,
-                    // we have to include material ID in the hash, too.
-                    // To avoid this, we should probably deduplicate on the buffer view level...
-                    const hash = this.computeMeshHash(fragmesh) + '+' + fragment.materialID;
-                    const cache = this.hashMeshCache.get(hash);
-                    if (cache) {
-                        mesh = cache;
-                        this.log(`Skipping a duplicate mesh (hash: ${hash})`);
-                    } else {
-                        mesh = this.writeMeshGeometry(fragmesh, svf);
-                        this.hashMeshCache.set(hash, mesh);
-                    }
-                } else {
-                    mesh = this.writeMeshGeometry(fragmesh, svf);
-                }
+                mesh = this.writeMeshGeometry(fragmesh, svf);
             }
-            const clone = JSON.parse(JSON.stringify(mesh));
             node.mesh = manifestMeshes.length;
-            manifestMeshes.push(clone);
-            for (const primitive of clone.primitives) {
+            manifestMeshes.push(mesh);
+            for (const primitive of mesh.primitives) {
                 primitive.material = fragment.materialID;
             }
         } else {
@@ -288,162 +271,79 @@ export class Writer {
             return mesh;
         }
 
-        const manifestBuffers = this.manifest.buffers as gltf.Buffer[];
-
-        // Prepare new writable stream if needed
-        if (this.bufferStream === null || this.bufferSize > this.maxBufferSize) {
-            if (this.bufferStream) {
-                const stream = this.bufferStream as fse.WriteStream;
-                this.completeBuffers.push(new Promise((resolve, reject) => {
-                    stream.on('finish', resolve);
-                }));
-                this.bufferStream.close();
-                this.bufferStream = null;
-                this.bufferSize = 0;
-            }
-            const bufferUri = `${manifestBuffers.length}.bin`;
-            manifestBuffers.push({ uri: bufferUri, byteLength: 0 });
-            const bufferPath = path.join(this.baseDir, bufferUri);
-            this.bufferStream = fse.createWriteStream(bufferPath);
-        }
-
-        const bufferID = manifestBuffers.length - 1;
-        const buffer = manifestBuffers[bufferID];
         const bufferViews = this.manifest.bufferViews as gltf.BufferView[];
         const accessors = this.manifest.accessors as gltf.Accessor[];
-        const hasUVs = fragmesh.uvmaps && fragmesh.uvmaps.length > 0;
 
+        // Output index buffer
         const indexBufferViewID = bufferViews.length;
-        let indexBufferView = {
-            buffer: bufferID,
-            byteOffset: -1,
-            byteLength: -1
-        };
+        const indexBufferView = this.writeBufferView(Buffer.from(fragmesh.indices.buffer));
         bufferViews.push(indexBufferView);
-
-        const positionBufferViewID = bufferViews.length;
-        let positionBufferView = {
-            buffer: bufferID,
-            byteOffset: -1,
-            byteLength: -1
-        };
-        bufferViews.push(positionBufferView);
-
-        const normalBufferViewID = bufferViews.length;
-        let normalBufferView = {
-            buffer: bufferID,
-            byteOffset: -1,
-            byteLength: -1
-        };
-        bufferViews.push(normalBufferView);
-
-        let uvBufferViewID, uvBufferView;
-        if (hasUVs) {
-            uvBufferViewID = bufferViews.length;
-            uvBufferView = {
-                buffer: bufferID,
-                byteOffset: -1,
-                byteLength: -1
-            };
-            bufferViews.push(uvBufferView);
-        }
-
         const indexAccessorID = accessors.length;
-        let indexAccessor = {
+        accessors.push({
             bufferView: indexBufferViewID,
             componentType: 5123, // UNSIGNED_SHORT
-            count: -1,
+            count: indexBufferView.byteLength / 2,
             type: 'SCALAR'
-        };
-        accessors.push(indexAccessor);
+        });
 
+        // Output vertex buffer
+        const positionBufferViewID = bufferViews.length;
+        const positionBufferView = this.writeBufferView(Buffer.from(fragmesh.vertices.buffer));
+        bufferViews.push(positionBufferView);
         const positionAccessorID = accessors.length;
-        let positionAccessor = {
+        accessors.push({
             bufferView: positionBufferViewID,
             componentType: 5126, // FLOAT
-            count: -1,
+            count: positionBufferView.byteLength / 4 / 3,
             type: 'VEC3',
             min: [fragmesh.min.x, fragmesh.min.y, fragmesh.min.z],
             max: [fragmesh.max.x, fragmesh.max.y, fragmesh.max.z]
-        };
-        accessors.push(positionAccessor);
+        });
 
-        const normalAccessorID = accessors.length;
-        let normalAccessor = {
-            bufferView: normalBufferViewID,
-            componentType: 5126, // FLOAT
-            count: -1,
-            type: 'VEC3'
-        };
-        accessors.push(normalAccessor);
+        // Output normals buffer
+        let normalAccessorID: number | undefined = undefined;
+        if (fragmesh.normals) {
+            const normalBufferViewID = bufferViews.length;
+            const normalBufferView = this.writeBufferView(Buffer.from(fragmesh.normals.buffer));
+            bufferViews.push(normalBufferView);
+            normalAccessorID = accessors.length;
+            accessors.push({
+                bufferView: normalBufferViewID,
+                componentType: 5126, // FLOAT
+                count: normalBufferView.byteLength / 4 / 3,
+                type: 'VEC3'
+            });
+        }
+
+        // Output UV buffers
+        let uvAccessorID: number | undefined = undefined;
+        if (fragmesh.uvmaps && fragmesh.uvmaps.length > 0) {
+            const uvBufferViewID = bufferViews.length;
+            const uvBufferView = this.writeBufferView(Buffer.from(fragmesh.uvmaps[0].uvs.buffer));
+            bufferViews.push(uvBufferView);
+            uvAccessorID = accessors.length;
+            accessors.push({
+                bufferView: uvBufferViewID,
+                componentType: 5126, // FLOAT
+                count: uvBufferView.byteLength / 4 / 2,
+                type: 'VEC2'
+            });
+        }
 
         mesh.primitives.push({
             attributes: {
                 POSITION: positionAccessorID,
-                NORMAL: normalAccessorID
             },
             indices: indexAccessorID
         });
 
-        let uvAccessorID, uvAccessor;
-        if (hasUVs) {
-            uvAccessorID = accessors.length;
-            uvAccessor = {
-                bufferView: uvBufferViewID,
-                componentType: 5126, // FLOAT
-                count: -1,
-                type: 'VEC2'
-            };
-            accessors.push(uvAccessor);
+        if (!isUndefined(normalAccessorID)) {
+            mesh.primitives[0].attributes.NORMAL = normalAccessorID;
+        }
+        if (!isUndefined(uvAccessorID)) {
             mesh.primitives[0].attributes.TEXCOORD_0 = uvAccessorID;
         }
 
-        // Indices
-        const indices = Buffer.from(fragmesh.indices.buffer);
-        this.bufferStream.write(indices);
-        this.bufferSize += indices.byteLength;
-        indexAccessor.count = indices.byteLength / 2;
-        indexBufferView.byteOffset = buffer.byteLength;
-        indexBufferView.byteLength = indices.byteLength;
-        buffer.byteLength += indices.byteLength;
-        if (buffer.byteLength % 4 !== 0) {
-            // Pad to 4-byte multiples
-            const pad = 4 - buffer.byteLength % 4;
-            this.bufferStream.write(new Uint8Array(pad));
-            this.bufferSize += pad;
-            buffer.byteLength += pad;
-        }
-
-        // Vertices
-        const vertices = Buffer.from(fragmesh.vertices.buffer);
-        this.bufferStream.write(vertices);
-        this.bufferSize += vertices.byteLength;
-        positionAccessor.count = vertices.byteLength / 4 / 3;
-        positionBufferView.byteOffset = buffer.byteLength;
-        positionBufferView.byteLength = vertices.byteLength;
-        buffer.byteLength += vertices.byteLength;
-
-        // Normals
-        if (fragmesh.normals) {
-            const normals = Buffer.from(fragmesh.normals.buffer);
-            this.bufferStream.write(normals);
-            this.bufferSize += normals.byteLength;
-            normalAccessor.count = normals.byteLength / 4 / 3;
-            normalBufferView.byteOffset = buffer.byteLength;
-            normalBufferView.byteLength = normals.byteLength;
-            buffer.byteLength += normals.byteLength;
-        }
-
-        // UVs (only the first UV map if there's one)
-        if (hasUVs && !isUndefined(uvAccessor) && !isUndefined(uvBufferView)) {
-            const uvs = Buffer.from(fragmesh.uvmaps[0].uvs.buffer);
-            this.bufferStream.write(uvs);
-            this.bufferSize += uvs.byteLength;
-            uvAccessor.count = uvs.byteLength / 4 / 2;
-            uvBufferView.byteOffset = buffer.byteLength;
-            uvBufferView.byteLength = uvs.byteLength;
-            buffer.byteLength += uvs.byteLength;
-        }
         return mesh;
     }
 
@@ -456,65 +356,51 @@ export class Writer {
             return mesh;
         }
 
-        const manifestBuffers = this.manifest.buffers as gltf.Buffer[];
-
-        // Prepare new writable stream if needed
-        if (this.bufferStream === null || this.bufferSize > this.maxBufferSize) {
-            if (this.bufferStream) {
-                const stream = this.bufferStream as fse.WriteStream;
-                this.completeBuffers.push(new Promise((resolve, reject) => {
-                    stream.on('finish', resolve);
-                }));
-                this.bufferStream.close();
-                this.bufferStream = null;
-                this.bufferSize = 0;
-            }
-            const bufferUri = `${manifestBuffers.length}.bin`;
-            manifestBuffers.push({ uri: bufferUri, byteLength: 0 });
-            const bufferPath = path.join(this.baseDir, bufferUri);
-            this.bufferStream = fse.createWriteStream(bufferPath);
-        }
-
-        const bufferID = manifestBuffers.length - 1;
-        const buffer = manifestBuffers[bufferID];
         const bufferViews = this.manifest.bufferViews as gltf.BufferView[];
         const accessors = this.manifest.accessors as gltf.Accessor[];
 
+        // Output index buffer
         const indexBufferViewID = bufferViews.length;
-        let indexBufferView = {
-            buffer: bufferID,
-            byteOffset: -1,
-            byteLength: -1
-        };
+        const indexBufferView = this.writeBufferView(Buffer.from(fragmesh.indices.buffer));
         bufferViews.push(indexBufferView);
-
-        const positionBufferViewID = bufferViews.length;
-        let positionBufferView = {
-            buffer: bufferID,
-            byteOffset: -1,
-            byteLength: -1
-        };
-        bufferViews.push(positionBufferView);
-
         const indexAccessorID = accessors.length;
-        let indexAccessor = {
+        accessors.push({
             bufferView: indexBufferViewID,
             componentType: 5123, // UNSIGNED_SHORT
-            count: -1,
+            count: indexBufferView.byteLength / 2,
             type: 'SCALAR'
-        };
-        accessors.push(indexAccessor);
+        });
 
+        // Output vertex buffer
+        const positionBufferViewID = bufferViews.length;
+        const positionBufferView = this.writeBufferView(Buffer.from(fragmesh.vertices.buffer));
+        bufferViews.push(positionBufferView);
         const positionAccessorID = accessors.length;
-        let positionAccessor = {
+        accessors.push({
             bufferView: positionBufferViewID,
             componentType: 5126, // FLOAT
-            count: -1,
+            count: positionBufferView.byteLength / 4 / 3,
             type: 'VEC3',
             //min: // TODO
             //max: // TODO
-        };
-        accessors.push(positionAccessor);
+        });
+
+        // Output color buffer
+        let colorAccessorID: number | undefined = undefined;
+        if (fragmesh.colors) {
+            const colorBufferViewID = bufferViews.length;
+            const colorBufferView = this.writeBufferView(Buffer.from(fragmesh.colors.buffer));
+            bufferViews.push(colorBufferView);
+            colorAccessorID = accessors.length;
+            accessors.push({
+                bufferView: colorBufferViewID,
+                componentType: 5126, // FLOAT
+                count: colorBufferView.byteLength / 4 / 3,
+                type: 'VEC3',
+                //min: // TODO
+                //max: // TODO
+            });
+        }
 
         mesh.primitives.push({
             mode: 1, // LINES
@@ -524,61 +410,8 @@ export class Writer {
             indices: indexAccessorID
         });
 
-        // Indices
-        const indices = Buffer.from(fragmesh.indices.buffer);
-        this.bufferStream.write(indices);
-        this.bufferSize += indices.byteLength;
-        indexAccessor.count = indices.byteLength / 2;
-        indexBufferView.byteOffset = buffer.byteLength;
-        indexBufferView.byteLength = indices.byteLength;
-        buffer.byteLength += indices.byteLength;
-        if (buffer.byteLength % 4 !== 0) {
-            // Pad to 4-byte multiples
-            const pad = 4 - buffer.byteLength % 4;
-            this.bufferStream.write(new Uint8Array(pad));
-            this.bufferSize += pad;
-            buffer.byteLength += pad;
-        }
-
-        // Vertices
-        const vertices = Buffer.from(fragmesh.vertices.buffer);
-        this.bufferStream.write(vertices);
-        this.bufferSize += vertices.byteLength;
-        positionAccessor.count = vertices.byteLength / 4 / 3;
-        positionBufferView.byteOffset = buffer.byteLength;
-        positionBufferView.byteLength = vertices.byteLength;
-        buffer.byteLength += vertices.byteLength;
-
-        // Colors, if available
-        if (fragmesh.colors) {
-            const colorBufferViewID = bufferViews.length;
-            let colorBufferView = {
-                buffer: bufferID,
-                byteOffset: -1,
-                byteLength: -1
-            };
-            bufferViews.push(colorBufferView);
-
-            const colorAccessorID = accessors.length;
-            let colorAccessor = {
-                bufferView: colorBufferViewID,
-                componentType: 5126, // FLOAT
-                count: -1,
-                type: 'VEC3',
-                //min: // TODO
-                //max: // TODO
-            };
-            accessors.push(colorAccessor);
-
+        if (!isUndefined(colorAccessorID)) {
             mesh.primitives[0].attributes['COLOR_0'] = colorAccessorID;
-
-            const colors = Buffer.from(fragmesh.colors.buffer);
-            this.bufferStream.write(colors);
-            this.bufferSize += colors.byteLength;
-            colorAccessor.count = colors.byteLength / 4 / 3;
-            colorBufferView.byteOffset = buffer.byteLength;
-            colorBufferView.byteLength = colors.byteLength;
-            buffer.byteLength += colors.byteLength;
         }
 
         return mesh;
@@ -593,6 +426,62 @@ export class Writer {
             return mesh;
         }
 
+        const bufferViews = this.manifest.bufferViews as gltf.BufferView[];
+        const accessors = this.manifest.accessors as gltf.Accessor[];
+
+        // Output vertex buffer
+        const positionBufferViewID = bufferViews.length;
+        const positionBufferView = this.writeBufferView(Buffer.from(fragmesh.vertices.buffer));
+        bufferViews.push(positionBufferView);
+        const positionAccessorID = accessors.length;
+        accessors.push({
+            bufferView: positionBufferViewID,
+            componentType: 5126, // FLOAT
+            count: positionBufferView.byteLength / 4 / 3,
+            type: 'VEC3',
+            //min: // TODO
+            //max: // TODO
+        });
+
+        // Output color buffer
+        let colorAccessorID: number | undefined = undefined;
+        if (fragmesh.colors) {
+            const colorBufferViewID = bufferViews.length;
+            const colorBufferView = this.writeBufferView(Buffer.from(fragmesh.colors.buffer));
+            bufferViews.push(colorBufferView);
+            colorAccessorID = accessors.length;
+            accessors.push({
+                bufferView: colorBufferViewID,
+                componentType: 5126, // FLOAT
+                count: colorBufferView.byteLength / 4 / 3,
+                type: 'VEC3',
+                //min: // TODO
+                //max: // TODO
+            });
+        }
+
+        mesh.primitives.push({
+            mode: 0, // POINTS
+            attributes: {
+                POSITION: positionAccessorID
+            }
+        });
+
+        if (!isUndefined(colorAccessorID)) {
+            mesh.primitives[0].attributes['COLOR_0'] = colorAccessorID;
+        }
+
+        return mesh;
+    }
+
+    protected writeBufferView(data: Buffer): gltf.BufferView {
+        const hash = this.computeBufferHash(data);
+        const cache = this.bufferViewCache.get(hash);
+        if (this.deduplicate && cache) {
+            this.log(`Skipping a duplicate buffer view (hash: ${hash})`);
+            return cache;
+        }
+
         const manifestBuffers = this.manifest.buffers as gltf.Buffer[];
 
         // Prepare new writable stream if needed
@@ -614,77 +503,27 @@ export class Writer {
 
         const bufferID = manifestBuffers.length - 1;
         const buffer = manifestBuffers[bufferID];
-        const bufferViews = this.manifest.bufferViews as gltf.BufferView[];
-        const accessors = this.manifest.accessors as gltf.Accessor[];
-
-        const positionBufferViewID = bufferViews.length;
-        let positionBufferView = {
+        this.bufferStream.write(data);
+        this.bufferSize += data.byteLength;
+        const bufferView = {
             buffer: bufferID,
-            byteOffset: -1,
-            byteLength: -1
+            byteOffset: buffer.byteLength,
+            byteLength: data.byteLength
         };
-        bufferViews.push(positionBufferView);
-
-        const positionAccessorID = accessors.length;
-        let positionAccessor = {
-            bufferView: positionBufferViewID,
-            componentType: 5126, // FLOAT
-            count: -1,
-            type: 'VEC3',
-            //min: // TODO
-            //max: // TODO
-        };
-        accessors.push(positionAccessor);
-
-        mesh.primitives.push({
-            mode: 0, // POINTS
-            attributes: {
-                POSITION: positionAccessorID
-            }
-        });
-
-        // Vertices
-        const vertices = Buffer.from(fragmesh.vertices.buffer);
-        this.bufferStream.write(vertices);
-        this.bufferSize += vertices.byteLength;
-        positionAccessor.count = vertices.byteLength / 4 / 3;
-        positionBufferView.byteOffset = buffer.byteLength;
-        positionBufferView.byteLength = vertices.byteLength;
-        buffer.byteLength += vertices.byteLength;
-
-        // Colors, if available
-        if (fragmesh.colors) {
-            const colorBufferViewID = bufferViews.length;
-            let colorBufferView = {
-                buffer: bufferID,
-                byteOffset: -1,
-                byteLength: -1
-            };
-            bufferViews.push(colorBufferView);
-
-            const colorAccessorID = accessors.length;
-            let colorAccessor = {
-                bufferView: colorBufferViewID,
-                componentType: 5126, // FLOAT
-                count: -1,
-                type: 'VEC3',
-                //min: // TODO
-                //max: // TODO
-            };
-            accessors.push(colorAccessor);
-
-            mesh.primitives[0].attributes['COLOR_0'] = colorAccessorID;
-
-            const colors = Buffer.from(fragmesh.colors.buffer);
-            this.bufferStream.write(colors);
-            this.bufferSize += colors.byteLength;
-            colorAccessor.count = colors.byteLength / 4 / 3;
-            colorBufferView.byteOffset = buffer.byteLength;
-            colorBufferView.byteLength = colors.byteLength;
-            buffer.byteLength += colors.byteLength;
+        buffer.byteLength += bufferView.byteLength;
+        if (buffer.byteLength % 4 !== 0) {
+            // Pad to 4-byte multiples
+            const pad = 4 - buffer.byteLength % 4;
+            this.bufferStream.write(new Uint8Array(pad));
+            this.bufferSize += pad;
+            buffer.byteLength += pad;
         }
 
-        return mesh;
+        if (this.deduplicate) {
+            this.bufferViewCache.set(hash, bufferView);
+        }
+
+        return bufferView;
     }
 
     protected writeMaterial(mat: IMaterial | null, svf: ISvfContent): gltf.MaterialPbrMetallicRoughness {
@@ -732,25 +571,10 @@ export class Writer {
         return { source: imageID };
     }
 
-    /**
-     * Computes a hash for given mesh by combining values like vertex count and
-     * triangle count with an MD5 hash of the actual index/vertex/normal/uv buffer data.
-     * Some properties (attrs, comments, min, max) are not included in the hash.
-     * @param {IMesh} mesh Input mesh.
-     * @returns {string} Hash-like string that can be used for caching the mesh.
-     */
-    private computeMeshHash(mesh: IMesh): string {
+    private computeBufferHash(buffer: Buffer): string {
         const hash = crypto.createHash('md5');
-        const { vcount, tcount, uvcount, attrs, flags, comment, min, max } = mesh;
-        hash.update(mesh.vertices);
-        hash.update(mesh.indices);
-        for (const uvmap of mesh.uvmaps) {
-            hash.update(uvmap.uvs);
-        }
-        if (mesh.normals) {
-            hash.update(mesh.normals);
-        }
-        return [vcount, tcount, uvcount, flags, hash.digest('hex')].join('/');
+        hash.update(buffer);
+        return hash.digest('hex');
     }
 
     private computeMaterialHash(material: IMaterial | null): string {

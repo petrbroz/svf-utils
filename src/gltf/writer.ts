@@ -110,9 +110,37 @@ export class Writer {
             }
         }
 
-        for (const material of svf.materials) {
-            const mat = this.writeMaterial(material, svf);
-            manifestMaterials.push(mat);
+        if (this.deduplicate) {
+            const hashes: string[] = [];
+            const newMaterialIndices = new Uint16Array(svf.materials.length);
+            for (let i = 0, len = svf.materials.length; i < len; i++) {
+                const material = svf.materials[i];
+                const hash = this.computeMaterialHash(material);
+                const match = hashes.indexOf(hash);
+                if (match === -1) {
+                    // If this is a first occurrence of the hash in the array, output a new material
+                    newMaterialIndices[i] = manifestMaterials.length;
+                    manifestMaterials.push(this.writeMaterial(material, svf));
+                    hashes.push(hash);
+                } else {
+                    // Otherwise skip the material, and record an index to the first match below
+                    this.log(`Skipping a duplicate material (hash: ${hash})`);
+                    newMaterialIndices[i] = match;
+                }
+            }
+            // Update material indices in all mesh primitives
+            for (const mesh of (this.manifest.meshes as gltf.Mesh[])) {
+                for (const primitive of mesh.primitives) {
+                    if (!isUndefined(primitive.material)) {
+                        primitive.material = newMaterialIndices[primitive.material];
+                    }
+                }
+            }
+        } else {
+            for (const material of svf.materials) {
+                const mat = this.writeMaterial(material, svf);
+                manifestMaterials.push(mat);
+            }
         }
 
         const manifestScenes = this.manifest.scenes as gltf.Scene[];
@@ -722,5 +750,31 @@ export class Writer {
             hash.update(mesh.normals);
         }
         return [vcount, tcount, uvcount, flags, hash.digest('hex')].join('/');
+    }
+
+    private computeMaterialHash(material: IMaterial | null): string {
+        if (!material) {
+            return 'null';
+        }
+        const hash = crypto.createHash('md5');
+        let tmp = new Float32Array(4);
+        tmp.set(material.ambient || [0, 0, 0, 0]);
+        hash.update(tmp);
+        tmp.set(material.diffuse || [0, 0, 0, 0]);
+        hash.update(tmp);
+        tmp.set(material.specular || [0, 0, 0, 0]);
+        hash.update(tmp);
+        tmp.set(material.emissive || [0, 0, 0, 0]);
+        hash.update(tmp);
+        tmp.set([material.glossiness || 0, material.reflectivity || 0, material.opacity || 0, material.metal ? 1 : 0]);
+        if (material.maps) {
+            const { diffuse, specular, normal, bump, alpha } = material.maps;
+            hash.update(diffuse ? diffuse.uri : '');
+            hash.update(specular ? specular.uri : '');
+            hash.update(normal ? normal.uri : '');
+            hash.update(bump ? bump.uri : '');
+            hash.update(alpha ? alpha.uri : '');
+        }
+        return hash.digest('hex');
     }
 }

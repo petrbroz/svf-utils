@@ -267,9 +267,10 @@ export class Writer {
                     mesh = this.writeMeshGeometry(fragmesh, svf);
                 }
             }
+            const clone = JSON.parse(JSON.stringify(mesh));
             node.mesh = manifestMeshes.length;
-            manifestMeshes.push(mesh);
-            for (const primitive of mesh.primitives) {
+            manifestMeshes.push(clone);
+            for (const primitive of clone.primitives) {
                 primitive.material = fragment.materialID;
             }
         } else {

@@ -223,10 +223,14 @@ export class Writer {
             } else {
                 if (this.deduplicate) {
                     // Check if a similar already exists
-                    const hash = this.computeMeshHash(fragmesh);
+                    // Note: for now, since meshes in the glTF sense of the word include a specific material,
+                    // we have to include material ID in the hash, too.
+                    // To avoid this, we should probably deduplicate on the buffer view level...
+                    const hash = this.computeMeshHash(fragmesh) + '+' + fragment.materialID;
                     const cache = this.hashMeshCache.get(hash);
                     if (cache) {
                         mesh = cache;
+                        this.log(`Skipping a duplicate mesh (hash: ${hash})`);
                     } else {
                         mesh = this.writeMeshGeometry(fragmesh, svf);
                         this.hashMeshCache.set(hash, mesh);

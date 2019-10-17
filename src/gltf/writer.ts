@@ -46,7 +46,7 @@ export class Writer {
     protected binary: boolean;
     protected log: (msg: string) => void;
 
-    private hashMeshCache /* :D */ = new Map<string, gltf.Mesh>();
+    private bufferViewCache = new Map<string, gltf.BufferView>();
     private completeBuffers: Promise<void>[] = [];
 
     /**
@@ -249,28 +249,11 @@ export class Writer {
             } else if ('isPoints' in fragmesh) {
                 mesh = this.writePointGeometry(fragmesh, svf);
             } else {
-                if (this.deduplicate) {
-                    // Check if a similar already exists
-                    // Note: for now, since meshes in the glTF sense of the word include a specific material,
-                    // we have to include material ID in the hash, too.
-                    // To avoid this, we should probably deduplicate on the buffer view level...
-                    const hash = this.computeMeshHash(fragmesh) + '+' + fragment.materialID;
-                    const cache = this.hashMeshCache.get(hash);
-                    if (cache) {
-                        mesh = cache;
-                        this.log(`Skipping a duplicate mesh (hash: ${hash})`);
-                    } else {
-                        mesh = this.writeMeshGeometry(fragmesh, svf);
-                        this.hashMeshCache.set(hash, mesh);
-                    }
-                } else {
-                    mesh = this.writeMeshGeometry(fragmesh, svf);
-                }
+                mesh = this.writeMeshGeometry(fragmesh, svf);
             }
-            const clone = JSON.parse(JSON.stringify(mesh));
             node.mesh = manifestMeshes.length;
-            manifestMeshes.push(clone);
-            for (const primitive of clone.primitives) {
+            manifestMeshes.push(mesh);
+            for (const primitive of mesh.primitives) {
                 primitive.material = fragment.materialID;
             }
         } else {
@@ -492,6 +475,13 @@ export class Writer {
     }
 
     protected writeBufferView(data: Buffer): gltf.BufferView {
+        const hash = this.computeBufferHash(data);
+        const cache = this.bufferViewCache.get(hash);
+        if (this.deduplicate && cache) {
+            this.log(`Skipping a duplicate buffer view (hash: ${hash})`);
+            return cache;
+        }
+
         const manifestBuffers = this.manifest.buffers as gltf.Buffer[];
 
         // Prepare new writable stream if needed
@@ -527,6 +517,10 @@ export class Writer {
             this.bufferStream.write(new Uint8Array(pad));
             this.bufferSize += pad;
             buffer.byteLength += pad;
+        }
+
+        if (this.deduplicate) {
+            this.bufferViewCache.set(hash, bufferView);
         }
 
         return bufferView;
@@ -577,25 +571,10 @@ export class Writer {
         return { source: imageID };
     }
 
-    /**
-     * Computes a hash for given mesh by combining values like vertex count and
-     * triangle count with an MD5 hash of the actual index/vertex/normal/uv buffer data.
-     * Some properties (attrs, comments, min, max) are not included in the hash.
-     * @param {IMesh} mesh Input mesh.
-     * @returns {string} Hash-like string that can be used for caching the mesh.
-     */
-    private computeMeshHash(mesh: IMesh): string {
+    private computeBufferHash(buffer: Buffer): string {
         const hash = crypto.createHash('md5');
-        const { vcount, tcount, uvcount, attrs, flags, comment, min, max } = mesh;
-        hash.update(mesh.vertices);
-        hash.update(mesh.indices);
-        for (const uvmap of mesh.uvmaps) {
-            hash.update(uvmap.uvs);
-        }
-        if (mesh.normals) {
-            hash.update(mesh.normals);
-        }
-        return [vcount, tcount, uvcount, flags, hash.digest('hex')].join('/');
+        hash.update(buffer);
+        return hash.digest('hex');
     }
 
     private computeMaterialHash(material: IMaterial | null): string {

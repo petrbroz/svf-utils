@@ -141,3 +141,68 @@ for (const mesh of parseMeshes(buffer)) {
 ```
 
 > For additional examples, see the [test](./test) subfolder.
+
+## Development
+
+- clone the repository
+- install dependencies: `yarn install`
+- build the library (transpile TypeScript): `yarn run build`
+- optionally, generate code docs: `yarn run docs`
+- run samples in the _test_ subfolder, for example: `FORGE_CLIENT_ID=<your client id> FORGE_CLIENT_SECRET=<your client secret> node test/remote-svf-to-gltf.js <model urn> <path to output folder>`
+
+If you're using [Visual Studio Code](https://code.visualstudio.com), you can use the following "task" and "launch" configurations:
+
+In _.vscode/tasks.json_:
+
+```json
+...
+{
+    "label": "build",
+    "type": "npm",
+    "script": "build",
+    "problemMatcher": [
+        "$tsc"
+    ],
+    "group": "build",
+    "presentation": {
+        "echo": true,
+        "reveal": "silent",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": false
+    }
+}
+...
+```
+
+In _.vscode/launch.json_:
+
+```json
+...
+{
+    "type": "node",
+    "request": "launch",
+    "name": "Convert Model Derivative SVF to glTF",
+    "program": "${workspaceFolder}/test/remote-svf-to-gltf.js",
+    "args": ["<your model urn>", "<path to output folder>"],
+    "env": {
+        "FORGE_CLIENT_ID": "<your client id>",
+        "FORGE_CLIENT_SECRET": "<your client secret>"
+    },
+    "preLaunchTask": "build"
+},
+{
+    "type": "node",
+    "request": "launch",
+    "name": "Convert Local SVF to glTF",
+    "program": "${workspaceFolder}/test/local-svf-to-gltf.js",
+    "args": ["<path to svf file>", "<path to output folder>"],
+    "env": {
+        "FORGE_CLIENT_ID": "l9o9o49GfeAFjTcLtRgeESAPJP6SqbkN",
+        "FORGE_CLIENT_SECRET": "d6efarhkFyGYDhcF"
+    },
+    "preLaunchTask": "build"
+}
+...
+```

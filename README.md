@@ -96,7 +96,7 @@ async function run (urn, outputDir) {
         const svf = await reader.read({ log: (msg) => console.info('Reader', msg) });
         writer.write(svf);
     }
-    writer.close();
+    await writer.close();
 }
 
 run('your model urn', 'path/to/output/folder');

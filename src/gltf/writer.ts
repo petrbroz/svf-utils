@@ -66,7 +66,7 @@ export class Writer {
         this.manifest = {
             asset: {
                 version: '2.0',
-                generator: 'forge-svf-utils',
+                generator: 'forge-convert-utils',
                 copyright: '2019 (c) Autodesk'
             },
             buffers: [],

@@ -291,9 +291,10 @@ export class Writer {
         const indexAccessorID = accessors.push(indexAccessor) - 1;
 
         // Output vertex buffer
+        const positionBounds = this.computeBoundsVec3(fragmesh.vertices); // Compute bounds manually, just in case
         const positionBufferView = this.writeBufferView(Buffer.from(fragmesh.vertices.buffer));
         const positionBufferViewID = bufferViews.push(positionBufferView) - 1;
-        const positionAccessor = this.writeAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', [fragmesh.min.x, fragmesh.min.y, fragmesh.min.z], [fragmesh.max.x, fragmesh.max.y, fragmesh.max.z]);
+        const positionAccessor = this.writeAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max/*[fragmesh.min.x, fragmesh.min.y, fragmesh.min.z], [fragmesh.max.x, fragmesh.max.y, fragmesh.max.z]*/);
         const positionAccessorID = accessors.push(positionAccessor) - 1;
 
         // Output normals buffer
@@ -350,9 +351,10 @@ export class Writer {
         const indexAccessorID = accessors.push(indexAccessor) - 1;
 
         // Output vertex buffer
+        const positionBounds = this.computeBoundsVec3(fragmesh.vertices);
         const positionBufferView = this.writeBufferView(Buffer.from(fragmesh.vertices.buffer));
         const positionBufferViewID = bufferViews.push(positionBufferView) - 1;
-        const positionAccessor = this.writeAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3');
+        const positionAccessor = this.writeAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max);
         const positionAccessorID = accessors.push(positionAccessor) - 1;
 
         // Output color buffer
@@ -392,16 +394,10 @@ export class Writer {
         const accessors = this.manifest.accessors as gltf.Accessor[];
 
         // Output vertex buffer
+        const positionBounds = this.computeBoundsVec3(fragmesh.vertices);
         const positionBufferView = this.writeBufferView(Buffer.from(fragmesh.vertices.buffer));
         const positionBufferViewID = bufferViews.push(positionBufferView) - 1;
-        const positionAccessor = {
-            bufferView: positionBufferViewID,
-            componentType: 5126, // FLOAT
-            count: positionBufferView.byteLength / 4 / 3,
-            type: 'VEC3',
-            //min: // TODO
-            //max: // TODO
-        };
+        const positionAccessor = this.writeAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max);
         const positionAccessorID = accessors.push(positionAccessor) - 1;
 
         // Output color buffer
@@ -409,14 +405,7 @@ export class Writer {
         if (fragmesh.colors) {
             const colorBufferView = this.writeBufferView(Buffer.from(fragmesh.colors.buffer));
             const colorBufferViewID = bufferViews.push(colorBufferView) - 1;
-            const colorAccessor = {
-                bufferView: colorBufferViewID,
-                componentType: 5126, // FLOAT
-                count: colorBufferView.byteLength / 4 / 3,
-                type: 'VEC3',
-                //min: // TODO
-                //max: // TODO
-            };
+            const colorAccessor = this.writeAccessor(colorBufferViewID, 5126, colorBufferView.byteLength / 4 / 3, 'VEC3');
             colorAccessorID = accessors.push(colorAccessor) - 1;
         }
 
@@ -493,11 +482,12 @@ export class Writer {
             count: count,
             type: type
         };
+        
         if (!isUndefined(min)) {
-            accessor.min = min;
+            accessor.min = min.map(Math.fround);
         }
         if (!isUndefined(max)) {
-            accessor.max = max;
+            accessor.max = max.map(Math.fround);
         }
         return accessor;
     }
@@ -577,5 +567,16 @@ export class Writer {
             hash.update(alpha ? alpha.uri : '');
         }
         return hash.digest('hex');
+    }
+
+    private computeBoundsVec3(array: Float32Array): { min: number[], max: number[] } {
+        const min = [array[0], array[1], array[2]];
+        const max = [array[0], array[1], array[2]];
+        for (let i = 0; i < array.length; i += 3) {
+            min[0] = Math.min(min[0], array[i]); max[0] = Math.max(max[0], array[i]);
+            min[1] = Math.min(min[1], array[i + 1]); max[1] = Math.max(max[1], array[i + 1]);
+            min[2] = Math.min(min[2], array[i + 2]); max[2] = Math.max(max[2], array[i + 2]);
+        }
+        return { min, max };
     }
 }

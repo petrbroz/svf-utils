@@ -13,19 +13,19 @@ async function run (filepath, outputDir) {
         const reader = await SvfReader.FromFileSystem(filepath);
         const svf = await reader.read();
         let writer;
-        writer = new GltfWriter(path.join(outputDir, 'gltf-nodedup'), { deduplicate: false, binary: false, compress: false, log: console.log });
+        writer = new GltfWriter(path.join(outputDir, 'gltf-nodedup'), { deduplicate: false, skipUnusedUvs: false, binary: false, compress: false, log: console.log });
         writer.write(svf);
         await writer.close();
-        writer = new GltfWriter(path.join(outputDir, 'gltf'), { deduplicate: true, binary: false, compress: false, log: console.log });
+        writer = new GltfWriter(path.join(outputDir, 'gltf'), { deduplicate: true, skipUnusedUvs: true, binary: false, compress: false, log: console.log });
         writer.write(svf);
         await writer.close();
-        writer = new GltfWriter(path.join(outputDir, 'gltf-draco'), { deduplicate: true, binary: false, compress: true, log: console.log });
+        writer = new GltfWriter(path.join(outputDir, 'gltf-draco'), { deduplicate: true, skipUnusedUvs: true, binary: false, compress: true, log: console.log });
         writer.write(svf);
         await writer.close();
-        writer = new GltfWriter(path.join(outputDir, 'glb'), { deduplicate: true, binary: true, compress: false, log: console.log });
+        writer = new GltfWriter(path.join(outputDir, 'glb'), { deduplicate: true, skipUnusedUvs: true, binary: true, compress: false, log: console.log });
         writer.write(svf);
         await writer.close();
-        writer = new GltfWriter(path.join(outputDir, 'glb-draco'), { deduplicate: true, binary: true, compress: true, log: console.log });
+        writer = new GltfWriter(path.join(outputDir, 'glb-draco'), { deduplicate: true, skipUnusedUvs: true, binary: true, compress: true, log: console.log });
         writer.write(svf);
         await writer.close();
     } catch(err) {

@@ -23,9 +23,14 @@ export interface IWriterOptions {
     ignoreLineGeometry?: boolean; /** Don't output line geometry */
     ignorePointGeometry?: boolean; /** Don't output point geometry */
     deduplicate?: boolean; /** Find and remove mesh geometry duplicates (increases the processing time) */
+    skipUnusedUvs?: boolean; /** Skip unused tex coordinates. */
     compress?: boolean; /** Compress output using Draco. */
     binary?: boolean; /** Output GLB instead of GLTF. */
     log?: (msg: string) => void; /** Optional logging function. */
+}
+
+function hasTextures(material: IMaterial | null): boolean {
+    return !!material && !!material.maps && (!!material.maps.diffuse || !!material.maps.specular);
 }
 
 /**
@@ -42,6 +47,7 @@ export class Writer {
     protected ignoreLineGeometry: boolean;
     protected ignorePointGeometry: boolean;
     protected deduplicate: boolean;
+    protected skipUnusedUvs: boolean;
     protected compress: boolean;
     protected binary: boolean;
     protected log: (msg: string) => void;
@@ -60,6 +66,7 @@ export class Writer {
         this.ignoreLineGeometry = !!options.ignoreLineGeometry;
         this.ignorePointGeometry = !!options.ignorePointGeometry;
         this.deduplicate = !!options.deduplicate;
+        this.skipUnusedUvs = !!options.skipUnusedUvs;
         this.compress = !!options.compress;
         this.binary = !!options.binary;
         this.log = (options && options.log) || function (msg: string) {};
@@ -101,9 +108,12 @@ export class Writer {
 
         fse.ensureDirSync(this.baseDir);
 
-        this.log(`Writing scene...`);
+        this.log(`Writing scene nodes...`);
         for (const fragment of svf.fragments) {
-            const node = this.writeFragment(fragment, svf);
+            const material = svf.materials[fragment.materialID];
+            // Only output UVs if there are any textures or if the user specifically asked not to skip unused UVs
+            const outputUvs = hasTextures(material) || !this.skipUnusedUvs;
+            const node = this.writeFragment(fragment, svf, outputUvs);
             // Only output nodes that have a mesh
             if (!isUndefined(node.mesh)) {
                 const index = manifestNodes.push(node) - 1;
@@ -111,6 +121,7 @@ export class Writer {
             }
         }
 
+        this.log(`Writing materials...`);
         if (this.deduplicate) {
             const hashes: string[] = [];
             const newMaterialIndices = new Uint16Array(svf.materials.length);
@@ -144,7 +155,6 @@ export class Writer {
             }
         }
 
-        
         manifestScenes.push(scene);
         this.log(`Writing scene: done`);
     }
@@ -208,7 +218,7 @@ export class Writer {
         }
     }
 
-    protected writeFragment(fragment: IFragment, svf: ISvfContent): gltf.Node {
+    protected writeFragment(fragment: IFragment, svf: ISvfContent, outputUvs: boolean): gltf.Node {
         let node: gltf.Node = {
             name: fragment.dbID.toString()
         };
@@ -250,7 +260,7 @@ export class Writer {
             } else if ('isPoints' in fragmesh) {
                 mesh = this.writePointGeometry(fragmesh, svf);
             } else {
-                mesh = this.writeMeshGeometry(fragmesh, svf);
+                mesh = this.writeMeshGeometry(fragmesh, svf, outputUvs);
             }
             node.mesh = manifestMeshes.push(mesh) - 1;
             for (const primitive of mesh.primitives) {
@@ -262,7 +272,7 @@ export class Writer {
         return node;
     }
 
-    protected writeMeshGeometry(fragmesh: IMesh, svf: ISvfContent): gltf.Mesh {
+    protected writeMeshGeometry(fragmesh: IMesh, svf: ISvfContent, outputUvs: boolean): gltf.Mesh {
         let mesh: gltf.Mesh = {
             primitives: []
         };
@@ -297,7 +307,7 @@ export class Writer {
 
         // Output UV buffers
         let uvAccessorID: number | undefined = undefined;
-        if (fragmesh.uvmaps && fragmesh.uvmaps.length > 0) {
+        if (fragmesh.uvmaps && fragmesh.uvmaps.length > 0 && outputUvs) {
             const uvBufferView = this.writeBufferView(Buffer.from(fragmesh.uvmaps[0].uvs.buffer));
             const uvBufferViewID = bufferViews.push(uvBufferView) - 1;
             const uvAccessor = this.writeAccessor(uvBufferViewID, 5126, uvBufferView.byteLength / 4 / 2, 'VEC2');

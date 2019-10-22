@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.4] - 2019-10-22
+
+- Added
+  - Skipping texture UVs when there's no material using them
+- Fixed
+  - Computing position bounds
+
 ## [0.6.3] - 2019-10-17
 
 - Changed

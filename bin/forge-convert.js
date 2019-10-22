@@ -43,13 +43,15 @@ program
     .option('-o, --output-folder [folder]', 'output folder', '.')
     .option('-t, --output-type [type]', 'output file format (gltf, glb)', 'gltf')
     .option('-d, --deduplicate', 'deduplicate geometries (may increase processing time)', false)
+    .option('-s, --skip-unused-uvs', 'skip unused texture coordinate data', false)
     .option('-c, --compress', 'compress meshes using Draco (may increase processing time)', false)
     .arguments('<URN or path/to/svf> [GUID]')
     .action(async function (id, guid) {
         const options = {
             binary: program.outputType === 'glb',
             compress: program.compress,
-            deduplicate: program.deduplicate
+            deduplicate: program.deduplicate,
+            skipUnusedUvs: program.skipUnusedUvs
         };
         try {
             if (id.endsWith('.svf')) {

@@ -23,6 +23,7 @@ Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file f
 - optionally, use any combination of the following command line args:
   - `--output-type glb` to output _glb_ file instead of _gltf_
   - `--deduplicate` to try and remove duplicate geometries
+  - `--skip-unused-uvs` to skip texture UVs that are not used by any material
   - `--compress` to compress meshes using Draco
 - optionally, set env. variable `DEBUG` to `cli:*` to see additional logs
 
@@ -90,7 +91,7 @@ async function run (urn, outputDir) {
     const modelDerivativeClient = new ModelDerivativeClient(auth);
     const helper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
     const derivatives = helper.search({ type: 'resource', role: 'graphics' });
-    const writer = new GltfWriter(outputDir, { deduplicate: true, log: (msg) => console.info('Writer', msg) });
+    const writer = new GltfWriter(outputDir, { deduplicate: true, skipUnusedUvs: true, log: (msg) => console.info('Writer', msg) });
     for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
         const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
         const svf = await reader.read({ log: (msg) => console.info('Reader', msg) });

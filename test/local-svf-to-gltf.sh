@@ -7,7 +7,7 @@
 #     ./local-svf-to-gltf.sh <path to svf file> <path to output folder>
 
 npm install --global forge-convert-utils
-forge-convert $1 --output-folder $2/gltf --deduplicate
-forge-convert $1 --output-folder $2/gltf-draco --deduplicate --compress
-forge-convert $1 --output-folder $2/glb --deduplicate --binary
-forge-convert $1 --output-folder $2/glb-draco --deduplicate --binary --compress
+forge-convert $1 --output-folder $2/gltf --deduplicate --skip-unused-uvs
+forge-convert $1 --output-folder $2/gltf-draco --deduplicate --skip-unused-uvs --compress
+forge-convert $1 --output-folder $2/glb --deduplicate --skip-unused-uvs --binary
+forge-convert $1 --output-folder $2/glb-draco --deduplicate --skip-unused-uvs --binary --compress

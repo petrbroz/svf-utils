@@ -433,17 +433,20 @@ export class Writer {
 
     protected findOrAddBufferView(bufferView: gltf.BufferView): number {
         const bufferViews = this.manifest.bufferViews as gltf.BufferView[];
-        const match = bufferViews.findIndex(item => {
-            if (item.buffer !== bufferView.buffer) return false;
-            if (item.byteLength !== bufferView.byteLength) return false;
-            if (!isUndefined(item.byteOffset) || !isUndefined(bufferView.byteOffset)) {
-                if (item.byteOffset !== bufferView.byteOffset) return false;
-            }
-            if (!isUndefined(item.byteStride) || !isUndefined(bufferView.byteStride)) {
-                if (item.byteStride !== bufferView.byteStride) return false;
-            }
-            return true;
-        });
+        let match = -1;
+        if (this.deduplicate) {
+            match = bufferViews.findIndex(item => {
+                if (item.buffer !== bufferView.buffer) return false;
+                if (item.byteLength !== bufferView.byteLength) return false;
+                if (!isUndefined(item.byteOffset) || !isUndefined(bufferView.byteOffset)) {
+                    if (item.byteOffset !== bufferView.byteOffset) return false;
+                }
+                if (!isUndefined(item.byteStride) || !isUndefined(bufferView.byteStride)) {
+                    if (item.byteStride !== bufferView.byteStride) return false;
+                }
+                return true;
+            });
+        }
         if (match !== -1) {
             this.stats.bufferViewsDeduplicated++;
             return match;
@@ -506,15 +509,18 @@ export class Writer {
 
     protected findOrAddAccessor(accessor: gltf.Accessor): number {
         const accessors = this.manifest.accessors as gltf.Accessor[];
-        const match = accessors.findIndex(item => {
-            if (item.type !== accessor.type) return false;
-            if (item.componentType !== accessor.componentType) return false;
-            if (item.count !== accessor.count) return false;
-            if (!isUndefined(item.bufferView) || !isUndefined(accessor.bufferView)) {
-                if (item.bufferView !== accessor.bufferView) return false;
-            }
-            return true;
-        });
+        let match = -1
+        if (this.deduplicate) {
+            match = accessors.findIndex(item => {
+                if (item.type !== accessor.type) return false;
+                if (item.componentType !== accessor.componentType) return false;
+                if (item.count !== accessor.count) return false;
+                if (!isUndefined(item.bufferView) || !isUndefined(accessor.bufferView)) {
+                    if (item.bufferView !== accessor.bufferView) return false;
+                }
+                return true;
+            });
+        }
         if (match !== -1) {
             this.stats.accessorsDeduplicated++;
             return match;
@@ -526,7 +532,7 @@ export class Writer {
     protected writeAccessor(bufferViewID: number, componentType: number, count: number, type: string, min?: number[], max?: number[]): gltf.Accessor {
         const key = `${bufferViewID}/${componentType}/${count}/${type}`;
         const cache = this.accessorCache.get(key);
-        if (cache) {
+        if (this.deduplicate && cache) {
             this.log(`Skipping a duplicate accessor (${key})`);
             return cache;
         }

@@ -14,6 +14,7 @@ async function run (filepath, outputDir) {
         skipUnusedUvs: false,
         binary: false,
         compress: false,
+        sqlite: true,
         log: console.log
     };
 

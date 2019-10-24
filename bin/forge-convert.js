@@ -45,13 +45,21 @@ program
     .option('-d, --deduplicate', 'deduplicate geometries (may increase processing time)', false)
     .option('-s, --skip-unused-uvs', 'skip unused texture coordinate data', false)
     .option('-c, --compress', 'compress meshes using Draco (may increase processing time)', false)
+    .option('-im, --ignore-meshes', 'ignore mesh geometry', false)
+    .option('-il, --ignore-lines', 'ignore line geometry', false)
+    .option('-ip, --ignore-points', 'ignore point geometry', false)
+    .option('--sqlite', 'serialize gltf manifest into sqlite', false)
     .arguments('<URN or path/to/svf> [GUID]')
     .action(async function (id, guid) {
         const options = {
             binary: program.outputType === 'glb',
             compress: program.compress,
+            sqlite: program.sqlite,
             deduplicate: program.deduplicate,
-            skipUnusedUvs: program.skipUnusedUvs
+            skipUnusedUvs: program.skipUnusedUvs,
+            ignoreMeshGeometry: program.ignoreMeshes,
+            ignoreLineGeometry: program.ignoreLines,
+            ignorePointGeometry: program.ignorePoints
         };
         try {
             if (id.endsWith('.svf')) {

@@ -53,6 +53,7 @@ export class Writer {
     protected log: (msg: string) => void;
 
     private bufferViewCache = new Map<string, gltf.BufferView>();
+    private accessorCache = new Map<string, gltf.Accessor>();
     private completeBuffers: Promise<void>[] = [];
 
     /**
@@ -281,38 +282,35 @@ export class Writer {
             return mesh;
         }
 
-        const bufferViews = this.manifest.bufferViews as gltf.BufferView[];
-        const accessors = this.manifest.accessors as gltf.Accessor[];
-
         // Output index buffer
         const indexBufferView = this.writeBufferView(Buffer.from(fragmesh.indices.buffer));
-        const indexBufferViewID = bufferViews.push(indexBufferView) - 1;
+        const indexBufferViewID = this.findOrAddBufferView(indexBufferView);
         const indexAccessor = this.writeAccessor(indexBufferViewID, 5123, indexBufferView.byteLength / 2, 'SCALAR');
-        const indexAccessorID = accessors.push(indexAccessor) - 1;
+        const indexAccessorID = this.findOrAddAccessor(indexAccessor);
 
         // Output vertex buffer
         const positionBounds = this.computeBoundsVec3(fragmesh.vertices); // Compute bounds manually, just in case
         const positionBufferView = this.writeBufferView(Buffer.from(fragmesh.vertices.buffer));
-        const positionBufferViewID = bufferViews.push(positionBufferView) - 1;
+        const positionBufferViewID = this.findOrAddBufferView(positionBufferView);
         const positionAccessor = this.writeAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max/*[fragmesh.min.x, fragmesh.min.y, fragmesh.min.z], [fragmesh.max.x, fragmesh.max.y, fragmesh.max.z]*/);
-        const positionAccessorID = accessors.push(positionAccessor) - 1;
+        const positionAccessorID = this.findOrAddAccessor(positionAccessor);
 
         // Output normals buffer
         let normalAccessorID: number | undefined = undefined;
         if (fragmesh.normals) {
             const normalBufferView = this.writeBufferView(Buffer.from(fragmesh.normals.buffer));
-            const normalBufferViewID = bufferViews.push(normalBufferView) - 1;
+            const normalBufferViewID = this.findOrAddBufferView(normalBufferView);
             const normalAccessor = this.writeAccessor(normalBufferViewID, 5126, normalBufferView.byteLength / 4 / 3, 'VEC3');
-            normalAccessorID = accessors.push(normalAccessor) - 1;
+            normalAccessorID = this.findOrAddAccessor(normalAccessor);
         }
 
         // Output UV buffers
         let uvAccessorID: number | undefined = undefined;
         if (fragmesh.uvmaps && fragmesh.uvmaps.length > 0 && outputUvs) {
             const uvBufferView = this.writeBufferView(Buffer.from(fragmesh.uvmaps[0].uvs.buffer));
-            const uvBufferViewID = bufferViews.push(uvBufferView) - 1;
+            const uvBufferViewID = this.findOrAddBufferView(uvBufferView);
             const uvAccessor = this.writeAccessor(uvBufferViewID, 5126, uvBufferView.byteLength / 4 / 2, 'VEC2');
-            uvAccessorID = accessors.push(uvAccessor) - 1;
+            uvAccessorID = this.findOrAddAccessor(uvAccessor);
         }
 
         mesh.primitives.push({
@@ -341,29 +339,26 @@ export class Writer {
             return mesh;
         }
 
-        const bufferViews = this.manifest.bufferViews as gltf.BufferView[];
-        const accessors = this.manifest.accessors as gltf.Accessor[];
-
         // Output index buffer
         const indexBufferView = this.writeBufferView(Buffer.from(fragmesh.indices.buffer));
-        const indexBufferViewID = bufferViews.push(indexBufferView) - 1;
+        const indexBufferViewID = this.findOrAddBufferView(indexBufferView);
         const indexAccessor = this.writeAccessor(indexBufferViewID, 5123, indexBufferView.byteLength / 2, 'SCALAR');
-        const indexAccessorID = accessors.push(indexAccessor) - 1;
+        const indexAccessorID = this.findOrAddAccessor(indexAccessor);
 
         // Output vertex buffer
         const positionBounds = this.computeBoundsVec3(fragmesh.vertices);
         const positionBufferView = this.writeBufferView(Buffer.from(fragmesh.vertices.buffer));
-        const positionBufferViewID = bufferViews.push(positionBufferView) - 1;
+        const positionBufferViewID = this.findOrAddBufferView(positionBufferView);
         const positionAccessor = this.writeAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max);
-        const positionAccessorID = accessors.push(positionAccessor) - 1;
+        const positionAccessorID = this.findOrAddAccessor(positionAccessor);
 
         // Output color buffer
         let colorAccessorID: number | undefined = undefined;
         if (fragmesh.colors) {
             const colorBufferView = this.writeBufferView(Buffer.from(fragmesh.colors.buffer));
-            const colorBufferViewID = bufferViews.push(colorBufferView) - 1;
+            const colorBufferViewID = this.findOrAddBufferView(colorBufferView);
             const colorAccessor = this.writeAccessor(colorBufferViewID, 5126, colorBufferView.byteLength / 4 / 3, 'VEC3');
-            colorAccessorID = accessors.push(colorAccessor) - 1;
+            colorAccessorID = this.findOrAddAccessor(colorAccessor);
         }
 
         mesh.primitives.push({
@@ -396,17 +391,17 @@ export class Writer {
         // Output vertex buffer
         const positionBounds = this.computeBoundsVec3(fragmesh.vertices);
         const positionBufferView = this.writeBufferView(Buffer.from(fragmesh.vertices.buffer));
-        const positionBufferViewID = bufferViews.push(positionBufferView) - 1;
+        const positionBufferViewID = this.findOrAddBufferView(positionBufferView);
         const positionAccessor = this.writeAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max);
-        const positionAccessorID = accessors.push(positionAccessor) - 1;
+        const positionAccessorID = this.findOrAddAccessor(positionAccessor);
 
         // Output color buffer
         let colorAccessorID: number | undefined = undefined;
         if (fragmesh.colors) {
             const colorBufferView = this.writeBufferView(Buffer.from(fragmesh.colors.buffer));
-            const colorBufferViewID = bufferViews.push(colorBufferView) - 1;
+            const colorBufferViewID = this.findOrAddBufferView(colorBufferView);
             const colorAccessor = this.writeAccessor(colorBufferViewID, 5126, colorBufferView.byteLength / 4 / 3, 'VEC3');
-            colorAccessorID = accessors.push(colorAccessor) - 1;
+            colorAccessorID = this.findOrAddAccessor(colorAccessor);
         }
 
         mesh.primitives.push({
@@ -421,6 +416,26 @@ export class Writer {
         }
 
         return mesh;
+    }
+
+    protected findOrAddBufferView(bufferView: gltf.BufferView): number {
+        const bufferViews = this.manifest.bufferViews as gltf.BufferView[];
+        const match = bufferViews.findIndex(item => {
+            if (item.buffer !== bufferView.buffer) return false;
+            if (item.byteLength !== bufferView.byteLength) return false;
+            if (!isUndefined(item.byteOffset) || !isUndefined(bufferView.byteOffset)) {
+                if (item.byteOffset !== bufferView.byteOffset) return false;
+            }
+            if (!isUndefined(item.byteStride) || !isUndefined(bufferView.byteStride)) {
+                if (item.byteStride !== bufferView.byteStride) return false;
+            }
+            return true;
+        });
+        if (match !== -1) {
+            return match;
+        } else {
+            return bufferViews.push(bufferView) - 1;
+        }
     }
 
     protected writeBufferView(data: Buffer): gltf.BufferView {
@@ -475,20 +490,50 @@ export class Writer {
         return bufferView;
     }
 
+    protected findOrAddAccessor(accessor: gltf.Accessor): number {
+        const accessors = this.manifest.accessors as gltf.Accessor[];
+        const match = accessors.findIndex(item => {
+            if (item.type !== accessor.type) return false;
+            if (item.componentType !== accessor.componentType) return false;
+            if (item.count !== accessor.count) return false;
+            if (!isUndefined(item.bufferView) || !isUndefined(accessor.bufferView)) {
+                if (item.bufferView !== accessor.bufferView) return false;
+            }
+            return true;
+        });
+        if (match !== -1) {
+            return match;
+        } else {
+            return accessors.push(accessor) - 1;
+        }
+    }
+
     protected writeAccessor(bufferViewID: number, componentType: number, count: number, type: string, min?: number[], max?: number[]): gltf.Accessor {
+        const key = `${bufferViewID}/${componentType}/${count}/${type}`;
+        const cache = this.accessorCache.get(key);
+        if (cache) {
+            this.log(`Skipping a duplicate accessor (${key})`);
+            return cache;
+        }
+
         const accessor: gltf.Accessor = {
             bufferView: bufferViewID,
             componentType: componentType,
             count: count,
             type: type
         };
-        
+
         if (!isUndefined(min)) {
             accessor.min = min.map(Math.fround);
         }
         if (!isUndefined(max)) {
             accessor.max = max.map(Math.fround);
         }
+
+        if (this.deduplicate) {
+            this.accessorCache.set(key, accessor);
+        }
+
         return accessor;
     }
 

@@ -289,7 +289,6 @@ export class Writer {
 
         const geometry = svf.geometries[fragment.geometryID];
         const fragmesh = svf.meshpacks[geometry.packID][geometry.entityID];
-        const manifestMeshes = this.manifest.meshes as gltf.Mesh[];
         if (fragmesh) {
             let mesh: gltf.Mesh;
             if ('isLines' in fragmesh) {
@@ -436,9 +435,6 @@ export class Writer {
         if (this.ignorePointGeometry) {
             return mesh;
         }
-
-        const bufferViews = this.manifest.bufferViews as gltf.BufferView[];
-        const accessors = this.manifest.accessors as gltf.Accessor[];
 
         // Output vertex buffer
         const positionBounds = this.computeBoundsVec3(fragmesh.vertices);

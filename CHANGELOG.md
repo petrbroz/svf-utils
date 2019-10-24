@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added
   - More deduplication, now also on the glTF accessor and mesh level
   - Additional CLI options for ignoring mesh, line, or point geometry
+  - (experimental) serialization of glTF manifest into sqlite
+    - Could potentially be used for dynamically generating glTFs with subsets of the original model
 
 ## [0.6.4] - 2019-10-22
 

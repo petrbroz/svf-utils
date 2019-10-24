@@ -62,15 +62,17 @@ export class Writer {
     protected sqlite: boolean;
     protected log: (msg: string) => void;
 
-    private bufferViewCache = new Map<string, gltf.BufferView>();
-    private accessorCache = new Map<string, gltf.Accessor>();
-    private completeBuffers: Promise<void>[] = [];
+    private bufferViewCache = new Map<string, gltf.BufferView>(); // Cache of existing buffer views, indexed by hash of the binary data they point to
+    private meshHashes: string[] = []; // List of hashes of existing gltf.Mesh objects, used for deduplication
+    private bufferViewHashes: string[] = []; // List of hashes of existing gltf.BufferView objects, used for deduplication
+    private accessorHashes: string[] = []; // List of hashes of existing gltf.Accessor objects, used for deduplication
     private stats: IWriterStats = {
         materialsDeduplicated: 0,
         meshesDeduplicated: 0,
         accessorsDeduplicated: 0,
         bufferViewsDeduplicated: 0
     };
+    private pendingTasks: Promise<void>[] = [];
 
     /**
      * Initializes the writer.
@@ -131,7 +133,7 @@ export class Writer {
             const material = svf.materials[fragment.materialID];
             // Only output UVs if there are any textures or if the user specifically asked not to skip unused UVs
             const outputUvs = hasTextures(material) || !this.skipUnusedUvs;
-            const node = this.writeFragment(fragment, svf, outputUvs);
+            const node = this.createNode(fragment, svf, outputUvs);
             // Only output nodes that have a mesh
             if (!isUndefined(node.mesh)) {
                 const index = manifestNodes.push(node) - 1;
@@ -150,7 +152,7 @@ export class Writer {
                 if (match === -1) {
                     // If this is a first occurrence of the hash in the array, output a new material
                     newMaterialIndices[i] = manifestMaterials.length;
-                    manifestMaterials.push(this.writeMaterial(material, svf));
+                    manifestMaterials.push(this.createMaterial(material, svf));
                     hashes.push(hash);
                 } else {
                     // Otherwise skip the material, and record an index to the first match below
@@ -169,7 +171,7 @@ export class Writer {
             }
         } else {
             for (const material of svf.materials) {
-                const mat = this.writeMaterial(material, svf);
+                const mat = this.createMaterial(material, svf);
                 manifestMaterials.push(mat);
             }
         }
@@ -185,7 +187,7 @@ export class Writer {
         this.log(`Closing gltf output...`);
         if (this.bufferStream) {
             const stream = this.bufferStream as fse.WriteStream;
-            this.completeBuffers.push(new Promise((resolve, reject) => {
+            this.pendingTasks.push(new Promise((resolve, reject) => {
                 stream.on('finish', resolve);
             }));
             this.bufferStream.close();
@@ -193,7 +195,7 @@ export class Writer {
             this.bufferSize = 0;
         }
 
-        await Promise.all(this.completeBuffers);
+        await Promise.all(this.pendingTasks);
         const gltfPath = path.join(this.baseDir, 'output.gltf');
         fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
         this.log(`Closing gltf output: done`);
@@ -209,7 +211,7 @@ export class Writer {
                 if (fse.existsSync(sqlitePath)) {
                     fse.unlinkSync(sqlitePath);
                 }
-                this.serializeManifestDatabase(this.manifest, sqlitePath);
+                await this.serializeManifestDatabase(this.manifest, sqlitePath);
                 this.log(`Serializing manifest into sqlite: done`);
             }
         }
@@ -253,7 +255,7 @@ export class Writer {
         }
     }
 
-    protected writeFragment(fragment: IFragment, svf: ISvfContent, outputUvs: boolean): gltf.Node {
+    protected createNode(fragment: IFragment, svf: ISvfContent, outputUvs: boolean): gltf.Node {
         let node: gltf.Node = {
             name: fragment.dbID.toString()
         };
@@ -287,68 +289,42 @@ export class Writer {
 
         const geometry = svf.geometries[fragment.geometryID];
         const fragmesh = svf.meshpacks[geometry.packID][geometry.entityID];
-        const manifestMeshes = this.manifest.meshes as gltf.Mesh[];
         if (fragmesh) {
             let mesh: gltf.Mesh;
             if ('isLines' in fragmesh) {
-                mesh = this.writeLineGeometry(fragmesh, svf);
+                mesh = this.createLineGeometry(fragmesh, svf);
             } else if ('isPoints' in fragmesh) {
-                mesh = this.writePointGeometry(fragmesh, svf);
+                mesh = this.createPointGeometry(fragmesh, svf);
             } else {
-                mesh = this.writeMeshGeometry(fragmesh, svf, outputUvs);
+                mesh = this.createMeshGeometry(fragmesh, svf, outputUvs);
             }
             for (const primitive of mesh.primitives) {
                 primitive.material = fragment.materialID;
             }
-            node.mesh = this.findOrAddMesh(mesh);
+            node.mesh = this.addMesh(mesh);
         } else {
             console.warn('Could not find mesh for fragment', fragment, 'geometry', geometry);
         }
         return node;
     }
 
-    protected findOrAddMesh(mesh: gltf.Mesh): number {
+    protected addMesh(mesh: gltf.Mesh): number {
         const meshes = this.manifest.meshes as gltf.Mesh[];
-        let match = -1;
-        if (this.deduplicate) {
-            // TODO: optimize the search for matching mesh
-            match = meshes.findIndex(item => {
-                if (mesh.primitives.length !== item.primitives.length) {
-                    return false;
-                }
-                const prim1 = mesh.primitives[0] as gltf.MeshPrimitive;
-                const prim2 = item.primitives[0] as gltf.MeshPrimitive;
-                if (!isUndefined(prim1.mode) || !isUndefined(prim2.mode)) {
-                    if (prim1.mode !== prim2.mode) return false;
-                }
-                if (!isUndefined(prim1.indices) || !isUndefined(prim2.indices)) {
-                    if (prim1.indices !== prim2.indices) return false;
-                }
-                if (!isUndefined(prim1.material) || !isUndefined(prim2.material)) {
-                    if (prim1.material !== prim2.material) return false;
-                }
-                const attrs1 = Object.keys(prim1.attributes);
-                const attrs2 = Object.keys(prim2.attributes);
-                if (attrs1.length !== attrs2.length) {
-                    return false;
-                }
-                for (const attr in attrs1) {
-                    if (prim1.attributes[attr] !== prim2.attributes[attr]) {
-                        return false;
-                    }
-                }
-                return true;
-            });
-        }
+        const hash = this.computeMeshHash(mesh);
+        const match = this.deduplicate ? this.meshHashes.indexOf(hash) : -1;
         if (match !== -1) {
+            this.log(`Skipping a duplicate mesh (${hash})`);
             this.stats.meshesDeduplicated++;
             return match;
         } else {
+            if (this.deduplicate) {
+                this.meshHashes.push(hash);
+            }
             return meshes.push(mesh) - 1;
         }
     }
 
-    protected writeMeshGeometry(fragmesh: IMesh, svf: ISvfContent, outputUvs: boolean): gltf.Mesh {
+    protected createMeshGeometry(fragmesh: IMesh, svf: ISvfContent, outputUvs: boolean): gltf.Mesh {
         let mesh: gltf.Mesh = {
             primitives: []
         };
@@ -358,34 +334,34 @@ export class Writer {
         }
 
         // Output index buffer
-        const indexBufferView = this.writeBufferView(Buffer.from(fragmesh.indices.buffer));
-        const indexBufferViewID = this.findOrAddBufferView(indexBufferView);
-        const indexAccessor = this.writeAccessor(indexBufferViewID, 5123, indexBufferView.byteLength / 2, 'SCALAR');
-        const indexAccessorID = this.findOrAddAccessor(indexAccessor);
+        const indexBufferView = this.createBufferView(Buffer.from(fragmesh.indices.buffer));
+        const indexBufferViewID = this.addBufferView(indexBufferView);
+        const indexAccessor = this.createAccessor(indexBufferViewID, 5123, indexBufferView.byteLength / 2, 'SCALAR');
+        const indexAccessorID = this.addAccessor(indexAccessor);
 
         // Output vertex buffer
         const positionBounds = this.computeBoundsVec3(fragmesh.vertices); // Compute bounds manually, just in case
-        const positionBufferView = this.writeBufferView(Buffer.from(fragmesh.vertices.buffer));
-        const positionBufferViewID = this.findOrAddBufferView(positionBufferView);
-        const positionAccessor = this.writeAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max/*[fragmesh.min.x, fragmesh.min.y, fragmesh.min.z], [fragmesh.max.x, fragmesh.max.y, fragmesh.max.z]*/);
-        const positionAccessorID = this.findOrAddAccessor(positionAccessor);
+        const positionBufferView = this.createBufferView(Buffer.from(fragmesh.vertices.buffer));
+        const positionBufferViewID = this.addBufferView(positionBufferView);
+        const positionAccessor = this.createAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max/*[fragmesh.min.x, fragmesh.min.y, fragmesh.min.z], [fragmesh.max.x, fragmesh.max.y, fragmesh.max.z]*/);
+        const positionAccessorID = this.addAccessor(positionAccessor);
 
         // Output normals buffer
         let normalAccessorID: number | undefined = undefined;
         if (fragmesh.normals) {
-            const normalBufferView = this.writeBufferView(Buffer.from(fragmesh.normals.buffer));
-            const normalBufferViewID = this.findOrAddBufferView(normalBufferView);
-            const normalAccessor = this.writeAccessor(normalBufferViewID, 5126, normalBufferView.byteLength / 4 / 3, 'VEC3');
-            normalAccessorID = this.findOrAddAccessor(normalAccessor);
+            const normalBufferView = this.createBufferView(Buffer.from(fragmesh.normals.buffer));
+            const normalBufferViewID = this.addBufferView(normalBufferView);
+            const normalAccessor = this.createAccessor(normalBufferViewID, 5126, normalBufferView.byteLength / 4 / 3, 'VEC3');
+            normalAccessorID = this.addAccessor(normalAccessor);
         }
 
         // Output UV buffers
         let uvAccessorID: number | undefined = undefined;
         if (fragmesh.uvmaps && fragmesh.uvmaps.length > 0 && outputUvs) {
-            const uvBufferView = this.writeBufferView(Buffer.from(fragmesh.uvmaps[0].uvs.buffer));
-            const uvBufferViewID = this.findOrAddBufferView(uvBufferView);
-            const uvAccessor = this.writeAccessor(uvBufferViewID, 5126, uvBufferView.byteLength / 4 / 2, 'VEC2');
-            uvAccessorID = this.findOrAddAccessor(uvAccessor);
+            const uvBufferView = this.createBufferView(Buffer.from(fragmesh.uvmaps[0].uvs.buffer));
+            const uvBufferViewID = this.addBufferView(uvBufferView);
+            const uvAccessor = this.createAccessor(uvBufferViewID, 5126, uvBufferView.byteLength / 4 / 2, 'VEC2');
+            uvAccessorID = this.addAccessor(uvAccessor);
         }
 
         mesh.primitives.push({
@@ -405,7 +381,7 @@ export class Writer {
         return mesh;
     }
 
-    protected writeLineGeometry(fragmesh: ILines, svf: ISvfContent): gltf.Mesh {
+    protected createLineGeometry(fragmesh: ILines, svf: ISvfContent): gltf.Mesh {
         let mesh: gltf.Mesh = {
             primitives: []
         };
@@ -415,25 +391,25 @@ export class Writer {
         }
 
         // Output index buffer
-        const indexBufferView = this.writeBufferView(Buffer.from(fragmesh.indices.buffer));
-        const indexBufferViewID = this.findOrAddBufferView(indexBufferView);
-        const indexAccessor = this.writeAccessor(indexBufferViewID, 5123, indexBufferView.byteLength / 2, 'SCALAR');
-        const indexAccessorID = this.findOrAddAccessor(indexAccessor);
+        const indexBufferView = this.createBufferView(Buffer.from(fragmesh.indices.buffer));
+        const indexBufferViewID = this.addBufferView(indexBufferView);
+        const indexAccessor = this.createAccessor(indexBufferViewID, 5123, indexBufferView.byteLength / 2, 'SCALAR');
+        const indexAccessorID = this.addAccessor(indexAccessor);
 
         // Output vertex buffer
         const positionBounds = this.computeBoundsVec3(fragmesh.vertices);
-        const positionBufferView = this.writeBufferView(Buffer.from(fragmesh.vertices.buffer));
-        const positionBufferViewID = this.findOrAddBufferView(positionBufferView);
-        const positionAccessor = this.writeAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max);
-        const positionAccessorID = this.findOrAddAccessor(positionAccessor);
+        const positionBufferView = this.createBufferView(Buffer.from(fragmesh.vertices.buffer));
+        const positionBufferViewID = this.addBufferView(positionBufferView);
+        const positionAccessor = this.createAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max);
+        const positionAccessorID = this.addAccessor(positionAccessor);
 
         // Output color buffer
         let colorAccessorID: number | undefined = undefined;
         if (fragmesh.colors) {
-            const colorBufferView = this.writeBufferView(Buffer.from(fragmesh.colors.buffer));
-            const colorBufferViewID = this.findOrAddBufferView(colorBufferView);
-            const colorAccessor = this.writeAccessor(colorBufferViewID, 5126, colorBufferView.byteLength / 4 / 3, 'VEC3');
-            colorAccessorID = this.findOrAddAccessor(colorAccessor);
+            const colorBufferView = this.createBufferView(Buffer.from(fragmesh.colors.buffer));
+            const colorBufferViewID = this.addBufferView(colorBufferView);
+            const colorAccessor = this.createAccessor(colorBufferViewID, 5126, colorBufferView.byteLength / 4 / 3, 'VEC3');
+            colorAccessorID = this.addAccessor(colorAccessor);
         }
 
         mesh.primitives.push({
@@ -451,7 +427,7 @@ export class Writer {
         return mesh;
     }
 
-    protected writePointGeometry(fragmesh: IPoints, svf: ISvfContent): gltf.Mesh {
+    protected createPointGeometry(fragmesh: IPoints, svf: ISvfContent): gltf.Mesh {
         let mesh: gltf.Mesh = {
             primitives: []
         };
@@ -460,23 +436,20 @@ export class Writer {
             return mesh;
         }
 
-        const bufferViews = this.manifest.bufferViews as gltf.BufferView[];
-        const accessors = this.manifest.accessors as gltf.Accessor[];
-
         // Output vertex buffer
         const positionBounds = this.computeBoundsVec3(fragmesh.vertices);
-        const positionBufferView = this.writeBufferView(Buffer.from(fragmesh.vertices.buffer));
-        const positionBufferViewID = this.findOrAddBufferView(positionBufferView);
-        const positionAccessor = this.writeAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max);
-        const positionAccessorID = this.findOrAddAccessor(positionAccessor);
+        const positionBufferView = this.createBufferView(Buffer.from(fragmesh.vertices.buffer));
+        const positionBufferViewID = this.addBufferView(positionBufferView);
+        const positionAccessor = this.createAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max);
+        const positionAccessorID = this.addAccessor(positionAccessor);
 
         // Output color buffer
         let colorAccessorID: number | undefined = undefined;
         if (fragmesh.colors) {
-            const colorBufferView = this.writeBufferView(Buffer.from(fragmesh.colors.buffer));
-            const colorBufferViewID = this.findOrAddBufferView(colorBufferView);
-            const colorAccessor = this.writeAccessor(colorBufferViewID, 5126, colorBufferView.byteLength / 4 / 3, 'VEC3');
-            colorAccessorID = this.findOrAddAccessor(colorAccessor);
+            const colorBufferView = this.createBufferView(Buffer.from(fragmesh.colors.buffer));
+            const colorBufferViewID = this.addBufferView(colorBufferView);
+            const colorAccessor = this.createAccessor(colorBufferViewID, 5126, colorBufferView.byteLength / 4 / 3, 'VEC3');
+            colorAccessorID = this.addAccessor(colorAccessor);
         }
 
         mesh.primitives.push({
@@ -493,35 +466,27 @@ export class Writer {
         return mesh;
     }
 
-    protected findOrAddBufferView(bufferView: gltf.BufferView): number {
+    protected addBufferView(bufferView: gltf.BufferView): number {
         const bufferViews = this.manifest.bufferViews as gltf.BufferView[];
-        let match = -1;
-        if (this.deduplicate) {
-            match = bufferViews.findIndex(item => {
-                if (item.buffer !== bufferView.buffer) return false;
-                if (item.byteLength !== bufferView.byteLength) return false;
-                if (!isUndefined(item.byteOffset) || !isUndefined(bufferView.byteOffset)) {
-                    if (item.byteOffset !== bufferView.byteOffset) return false;
-                }
-                if (!isUndefined(item.byteStride) || !isUndefined(bufferView.byteStride)) {
-                    if (item.byteStride !== bufferView.byteStride) return false;
-                }
-                return true;
-            });
-        }
+        const hash = this.computeBufferViewHash(bufferView);
+        const match = this.deduplicate ? this.bufferViewHashes.indexOf(hash) : -1;
         if (match !== -1) {
+            this.log(`Skipping a duplicate buffer view (${hash})`);
             this.stats.bufferViewsDeduplicated++;
             return match;
         } else {
+            if (this.deduplicate) {
+                this.bufferViewHashes.push(hash);
+            }
             return bufferViews.push(bufferView) - 1;
         }
     }
 
-    protected writeBufferView(data: Buffer): gltf.BufferView {
+    protected createBufferView(data: Buffer): gltf.BufferView {
         const hash = this.computeBufferHash(data);
         const cache = this.bufferViewCache.get(hash);
         if (this.deduplicate && cache) {
-            this.log(`Skipping a duplicate buffer view (hash: ${hash})`);
+            this.log(`Skipping a duplicate buffer (${hash})`);
             return cache;
         }
 
@@ -531,7 +496,7 @@ export class Writer {
         if (this.bufferStream === null || this.bufferSize > this.maxBufferSize) {
             if (this.bufferStream) {
                 const stream = this.bufferStream as fse.WriteStream;
-                this.completeBuffers.push(new Promise((resolve, reject) => {
+                this.pendingTasks.push(new Promise((resolve, reject) => {
                     stream.on('finish', resolve);
                 }));
                 this.bufferStream.close();
@@ -569,36 +534,23 @@ export class Writer {
         return bufferView;
     }
 
-    protected findOrAddAccessor(accessor: gltf.Accessor): number {
+    protected addAccessor(accessor: gltf.Accessor): number {
         const accessors = this.manifest.accessors as gltf.Accessor[];
-        let match = -1
-        if (this.deduplicate) {
-            match = accessors.findIndex(item => {
-                if (item.type !== accessor.type) return false;
-                if (item.componentType !== accessor.componentType) return false;
-                if (item.count !== accessor.count) return false;
-                if (!isUndefined(item.bufferView) || !isUndefined(accessor.bufferView)) {
-                    if (item.bufferView !== accessor.bufferView) return false;
-                }
-                return true;
-            });
-        }
+        const hash = this.computeAccessorHash(accessor);
+        const match = this.deduplicate ? this.accessorHashes.indexOf(hash) : -1;
         if (match !== -1) {
+            this.log(`Skipping a duplicate accessor (${hash})`);
             this.stats.accessorsDeduplicated++;
             return match;
         } else {
+            if (this.deduplicate) {
+                this.accessorHashes.push(hash);
+            }
             return accessors.push(accessor) - 1;
         }
     }
 
-    protected writeAccessor(bufferViewID: number, componentType: number, count: number, type: string, min?: number[], max?: number[]): gltf.Accessor {
-        const key = `${bufferViewID}/${componentType}/${count}/${type}`;
-        const cache = this.accessorCache.get(key);
-        if (this.deduplicate && cache) {
-            this.log(`Skipping a duplicate accessor (${key})`);
-            return cache;
-        }
-
+    protected createAccessor(bufferViewID: number, componentType: number, count: number, type: string, min?: number[], max?: number[]): gltf.Accessor {
         const accessor: gltf.Accessor = {
             bufferView: bufferViewID,
             componentType: componentType,
@@ -613,14 +565,10 @@ export class Writer {
             accessor.max = max.map(Math.fround);
         }
 
-        if (this.deduplicate) {
-            this.accessorCache.set(key, accessor);
-        }
-
         return accessor;
     }
 
-    protected writeMaterial(mat: IMaterial | null, svf: ISvfContent): gltf.MaterialPbrMetallicRoughness {
+    protected createMaterial(mat: IMaterial | null, svf: ISvfContent): gltf.MaterialPbrMetallicRoughness {
         if (!mat) {
             return DefaultMaterial;
         }
@@ -641,7 +589,7 @@ export class Writer {
             const manifestTextures = this.manifest.textures as gltf.Texture[];
             if (mat.maps.diffuse) {
                 const textureID = manifestTextures.length;
-                manifestTextures.push(this.writeTexture(mat.maps.diffuse, svf));
+                manifestTextures.push(this.createTexture(mat.maps.diffuse, svf));
                 material.pbrMetallicRoughness.baseColorTexture = {
                     index: textureID,
                     texCoord: 0
@@ -651,7 +599,7 @@ export class Writer {
         return material;
     }
 
-    protected writeTexture(map: IMaterialMap, svf: ISvfContent): gltf.Texture {
+    protected createTexture(map: IMaterialMap, svf: ISvfContent): gltf.Texture {
         const manifestImages = this.manifest.images as gltf.Image[];
         let imageID = manifestImages.findIndex(image => image.uri === map.uri);
         if (imageID === -1) {
@@ -663,6 +611,20 @@ export class Writer {
             fse.writeFileSync(filePath, svf.images[normalizedUri]);
         }
         return { source: imageID };
+    }
+
+    private computeMeshHash(mesh: gltf.Mesh): string {
+        return mesh.primitives.map(p => {
+            return `${p.mode || ''}/${p.material || ''}/${p.indices}/${p.attributes['POSITION'] || ''}/${p.attributes['NORMAL'] || ''}/${p.attributes['TEXCOORD_0'] || ''}/${p.attributes['COLOR_0'] || ''}`;
+        }).join('/');
+    }
+
+    private computeBufferViewHash(bufferView: gltf.BufferView): string {
+        return `${bufferView.buffer}/${bufferView.byteLength}/${bufferView.byteOffset || ''}/${bufferView.byteStride || ''}`;
+    }
+
+    private computeAccessorHash(accessor: gltf.Accessor): string {
+        return `${accessor.type}/${accessor.componentType}/${accessor.count}/${accessor.bufferView || 'X'}`;
     }
 
     private computeBufferHash(buffer: Buffer): string {
@@ -708,8 +670,9 @@ export class Writer {
         return { min, max };
     }
 
-    private serializeManifestDatabase(gltf: gltf.GlTf, filepath: string) {
+    private serializeManifestDatabase(gltf: gltf.GlTf, filepath: string): Promise<void> {
         let db = new sqlite3.Database(filepath);
+        const log = this.log;
         db.serialize(function () {
             // Serialize nodes
             db.run('CREATE TABLE nodes (dbid INTEGER, mesh_id INTEGER, matrix_json TEXT, translation_x REAL, translation_y REAL, translation_z REAL, scale_x REAL, scale_y REAL, scale_z REAL, rotation_x REAL, rotation_y REAL, rotation_z REAL, rotation_w REAL)');
@@ -736,26 +699,34 @@ export class Writer {
                         rotation[3]
                     );
                 }
-                stmt.finalize();
+                log('Serializing node table...');
+                stmt.finalize((err) => err ? log('Serializing node table failed: ' + err) : log('Serializing node table: done'));
             }
             
             // Serialize meshes
-            db.run('CREATE TABLE meshes (material_id INTEGER, index_accessor_id INTEGER, position_accessor_id INTEGER, normal_accessor_id INTEGER, uv_accessor_id INTEGER, color_accessor_id INTEGER)');
+            db.run('CREATE TABLE meshes (mode INTEGER, material_id INTEGER, index_accessor_id INTEGER, position_accessor_id INTEGER, normal_accessor_id INTEGER, uv_accessor_id INTEGER, color_accessor_id INTEGER)');
             if (gltf.meshes) {
-                let stmt = db.prepare('INSERT INTO meshes VALUES (?, ?, ?, ?, ?, ?)');
+                let stmt = db.prepare('INSERT INTO meshes VALUES (?, ?, ?, ?, ?, ?, ?)');
                 for (let i = 0, len = gltf.meshes.length; i < len; i++) {
                     const mesh = gltf.meshes[i];
                     const primitive = mesh.primitives[0] as gltf.MeshPrimitive; // Assuming we only have one primitive per mesh
-                    stmt.run(
-                        isUndefined(primitive.material) ? null : primitive.material,
-                        isUndefined(primitive.indices) ? null : primitive.indices,
-                        isUndefined(primitive.attributes['POSITION']) ? null : primitive.attributes['POSITION'],
-                        isUndefined(primitive.attributes['NORMAL']) ? null : primitive.attributes['NORMAL'],
-                        isUndefined(primitive.attributes['TEXCOORD_0']) ? null : primitive.attributes['TEXCOORD_0'],
-                        isUndefined(primitive.attributes['COLOR_0']) ? null : primitive.attributes['COLOR_0']
-                    );
+                    if (!primitive) {
+                        // Primitive can be undefined if the exporter is configured to ignore mesh, line, or point geometry
+                        stmt.run(null, null, null, null, null, null, null);
+                    } else {
+                        stmt.run(
+                            isUndefined(primitive.mode) ? null : primitive.mode,
+                            isUndefined(primitive.material) ? null : primitive.material,
+                            isUndefined(primitive.indices) ? null : primitive.indices,
+                            isUndefined(primitive.attributes['POSITION']) ? null : primitive.attributes['POSITION'],
+                            isUndefined(primitive.attributes['NORMAL']) ? null : primitive.attributes['NORMAL'],
+                            isUndefined(primitive.attributes['TEXCOORD_0']) ? null : primitive.attributes['TEXCOORD_0'],
+                            isUndefined(primitive.attributes['COLOR_0']) ? null : primitive.attributes['COLOR_0']
+                        );
+                    }
                 }
-                stmt.finalize();
+                log('Serializing mesh table...');
+                stmt.finalize((err) => err ? log('Serializing mesh table failed: ' + err) : log('Serializing mesh table: done'));
             }
 
             // Serialize accessors
@@ -779,7 +750,8 @@ export class Writer {
                         max[2],
                     );
                 }
-                stmt.finalize();
+                log('Serializing accessor table...');
+                stmt.finalize((err) => err ? log('Serializing accessor table failed: ' + err) : log('Serializing accessor table: done'));
             }
 
             // Serialize buffer views
@@ -794,7 +766,8 @@ export class Writer {
                         bufferView.byteLength
                     );
                 }
-                stmt.finalize();
+                log('Serializing buffer view table...');
+                stmt.finalize((err) => err ? log('Serializing buffer view table failed: ' + err) : log('Serializing buffer view table: done'));
             }
 
             // Serialize buffers
@@ -808,7 +781,8 @@ export class Writer {
                         buffer.byteLength
                     );
                 }
-                stmt.finalize();
+                log('Serializing buffer table...');
+                stmt.finalize((err) => err ? log('Serializing buffer table failed: ' + err) : log('Serializing buffer table: done'));
             }
 
             // Serialize materials
@@ -829,7 +803,8 @@ export class Writer {
                         isUndefined(pbr.baseColorTexture) || isUndefined(pbr.baseColorTexture.texCoord) ? null : pbr.baseColorTexture.texCoord
                     );
                 }
-                stmt.finalize();
+                log('Serializing material table...');
+                stmt.finalize((err) => err ? log('Serializing material table failed: ' + err) : log('Serializing material table: done'));
             }
 
             // Serialize textures
@@ -842,7 +817,8 @@ export class Writer {
                         isUndefined(texture.source) ? null : texture.source
                     );
                 }
-                stmt.finalize();
+                log('Serializing texture table...');
+                stmt.finalize((err) => err ? log('Serializing texture table failed: ' + err) : log('Serializing texture table: done'));
             }
 
             // Serialize images
@@ -855,13 +831,22 @@ export class Writer {
                         isUndefined(image.uri) ? null : image.uri
                     );
                 }
-                stmt.finalize();
+                log('Serializing image table...');
+                stmt.finalize((err) => err ? log('Serializing image table failed: ' + err) : log('Serializing image table: done'));
             }
 
             // db.each("SELECT rowid AS id, info FROM lorem", function (err, row) {
             //     console.log(row.id + ": " + row.info);
             // });
         });
-        db.close();
+        return new Promise(function (resolve, reject) {
+            db.close(function (err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
     }
 }

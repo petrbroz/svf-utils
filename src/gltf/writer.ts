@@ -35,6 +35,7 @@ function hasTextures(material: IMaterial | null): boolean {
 
 interface IWriterStats {
     materialsDeduplicated: number;
+    meshesDeduplicated: number;
     accessorsDeduplicated: number;
     bufferViewsDeduplicated: number;
 }
@@ -63,6 +64,7 @@ export class Writer {
     private completeBuffers: Promise<void>[] = [];
     private stats: IWriterStats = {
         materialsDeduplicated: 0,
+        meshesDeduplicated: 0,
         accessorsDeduplicated: 0,
         bufferViewsDeduplicated: 0
     };
@@ -276,7 +278,7 @@ export class Writer {
             } else {
                 mesh = this.writeMeshGeometry(fragmesh, svf, outputUvs);
             }
-            node.mesh = manifestMeshes.push(mesh) - 1;
+            node.mesh = this.findOrAddMesh(mesh);
             for (const primitive of mesh.primitives) {
                 primitive.material = fragment.materialID;
             }
@@ -284,6 +286,47 @@ export class Writer {
             console.warn('Could not find mesh for fragment', fragment, 'geometry', geometry);
         }
         return node;
+    }
+
+    protected findOrAddMesh(mesh: gltf.Mesh): number {
+        const meshes = this.manifest.meshes as gltf.Mesh[];
+        let match = -1;
+        if (this.deduplicate) {
+            // TODO: optimize the search for matching mesh
+            match = meshes.findIndex(item => {
+                if (mesh.primitives.length !== item.primitives.length) {
+                    return false;
+                }
+                const prim1 = mesh.primitives[0] as gltf.MeshPrimitive;
+                const prim2 = item.primitives[0] as gltf.MeshPrimitive;
+                if (!isUndefined(prim1.mode) || !isUndefined(prim2.mode)) {
+                    if (prim1.mode !== prim2.mode) return false;
+                }
+                if (!isUndefined(prim1.indices) || !isUndefined(prim2.indices)) {
+                    if (prim1.indices !== prim2.indices) return false;
+                }
+                if (!isUndefined(prim1.material) || !isUndefined(prim2.material)) {
+                    if (prim1.material !== prim2.material) return false;
+                }
+                const attrs1 = Object.keys(prim1.attributes);
+                const attrs2 = Object.keys(prim2.attributes);
+                if (attrs1.length !== attrs2.length) {
+                    return false;
+                }
+                for (const attr in attrs1) {
+                    if (prim1.attributes[attr] !== prim2.attributes[attr]) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+        }
+        if (match !== -1) {
+            this.stats.meshesDeduplicated++;
+            return match;
+        } else {
+            return meshes.push(mesh) - 1;
+        }
     }
 
     protected writeMeshGeometry(fragmesh: IMesh, svf: ISvfContent, outputUvs: boolean): gltf.Mesh {

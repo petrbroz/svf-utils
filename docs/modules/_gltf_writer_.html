@@ -80,12 +80,19 @@
 							<h3>Interfaces</h3>
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-interface tsd-parent-kind-external-module"><a href="../interfaces/_gltf_writer_.iwriteroptions.html" class="tsd-kind-icon">IWriter<wbr>Options</a></li>
+								<li class="tsd-kind-interface tsd-parent-kind-external-module tsd-is-not-exported"><a href="../interfaces/_gltf_writer_.iwriterstats.html" class="tsd-kind-icon">IWriter<wbr>Stats</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section tsd-is-not-exported">
 							<h3>Variables</h3>
 							<ul class="tsd-index-list">
 								<li class="tsd-kind-variable tsd-parent-kind-external-module tsd-is-not-exported"><a href="_gltf_writer_.html#maxbuffersize" class="tsd-kind-icon">Max<wbr>Buffer<wbr>Size</a></li>
+							</ul>
+						</section>
+						<section class="tsd-index-section tsd-is-not-exported">
+							<h3>Functions</h3>
+							<ul class="tsd-index-list">
+								<li class="tsd-kind-function tsd-parent-kind-external-module tsd-is-not-exported"><a href="_gltf_writer_.html#hastextures" class="tsd-kind-icon">has<wbr>Textures</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section tsd-is-not-exported">
@@ -105,9 +112,35 @@
 					<div class="tsd-signature tsd-kind-icon">Max<wbr>Buffer<wbr>Size<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> =&nbsp;5 &lt;&lt; 20</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/18e6500/src/gltf/writer.ts#L9">gltf/writer.ts:9</a></li>
+							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/ee039e3/src/gltf/writer.ts#L12">gltf/writer.ts:12</a></li>
 						</ul>
 					</aside>
+				</section>
+			</section>
+			<section class="tsd-panel-group tsd-member-group tsd-is-not-exported">
+				<h2>Functions</h2>
+				<section class="tsd-panel tsd-member tsd-kind-function tsd-parent-kind-external-module tsd-is-not-exported">
+					<a name="hastextures" class="tsd-anchor"></a>
+					<h3>has<wbr>Textures</h3>
+					<ul class="tsd-signatures tsd-kind-function tsd-parent-kind-external-module tsd-is-not-exported">
+						<li class="tsd-signature tsd-kind-icon">has<wbr>Textures<span class="tsd-signature-symbol">(</span>material<span class="tsd-signature-symbol">: </span><a href="../interfaces/_svf_schema_.imaterial.html" class="tsd-signature-type">IMaterial</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/ee039e3/src/gltf/writer.ts#L34">gltf/writer.ts:34</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>material: <a href="../interfaces/_svf_schema_.imaterial.html" class="tsd-signature-type">IMaterial</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+						</li>
+					</ul>
 				</section>
 			</section>
 			<section class="tsd-panel-group tsd-member-group tsd-is-not-exported">
@@ -118,7 +151,7 @@
 					<div class="tsd-signature tsd-kind-icon">Default<wbr>Material<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/18e6500/src/gltf/writer.ts#L10">gltf/writer.ts:10</a></li>
+							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/ee039e3/src/gltf/writer.ts#L13">gltf/writer.ts:13</a></li>
 						</ul>
 					</aside>
 					<section class="tsd-panel tsd-member tsd-kind-object-literal tsd-parent-kind-object-literal tsd-is-not-exported">
@@ -127,7 +160,7 @@
 						<div class="tsd-signature tsd-kind-icon">pbr<wbr>Metallic<wbr>Roughness<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/18e6500/src/gltf/writer.ts#L11">gltf/writer.ts:11</a></li>
+								<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/ee039e3/src/gltf/writer.ts#L14">gltf/writer.ts:14</a></li>
 							</ul>
 						</aside>
 						<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-object-literal tsd-is-not-exported">
@@ -136,7 +169,7 @@
 							<div class="tsd-signature tsd-kind-icon">base<wbr>Color<wbr>Factor<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> =&nbsp;[0.25, 0.25, 0.25, 1.0]</span></div>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/18e6500/src/gltf/writer.ts#L12">gltf/writer.ts:12</a></li>
+									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/ee039e3/src/gltf/writer.ts#L15">gltf/writer.ts:15</a></li>
 								</ul>
 							</aside>
 						</section>
@@ -146,7 +179,7 @@
 							<div class="tsd-signature tsd-kind-icon">metallic<wbr>Factor<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> =&nbsp;0</span></div>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/18e6500/src/gltf/writer.ts#L13">gltf/writer.ts:13</a></li>
+									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/ee039e3/src/gltf/writer.ts#L16">gltf/writer.ts:16</a></li>
 								</ul>
 							</aside>
 						</section>
@@ -156,7 +189,7 @@
 							<div class="tsd-signature tsd-kind-icon">roughness<wbr>Factor<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> =&nbsp;0.5</span></div>
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/18e6500/src/gltf/writer.ts#L14">gltf/writer.ts:14</a></li>
+									<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/ee039e3/src/gltf/writer.ts#L17">gltf/writer.ts:17</a></li>
 								</ul>
 							</aside>
 						</section>
@@ -216,8 +249,14 @@
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
 						<a href="../interfaces/_gltf_writer_.iwriteroptions.html" class="tsd-kind-icon">IWriter<wbr>Options</a>
 					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module tsd-is-not-exported">
+						<a href="../interfaces/_gltf_writer_.iwriterstats.html" class="tsd-kind-icon">IWriter<wbr>Stats</a>
+					</li>
 					<li class=" tsd-kind-variable tsd-parent-kind-external-module tsd-is-not-exported">
 						<a href="_gltf_writer_.html#maxbuffersize" class="tsd-kind-icon">Max<wbr>Buffer<wbr>Size</a>
+					</li>
+					<li class=" tsd-kind-function tsd-parent-kind-external-module tsd-is-not-exported">
+						<a href="_gltf_writer_.html#hastextures" class="tsd-kind-icon">has<wbr>Textures</a>
 					</li>
 					<li class=" tsd-kind-object-literal tsd-parent-kind-external-module tsd-is-not-exported">
 						<a href="_gltf_writer_.html#defaultmaterial" class="tsd-kind-icon">Default<wbr>Material</a>

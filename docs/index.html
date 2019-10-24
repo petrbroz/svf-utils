@@ -90,24 +90,35 @@
 							or an authentication token (<code>FORGE_ACCESS_TOKEN</code>) as env. variables</li>
 						</ul>
 					</li>
+					<li>optionally, use any combination of the following command line args:<ul>
+							<li><code>--output-type glb</code> to output <em>glb</em> file instead of <em>gltf</em></li>
+							<li><code>--deduplicate</code> to try and remove duplicate geometries</li>
+							<li><code>--skip-unused-uvs</code> to skip texture UVs that are not used by any material</li>
+							<li><code>--compress</code> to compress meshes using Draco</li>
+						</ul>
+					</li>
+					<li>optionally, set env. variable <code>DEBUG</code> to <code>cli:*</code> to see additional logs</li>
 				</ul>
 				<a href="#unixmacos" id="unixmacos" style="color: inherit; text-decoration: none;">
 					<h4>Unix/macOS</h4>
 				</a>
-				<pre><code>forge-<span class="hljs-built_in">convert</span> &lt;path <span class="hljs-built_in">to</span> <span class="hljs-built_in">local</span> svf&gt; <span class="hljs-comment">--output-folder &lt;path to output folder&gt;</span></code></pre><p>or</p>
+				<pre><code><span class="hljs-keyword">DEBUG</span>=cli:* forge-convert &lt;<span class="hljs-type">path</span> <span class="hljs-keyword">to</span> <span class="hljs-keyword">local</span> svf&gt; <span class="hljs-comment">--output-folder &lt;path to output folder&gt;</span></code></pre><p>or</p>
 				<pre><code><span class="hljs-builtin-name">export</span> <span class="hljs-attribute">FORGE_CLIENT_ID</span>=&lt;client id&gt;
 <span class="hljs-builtin-name">export</span> <span class="hljs-attribute">FORGE_CLIENT_SECRET</span>=&lt;client secret&gt;
-forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to</span> output folder&gt;</code></pre><p>or</p>
+<span class="hljs-attribute">DEBUG</span>=cli:* forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to</span> output folder&gt;</code></pre><p>or</p>
 				<pre><code><span class="hljs-builtin-name">export</span> <span class="hljs-attribute">FORGE_ACCESS_TOKEN</span>=&lt;access token&gt;&gt;
-forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to</span> output folder&gt;</code></pre>
+<span class="hljs-attribute">DEBUG</span>=cli:* forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to</span> output folder&gt;</code></pre>
 				<a href="#windows" id="windows" style="color: inherit; text-decoration: none;">
 					<h4>Windows</h4>
 				</a>
-				<pre><code>forge-<span class="hljs-built_in">convert</span> &lt;path <span class="hljs-built_in">to</span> <span class="hljs-built_in">local</span> svf&gt; <span class="hljs-comment">--output-folder &lt;path to output folder&gt;</span></code></pre><p>or</p>
+				<pre><code><span class="hljs-keyword">set</span> <span class="hljs-keyword">DEBUG</span>=cli:*
+forge-convert &lt;<span class="hljs-type">path</span> <span class="hljs-keyword">to</span> <span class="hljs-keyword">local</span> svf&gt; <span class="hljs-comment">--output-folder &lt;path to output folder&gt;</span></code></pre><p>or</p>
 				<pre><code><span class="hljs-builtin-name">set</span> <span class="hljs-attribute">FORGE_CLIENT_ID</span>=&lt;client id&gt;
 <span class="hljs-builtin-name">set</span> <span class="hljs-attribute">FORGE_CLIENT_SECRET</span>=&lt;client secret&gt;
+<span class="hljs-builtin-name">set</span> <span class="hljs-attribute">DEBUG</span>=cli:*
 forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to</span> output folder&gt;</code></pre><p>or</p>
-				<pre><code><span class="hljs-builtin-name">set</span> <span class="hljs-attribute">FORGE_ACCESS_TOKEN</span>=&lt;access token&gt;&gt;
+				<pre><code><span class="hljs-builtin-name">set</span> <span class="hljs-attribute">FORGE_ACCESS_TOKEN</span>=&lt;access token&gt;
+<span class="hljs-builtin-name">set</span> <span class="hljs-attribute">DEBUG</span>=cli:*
 forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to</span> output folder&gt;</code></pre>
 				<a href="#nodejs" id="nodejs" style="color: inherit; text-decoration: none;">
 					<h3>Node.js</h3>
@@ -126,13 +137,13 @@ forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to
     <span class="hljs-keyword">const</span> modelDerivativeClient = <span class="hljs-keyword">new</span> ModelDerivativeClient(auth);
     <span class="hljs-keyword">const</span> helper = <span class="hljs-keyword">new</span> ManifestHelper(<span class="hljs-keyword">await</span> modelDerivativeClient.getManifest(urn));
     <span class="hljs-keyword">const</span> derivatives = helper.search({ <span class="hljs-attr">type</span>: <span class="hljs-string">'resource'</span>, <span class="hljs-attr">role</span>: <span class="hljs-string">'graphics'</span> });
-    <span class="hljs-keyword">const</span> writer = <span class="hljs-keyword">new</span> GltfWriter(outputDir);
+    <span class="hljs-keyword">const</span> writer = <span class="hljs-keyword">new</span> GltfWriter(outputDir, { <span class="hljs-attr">deduplicate</span>: <span class="hljs-literal">true</span>, <span class="hljs-attr">skipUnusedUvs</span>: <span class="hljs-literal">true</span>, <span class="hljs-attr">log</span>: <span class="hljs-function">(<span class="hljs-params">msg</span>) =&gt;</span> <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'Writer'</span>, msg) });
     <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> derivative <span class="hljs-keyword">of</span> derivatives.filter(<span class="hljs-function"><span class="hljs-params">d</span> =&gt;</span> d.mime === <span class="hljs-string">'application/autodesk-svf'</span>)) {
         <span class="hljs-keyword">const</span> reader = <span class="hljs-keyword">await</span> SvfReader.FromDerivativeService(urn, derivative.guid, auth);
-        <span class="hljs-keyword">const</span> svf = <span class="hljs-keyword">await</span> reader.read();
+        <span class="hljs-keyword">const</span> svf = <span class="hljs-keyword">await</span> reader.read({ <span class="hljs-attr">log</span>: <span class="hljs-function">(<span class="hljs-params">msg</span>) =&gt;</span> <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'Reader'</span>, msg) });
         writer.write(svf);
     }
-    writer.close();
+    <span class="hljs-keyword">await</span> writer.close();
 }
 
 run(<span class="hljs-string">'your model urn'</span>, <span class="hljs-string">'path/to/output/folder'</span>);</code></pre>
@@ -169,6 +180,64 @@ run(<span class="hljs-string">'your model urn'</span>);</code></pre>
 				<blockquote>
 					<p>For additional examples, see the <a href="./test">test</a> subfolder.</p>
 				</blockquote>
+				<a href="#development" id="development" style="color: inherit; text-decoration: none;">
+					<h2>Development</h2>
+				</a>
+				<ul>
+					<li>clone the repository</li>
+					<li>install dependencies: <code>yarn install</code></li>
+					<li>build the library (transpile TypeScript): <code>yarn run build</code></li>
+					<li>optionally, generate code docs: <code>yarn run docs</code></li>
+					<li>run samples in the <em>test</em> subfolder, for example: <code>FORGE_CLIENT_ID=&lt;your client id&gt; FORGE_CLIENT_SECRET=&lt;your client secret&gt; node test/remote-svf-to-gltf.js &lt;model urn&gt; &lt;path to output folder&gt;</code></li>
+				</ul>
+				<p>If you&#39;re using <a href="https://code.visualstudio.com">Visual Studio Code</a>, you can use the following &quot;task&quot; and &quot;launch&quot; configurations:</p>
+				<p>In <em>.vscode/tasks.json</em>:</p>
+				<pre><code class="language-json">...
+{
+    &quot;label&quot;: &quot;build&quot;,
+    &quot;type&quot;: &quot;npm&quot;,
+    &quot;script&quot;: &quot;build&quot;,
+    &quot;problemMatcher&quot;: [
+        &quot;$tsc&quot;
+    ],
+    &quot;group&quot;: &quot;build&quot;,
+    &quot;presentation&quot;: {
+        &quot;echo&quot;: true,
+        &quot;reveal&quot;: &quot;silent&quot;,
+        &quot;focus&quot;: false,
+        &quot;panel&quot;: &quot;shared&quot;,
+        &quot;showReuseMessage&quot;: false,
+        &quot;clear&quot;: false
+    }
+}
+...</code></pre>
+				<p>In <em>.vscode/launch.json</em>:</p>
+				<pre><code class="language-json">...
+{
+    "type": "node",
+    "request": "launch",
+    "name": "Convert Model Derivative SVF to glTF",
+    "program": "${workspaceFolder}/test/remote-svf-to-gltf.js",
+    "args": ["&lt;your model urn&gt;", "&lt;path to output folder&gt;"],
+    "env": {
+        "FORGE_CLIENT_ID": "&lt;your client id&gt;",
+        "FORGE_CLIENT_SECRET": "&lt;your client secret&gt;"
+    },
+    "preLaunchTask": "build"
+},
+{
+    "type": "node",
+    "request": "launch",
+    "name": "Convert Local SVF to glTF",
+    "program": "${workspaceFolder}/test/local-svf-to-gltf.js",
+    "args": ["&lt;path to svf file&gt;", "&lt;path to output folder&gt;"],
+    "env": {
+        "FORGE_CLIENT_ID": "l9o9o49GfeAFjTcLtRgeESAPJP6SqbkN",
+        "FORGE_CLIENT_SECRET": "d6efarhkFyGYDhcF"
+    },
+    "preLaunchTask": "build"
+}
+...</code></pre>
 			</div>
 		</div>
 		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">

@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>IQuaternion | forge-convert-utils</title>
+	<title>IReaderOptions | forge-convert-utils</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -56,24 +56,31 @@
 					<a href="../globals.html">Globals</a>
 				</li>
 				<li>
-					<a href="../modules/_svf_schema_.html">&quot;svf/schema&quot;</a>
+					<a href="../modules/_svf_reader_.html">&quot;svf/reader&quot;</a>
 				</li>
 				<li>
-					<a href="_svf_schema_.iquaternion.html">IQuaternion</a>
+					<a href="_svf_reader_.ireaderoptions.html">IReaderOptions</a>
 				</li>
 			</ul>
-			<h1>Interface IQuaternion</h1>
+			<h1>Interface IReaderOptions</h1>
 		</div>
 	</div>
 </header>
 <div class="container container-main">
 	<div class="row">
 		<div class="col-8 col-content">
+			<section class="tsd-panel tsd-comment">
+				<div class="tsd-comment tsd-typography">
+					<div class="lead">
+						<p>Additional options when reading the entire SVF.</p>
+					</div>
+				</div>
+			</section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="target">IQuaternion</span>
+						<span class="target">IReaderOptions</span>
 					</li>
 				</ul>
 			</section>
@@ -84,10 +91,7 @@
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_svf_schema_.iquaternion.html#w" class="tsd-kind-icon">w</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_svf_schema_.iquaternion.html#x" class="tsd-kind-icon">x</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_svf_schema_.iquaternion.html#y" class="tsd-kind-icon">y</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_svf_schema_.iquaternion.html#z" class="tsd-kind-icon">z</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_svf_reader_.ireaderoptions.html#log" class="tsd-kind-icon">log</a></li>
 							</ul>
 						</section>
 					</div>
@@ -96,42 +100,12 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="w" class="tsd-anchor"></a>
-					<h3>w</h3>
-					<div class="tsd-signature tsd-kind-icon">w<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
+					<a name="log" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> log</h3>
+					<div class="tsd-signature tsd-kind-icon">log<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">function</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/ee039e3/src/svf/schema.ts#L188">svf/schema.ts:188</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="x" class="tsd-anchor"></a>
-					<h3>x</h3>
-					<div class="tsd-signature tsd-kind-icon">x<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/ee039e3/src/svf/schema.ts#L185">svf/schema.ts:185</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="y" class="tsd-anchor"></a>
-					<h3>y</h3>
-					<div class="tsd-signature tsd-kind-icon">y<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/ee039e3/src/svf/schema.ts#L186">svf/schema.ts:186</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="z" class="tsd-anchor"></a>
-					<h3>z</h3>
-					<div class="tsd-signature tsd-kind-icon">z<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/ee039e3/src/svf/schema.ts#L187">svf/schema.ts:187</a></li>
+							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/ee039e3/src/svf/reader.ts#L32">svf/reader.ts:32</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -173,90 +147,33 @@
 					<li class=" tsd-kind-external-module">
 						<a href="../modules/_svf_meshes_.html">"svf/meshes"</a>
 					</li>
-					<li class=" tsd-kind-external-module">
+					<li class="current tsd-kind-external-module">
 						<a href="../modules/_svf_reader_.html">"svf/reader"</a>
 					</li>
-					<li class="current tsd-kind-external-module">
+					<li class=" tsd-kind-external-module">
 						<a href="../modules/_svf_schema_.html">"svf/schema"</a>
 					</li>
 				</ul>
 			</nav>
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
-					<li class=" tsd-kind-enum tsd-parent-kind-external-module">
-						<a href="../enums/_svf_schema_.assettype.html" class="tsd-kind-icon">Asset<wbr>Type</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_svf_schema_.ifragment.html" class="tsd-kind-icon">IFragment</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_svf_schema_.igeometrymetadata.html" class="tsd-kind-icon">IGeometry<wbr>Metadata</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_svf_schema_.ilines.html" class="tsd-kind-icon">ILines</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_svf_schema_.imaterial.html" class="tsd-kind-icon">IMaterial</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_svf_schema_.imaterialmap.html" class="tsd-kind-icon">IMaterial<wbr>Map</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_svf_schema_.imesh.html" class="tsd-kind-icon">IMesh</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_svf_schema_.ipoints.html" class="tsd-kind-icon">IPoints</a>
+					<li class=" tsd-kind-class tsd-parent-kind-external-module">
+						<a href="../classes/_svf_reader_.reader.html" class="tsd-kind-icon">Reader</a>
 					</li>
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_svf_schema_.iquaternion.html" class="tsd-kind-icon">IQuaternion</a>
+						<a href="_svf_reader_.ireaderoptions.html" class="tsd-kind-icon">IReader<wbr>Options</a>
 						<ul>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_svf_schema_.iquaternion.html#w" class="tsd-kind-icon">w</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_svf_schema_.iquaternion.html#x" class="tsd-kind-icon">x</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_svf_schema_.iquaternion.html#y" class="tsd-kind-icon">y</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_svf_schema_.iquaternion.html#z" class="tsd-kind-icon">z</a>
+								<a href="_svf_reader_.ireaderoptions.html#log" class="tsd-kind-icon">log</a>
 							</li>
 						</ul>
 					</li>
 				</ul>
 				<ul class="after-current">
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_svf_schema_.isvfmanifest.html" class="tsd-kind-icon">ISvf<wbr>Manifest</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_svf_schema_.isvfmanifestasset.html" class="tsd-kind-icon">ISvf<wbr>Manifest<wbr>Asset</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_svf_schema_.isvfmanifesttype.html" class="tsd-kind-icon">ISvf<wbr>Manifest<wbr>Type</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_svf_schema_.isvfmanifesttypeset.html" class="tsd-kind-icon">ISvf<wbr>Manifest<wbr>Type<wbr>Set</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_svf_schema_.isvfmetadata.html" class="tsd-kind-icon">ISvf<wbr>Metadata</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_svf_schema_.isvfroot.html" class="tsd-kind-icon">ISvf<wbr>Root</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_svf_schema_.iuvmap.html" class="tsd-kind-icon">IUVMap</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_svf_schema_.ivector3.html" class="tsd-kind-icon">IVector3</a>
-					</li>
-					<li class=" tsd-kind-type-alias tsd-parent-kind-external-module">
-						<a href="../modules/_svf_schema_.html#matrix3x3" class="tsd-kind-icon">Matrix3x3</a>
-					</li>
-					<li class=" tsd-kind-type-alias tsd-parent-kind-external-module">
-						<a href="../modules/_svf_schema_.html#transform" class="tsd-kind-icon">Transform</a>
+						<a href="_svf_reader_.isvfcontent.html" class="tsd-kind-icon">ISvf<wbr>Content</a>
 					</li>
 				</ul>
 			</nav>

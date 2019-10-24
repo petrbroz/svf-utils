@@ -72,7 +72,7 @@ export class Writer {
         accessorsDeduplicated: 0,
         bufferViewsDeduplicated: 0
     };
-    private completeBuffers: Promise<void>[] = [];
+    private pendingTasks: Promise<void>[] = [];
 
     /**
      * Initializes the writer.
@@ -187,7 +187,7 @@ export class Writer {
         this.log(`Closing gltf output...`);
         if (this.bufferStream) {
             const stream = this.bufferStream as fse.WriteStream;
-            this.completeBuffers.push(new Promise((resolve, reject) => {
+            this.pendingTasks.push(new Promise((resolve, reject) => {
                 stream.on('finish', resolve);
             }));
             this.bufferStream.close();
@@ -195,7 +195,7 @@ export class Writer {
             this.bufferSize = 0;
         }
 
-        await Promise.all(this.completeBuffers);
+        await Promise.all(this.pendingTasks);
         const gltfPath = path.join(this.baseDir, 'output.gltf');
         fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
         this.log(`Closing gltf output: done`);
@@ -211,7 +211,7 @@ export class Writer {
                 if (fse.existsSync(sqlitePath)) {
                     fse.unlinkSync(sqlitePath);
                 }
-                this.serializeManifestDatabase(this.manifest, sqlitePath);
+                await this.serializeManifestDatabase(this.manifest, sqlitePath);
                 this.log(`Serializing manifest into sqlite: done`);
             }
         }
@@ -496,7 +496,7 @@ export class Writer {
         if (this.bufferStream === null || this.bufferSize > this.maxBufferSize) {
             if (this.bufferStream) {
                 const stream = this.bufferStream as fse.WriteStream;
-                this.completeBuffers.push(new Promise((resolve, reject) => {
+                this.pendingTasks.push(new Promise((resolve, reject) => {
                     stream.on('finish', resolve);
                 }));
                 this.bufferStream.close();
@@ -670,8 +670,9 @@ export class Writer {
         return { min, max };
     }
 
-    private serializeManifestDatabase(gltf: gltf.GlTf, filepath: string) {
+    private serializeManifestDatabase(gltf: gltf.GlTf, filepath: string): Promise<void> {
         let db = new sqlite3.Database(filepath);
+        const log = this.log;
         db.serialize(function () {
             // Serialize nodes
             db.run('CREATE TABLE nodes (dbid INTEGER, mesh_id INTEGER, matrix_json TEXT, translation_x REAL, translation_y REAL, translation_z REAL, scale_x REAL, scale_y REAL, scale_z REAL, rotation_x REAL, rotation_y REAL, rotation_z REAL, rotation_w REAL)');
@@ -698,26 +699,34 @@ export class Writer {
                         rotation[3]
                     );
                 }
-                stmt.finalize();
+                log('Serializing node table...');
+                stmt.finalize((err) => err ? log('Serializing node table failed: ' + err) : log('Serializing node table: done'));
             }
             
             // Serialize meshes
-            db.run('CREATE TABLE meshes (material_id INTEGER, index_accessor_id INTEGER, position_accessor_id INTEGER, normal_accessor_id INTEGER, uv_accessor_id INTEGER, color_accessor_id INTEGER)');
+            db.run('CREATE TABLE meshes (mode INTEGER, material_id INTEGER, index_accessor_id INTEGER, position_accessor_id INTEGER, normal_accessor_id INTEGER, uv_accessor_id INTEGER, color_accessor_id INTEGER)');
             if (gltf.meshes) {
-                let stmt = db.prepare('INSERT INTO meshes VALUES (?, ?, ?, ?, ?, ?)');
+                let stmt = db.prepare('INSERT INTO meshes VALUES (?, ?, ?, ?, ?, ?, ?)');
                 for (let i = 0, len = gltf.meshes.length; i < len; i++) {
                     const mesh = gltf.meshes[i];
                     const primitive = mesh.primitives[0] as gltf.MeshPrimitive; // Assuming we only have one primitive per mesh
-                    stmt.run(
-                        isUndefined(primitive.material) ? null : primitive.material,
-                        isUndefined(primitive.indices) ? null : primitive.indices,
-                        isUndefined(primitive.attributes['POSITION']) ? null : primitive.attributes['POSITION'],
-                        isUndefined(primitive.attributes['NORMAL']) ? null : primitive.attributes['NORMAL'],
-                        isUndefined(primitive.attributes['TEXCOORD_0']) ? null : primitive.attributes['TEXCOORD_0'],
-                        isUndefined(primitive.attributes['COLOR_0']) ? null : primitive.attributes['COLOR_0']
-                    );
+                    if (!primitive) {
+                        // Primitive can be undefined if the exporter is configured to ignore mesh, line, or point geometry
+                        stmt.run(null, null, null, null, null, null, null);
+                    } else {
+                        stmt.run(
+                            isUndefined(primitive.mode) ? null : primitive.mode,
+                            isUndefined(primitive.material) ? null : primitive.material,
+                            isUndefined(primitive.indices) ? null : primitive.indices,
+                            isUndefined(primitive.attributes['POSITION']) ? null : primitive.attributes['POSITION'],
+                            isUndefined(primitive.attributes['NORMAL']) ? null : primitive.attributes['NORMAL'],
+                            isUndefined(primitive.attributes['TEXCOORD_0']) ? null : primitive.attributes['TEXCOORD_0'],
+                            isUndefined(primitive.attributes['COLOR_0']) ? null : primitive.attributes['COLOR_0']
+                        );
+                    }
                 }
-                stmt.finalize();
+                log('Serializing mesh table...');
+                stmt.finalize((err) => err ? log('Serializing mesh table failed: ' + err) : log('Serializing mesh table: done'));
             }
 
             // Serialize accessors
@@ -741,7 +750,8 @@ export class Writer {
                         max[2],
                     );
                 }
-                stmt.finalize();
+                log('Serializing accessor table...');
+                stmt.finalize((err) => err ? log('Serializing accessor table failed: ' + err) : log('Serializing accessor table: done'));
             }
 
             // Serialize buffer views
@@ -756,7 +766,8 @@ export class Writer {
                         bufferView.byteLength
                     );
                 }
-                stmt.finalize();
+                log('Serializing buffer view table...');
+                stmt.finalize((err) => err ? log('Serializing buffer view table failed: ' + err) : log('Serializing buffer view table: done'));
             }
 
             // Serialize buffers
@@ -770,7 +781,8 @@ export class Writer {
                         buffer.byteLength
                     );
                 }
-                stmt.finalize();
+                log('Serializing buffer table...');
+                stmt.finalize((err) => err ? log('Serializing buffer table failed: ' + err) : log('Serializing buffer table: done'));
             }
 
             // Serialize materials
@@ -791,7 +803,8 @@ export class Writer {
                         isUndefined(pbr.baseColorTexture) || isUndefined(pbr.baseColorTexture.texCoord) ? null : pbr.baseColorTexture.texCoord
                     );
                 }
-                stmt.finalize();
+                log('Serializing material table...');
+                stmt.finalize((err) => err ? log('Serializing material table failed: ' + err) : log('Serializing material table: done'));
             }
 
             // Serialize textures
@@ -804,7 +817,8 @@ export class Writer {
                         isUndefined(texture.source) ? null : texture.source
                     );
                 }
-                stmt.finalize();
+                log('Serializing texture table...');
+                stmt.finalize((err) => err ? log('Serializing texture table failed: ' + err) : log('Serializing texture table: done'));
             }
 
             // Serialize images
@@ -817,13 +831,22 @@ export class Writer {
                         isUndefined(image.uri) ? null : image.uri
                     );
                 }
-                stmt.finalize();
+                log('Serializing image table...');
+                stmt.finalize((err) => err ? log('Serializing image table failed: ' + err) : log('Serializing image table: done'));
             }
 
             // db.each("SELECT rowid AS id, info FROM lorem", function (err, row) {
             //     console.log(row.id + ": " + row.info);
             // });
         });
-        db.close();
+        return new Promise(function (resolve, reject) {
+            db.close(function (err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
     }
 }

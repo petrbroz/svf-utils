@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added
+  - More deduplication, now also on the glTF accessor level
+
 ## [0.6.4] - 2019-10-22
 
 - Added

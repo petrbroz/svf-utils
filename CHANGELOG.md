@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - (experimental) serialization of glTF manifest into sqlite
     - Can only be used when texture/buffer data is referenced and not embedded
     - Potentially could be used for dynamically generating glTF variants with subsets of the original model
-  - (experimental) additional CLI option for serializing glTF manifest into sqlite
+    - Additional CLI option for serializing glTF manifest into sqlite
+    - Note that the schema of the sqlite database might change
 
 ## [0.6.4] - 2019-10-22
 

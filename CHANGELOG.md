@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2019-10-24
+
 - Fixed
   - glTF deduplication (incl. performance improvement)
   - sqlite serialization when ignoring mesh, line, or point geometries

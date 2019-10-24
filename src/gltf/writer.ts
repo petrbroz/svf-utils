@@ -278,10 +278,10 @@ export class Writer {
             } else {
                 mesh = this.writeMeshGeometry(fragmesh, svf, outputUvs);
             }
-            node.mesh = this.findOrAddMesh(mesh);
             for (const primitive of mesh.primitives) {
                 primitive.material = fragment.materialID;
             }
+            node.mesh = this.findOrAddMesh(mesh);
         } else {
             console.warn('Could not find mesh for fragment', fragment, 'geometry', geometry);
         }

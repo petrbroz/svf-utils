@@ -33,6 +33,12 @@ function hasTextures(material: IMaterial | null): boolean {
     return !!material && !!material.maps && (!!material.maps.diffuse || !!material.maps.specular);
 }
 
+interface IWriterStats {
+    materialsDeduplicated: number;
+    accessorsDeduplicated: number;
+    bufferViewsDeduplicated: number;
+}
+
 /**
  * Utility class for serializing SVF content to local file system as glTF (2.0).
  */
@@ -55,6 +61,11 @@ export class Writer {
     private bufferViewCache = new Map<string, gltf.BufferView>();
     private accessorCache = new Map<string, gltf.Accessor>();
     private completeBuffers: Promise<void>[] = [];
+    private stats: IWriterStats = {
+        materialsDeduplicated: 0,
+        accessorsDeduplicated: 0,
+        bufferViewsDeduplicated: 0
+    };
 
     /**
      * Initializes the writer.
@@ -139,6 +150,7 @@ export class Writer {
                     // Otherwise skip the material, and record an index to the first match below
                     this.log(`Skipping a duplicate material (hash: ${hash})`);
                     newMaterialIndices[i] = match;
+                    this.stats.materialsDeduplicated++;
                 }
             }
             // Update material indices in all mesh primitives
@@ -179,6 +191,7 @@ export class Writer {
         const gltfPath = path.join(this.baseDir, 'output.gltf');
         fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
         this.log(`Closing gltf output: done`);
+        this.log(`Stats: ${JSON.stringify(this.stats)}`);
 
         if (this.compress || this.binary) {
             this.log(`Post-processing gltf output...`);
@@ -432,6 +445,7 @@ export class Writer {
             return true;
         });
         if (match !== -1) {
+            this.stats.bufferViewsDeduplicated++;
             return match;
         } else {
             return bufferViews.push(bufferView) - 1;
@@ -502,6 +516,7 @@ export class Writer {
             return true;
         });
         if (match !== -1) {
+            this.stats.accessorsDeduplicated++;
             return match;
         } else {
             return accessors.push(accessor) - 1;

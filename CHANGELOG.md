@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2019-10-24
+
 - Added
   - More deduplication, now also on the glTF accessor and mesh level
   - Additional CLI options for ignoring mesh, line, or point geometry

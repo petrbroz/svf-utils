@@ -21,10 +21,15 @@ Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file f
     - to access Forge you must also specify credentials (`FORGE_CLIENT_ID` and `FORGE_CLIENT_SECRET`)
     or an authentication token (`FORGE_ACCESS_TOKEN`) as env. variables
 - optionally, use any combination of the following command line args:
+  - `--output-folder <folder>` to change output folder (by default '.')
   - `--output-type glb` to output _glb_ file instead of _gltf_
   - `--deduplicate` to try and remove duplicate geometries
   - `--skip-unused-uvs` to skip texture UVs that are not used by any material
   - `--compress` to compress meshes using Draco
+  - `--ignore-meshes` to exclude mesh geometry from the output
+  - `--ignore-lines` to exclude line geometry from the output
+  - `--ignore-points` to exclude point geometry from the output
+  - `--sqlite` to also generate a sqlite file containing the entire glTF manifest
 - optionally, set env. variable `DEBUG` to `cli:*` to see additional logs
 
 #### Unix/macOS
@@ -74,7 +79,7 @@ forge-convert <urn> --output-folder <path to output folder>
 
 ### Node.js
 
-The library is structured so that you can use it at different levels of control.
+The library can be used at different levels of granularity.
 
 The easiest way to convert an SVF file is to read the entire model into memory
 using [SvfReader#read](https://petrbroz.github.io/forge-convert-utils/docs/classes/_svf_reader_.reader.html#read)
@@ -91,10 +96,19 @@ async function run (urn, outputDir) {
     const modelDerivativeClient = new ModelDerivativeClient(auth);
     const helper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
     const derivatives = helper.search({ type: 'resource', role: 'graphics' });
-    const writer = new GltfWriter(outputDir, { deduplicate: true, skipUnusedUvs: true, log: (msg) => console.info('Writer', msg) });
+    const readerOptions = {
+        log: console.log
+    };
+    const writerOptions = {
+        deduplicate: true,
+        skipUnusedUvs: true,
+        sqlite: true,
+        log: console.log
+    };
+    const writer = new GltfWriter(outputDir, writerOptions);
     for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
         const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
-        const svf = await reader.read({ log: (msg) => console.info('Reader', msg) });
+        const svf = await reader.read(readerOptions);
         writer.write(svf);
     }
     await writer.close();
@@ -104,7 +118,7 @@ run('your model urn', 'path/to/output/folder');
 ```
 
 If you don't want to read the entire model into memory (for example, when distributing
-the parsing of an SVF over multiple server instances), you can use methods like
+the parsing of an SVF over multiple servers), you can use methods like
 [SvfReader#enumerateFragments](https://petrbroz.github.io/forge-convert-utils/docs/classes/_svf_reader_.reader.html#enumeratefragments)
 or [SvfReader#enumerateGeometries](https://petrbroz.github.io/forge-convert-utils/docs/classes/_svf_reader_.reader.html#enumerategeometries)
 to _asynchronously_ iterate over individual elements:
@@ -199,10 +213,6 @@ In _.vscode/launch.json_:
     "name": "Convert Local SVF to glTF",
     "program": "${workspaceFolder}/test/local-svf-to-gltf.js",
     "args": ["<path to svf file>", "<path to output folder>"],
-    "env": {
-        "FORGE_CLIENT_ID": "l9o9o49GfeAFjTcLtRgeESAPJP6SqbkN",
-        "FORGE_CLIENT_SECRET": "d6efarhkFyGYDhcF"
-    },
     "preLaunchTask": "build"
 }
 ...

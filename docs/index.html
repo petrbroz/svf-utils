@@ -91,10 +91,15 @@
 						</ul>
 					</li>
 					<li>optionally, use any combination of the following command line args:<ul>
+							<li><code>--output-folder &lt;folder&gt;</code> to change output folder (by default &#39;.&#39;)</li>
 							<li><code>--output-type glb</code> to output <em>glb</em> file instead of <em>gltf</em></li>
 							<li><code>--deduplicate</code> to try and remove duplicate geometries</li>
 							<li><code>--skip-unused-uvs</code> to skip texture UVs that are not used by any material</li>
 							<li><code>--compress</code> to compress meshes using Draco</li>
+							<li><code>--ignore-meshes</code> to exclude mesh geometry from the output</li>
+							<li><code>--ignore-lines</code> to exclude line geometry from the output</li>
+							<li><code>--ignore-points</code> to exclude point geometry from the output</li>
+							<li><code>--sqlite</code> to also generate a sqlite file containing the entire glTF manifest</li>
 						</ul>
 					</li>
 					<li>optionally, set env. variable <code>DEBUG</code> to <code>cli:*</code> to see additional logs</li>
@@ -123,7 +128,7 @@ forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to
 				<a href="#nodejs" id="nodejs" style="color: inherit; text-decoration: none;">
 					<h3>Node.js</h3>
 				</a>
-				<p>The library is structured so that you can use it at different levels of control.</p>
+				<p>The library can be used at different levels of granularity.</p>
 				<p>The easiest way to convert an SVF file is to read the entire model into memory
 					using <a href="https://petrbroz.github.io/forge-convert-utils/docs/classes/_svf_reader_.reader.html#read">SvfReader#read</a>
 				method, and save the model into glTF using <a href="https://petrbroz.github.io/forge-convert-utils/docs/classes/_gltf_writer_.writer.html#write">GltfWriter#write</a>:</p>
@@ -137,10 +142,19 @@ forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to
     <span class="hljs-keyword">const</span> modelDerivativeClient = <span class="hljs-keyword">new</span> ModelDerivativeClient(auth);
     <span class="hljs-keyword">const</span> helper = <span class="hljs-keyword">new</span> ManifestHelper(<span class="hljs-keyword">await</span> modelDerivativeClient.getManifest(urn));
     <span class="hljs-keyword">const</span> derivatives = helper.search({ <span class="hljs-attr">type</span>: <span class="hljs-string">'resource'</span>, <span class="hljs-attr">role</span>: <span class="hljs-string">'graphics'</span> });
-    <span class="hljs-keyword">const</span> writer = <span class="hljs-keyword">new</span> GltfWriter(outputDir, { <span class="hljs-attr">deduplicate</span>: <span class="hljs-literal">true</span>, <span class="hljs-attr">skipUnusedUvs</span>: <span class="hljs-literal">true</span>, <span class="hljs-attr">log</span>: <span class="hljs-function">(<span class="hljs-params">msg</span>) =&gt;</span> <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'Writer'</span>, msg) });
+    <span class="hljs-keyword">const</span> readerOptions = {
+        <span class="hljs-attr">log</span>: <span class="hljs-built_in">console</span>.log
+    };
+    <span class="hljs-keyword">const</span> writerOptions = {
+        <span class="hljs-attr">deduplicate</span>: <span class="hljs-literal">true</span>,
+        <span class="hljs-attr">skipUnusedUvs</span>: <span class="hljs-literal">true</span>,
+        <span class="hljs-attr">sqlite</span>: <span class="hljs-literal">true</span>,
+        <span class="hljs-attr">log</span>: <span class="hljs-built_in">console</span>.log
+    };
+    <span class="hljs-keyword">const</span> writer = <span class="hljs-keyword">new</span> GltfWriter(outputDir, writerOptions);
     <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> derivative <span class="hljs-keyword">of</span> derivatives.filter(<span class="hljs-function"><span class="hljs-params">d</span> =&gt;</span> d.mime === <span class="hljs-string">'application/autodesk-svf'</span>)) {
         <span class="hljs-keyword">const</span> reader = <span class="hljs-keyword">await</span> SvfReader.FromDerivativeService(urn, derivative.guid, auth);
-        <span class="hljs-keyword">const</span> svf = <span class="hljs-keyword">await</span> reader.read({ <span class="hljs-attr">log</span>: <span class="hljs-function">(<span class="hljs-params">msg</span>) =&gt;</span> <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'Reader'</span>, msg) });
+        <span class="hljs-keyword">const</span> svf = <span class="hljs-keyword">await</span> reader.read(readerOptions);
         writer.write(svf);
     }
     <span class="hljs-keyword">await</span> writer.close();
@@ -148,7 +162,7 @@ forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to
 
 run(<span class="hljs-string">'your model urn'</span>, <span class="hljs-string">'path/to/output/folder'</span>);</code></pre>
 				<p>If you don&#39;t want to read the entire model into memory (for example, when distributing
-					the parsing of an SVF over multiple server instances), you can use methods like
+					the parsing of an SVF over multiple servers), you can use methods like
 					<a href="https://petrbroz.github.io/forge-convert-utils/docs/classes/_svf_reader_.reader.html#enumeratefragments">SvfReader#enumerateFragments</a>
 					or <a href="https://petrbroz.github.io/forge-convert-utils/docs/classes/_svf_reader_.reader.html#enumerategeometries">SvfReader#enumerateGeometries</a>
 				to <em>asynchronously</em> iterate over individual elements:</p>
@@ -231,10 +245,6 @@ run(<span class="hljs-string">'your model urn'</span>);</code></pre>
     "name": "Convert Local SVF to glTF",
     "program": "${workspaceFolder}/test/local-svf-to-gltf.js",
     "args": ["&lt;path to svf file&gt;", "&lt;path to output folder&gt;"],
-    "env": {
-        "FORGE_CLIENT_ID": "l9o9o49GfeAFjTcLtRgeESAPJP6SqbkN",
-        "FORGE_CLIENT_SECRET": "d6efarhkFyGYDhcF"
-    },
     "preLaunchTask": "build"
 }
 ...</code></pre>

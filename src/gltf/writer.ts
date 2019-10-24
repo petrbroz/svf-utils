@@ -150,7 +150,7 @@ export class Writer {
                 if (match === -1) {
                     // If this is a first occurrence of the hash in the array, output a new material
                     newMaterialIndices[i] = manifestMaterials.length;
-                    manifestMaterials.push(this.writeMaterial(material, svf));
+                    manifestMaterials.push(this.createMaterial(material, svf));
                     hashes.push(hash);
                 } else {
                     // Otherwise skip the material, and record an index to the first match below
@@ -169,7 +169,7 @@ export class Writer {
             }
         } else {
             for (const material of svf.materials) {
-                const mat = this.writeMaterial(material, svf);
+                const mat = this.createMaterial(material, svf);
                 manifestMaterials.push(mat);
             }
         }
@@ -291,23 +291,23 @@ export class Writer {
         if (fragmesh) {
             let mesh: gltf.Mesh;
             if ('isLines' in fragmesh) {
-                mesh = this.writeLineGeometry(fragmesh, svf);
+                mesh = this.createLineGeometry(fragmesh, svf);
             } else if ('isPoints' in fragmesh) {
-                mesh = this.writePointGeometry(fragmesh, svf);
+                mesh = this.createPointGeometry(fragmesh, svf);
             } else {
-                mesh = this.writeMeshGeometry(fragmesh, svf, outputUvs);
+                mesh = this.createMeshGeometry(fragmesh, svf, outputUvs);
             }
             for (const primitive of mesh.primitives) {
                 primitive.material = fragment.materialID;
             }
-            node.mesh = this.findOrAddMesh(mesh);
+            node.mesh = this.addMesh(mesh);
         } else {
             console.warn('Could not find mesh for fragment', fragment, 'geometry', geometry);
         }
         return node;
     }
 
-    protected findOrAddMesh(mesh: gltf.Mesh): number {
+    protected addMesh(mesh: gltf.Mesh): number {
         const meshes = this.manifest.meshes as gltf.Mesh[];
         let match = -1;
         if (this.deduplicate) {
@@ -322,7 +322,7 @@ export class Writer {
         }
     }
 
-    protected writeMeshGeometry(fragmesh: IMesh, svf: ISvfContent, outputUvs: boolean): gltf.Mesh {
+    protected createMeshGeometry(fragmesh: IMesh, svf: ISvfContent, outputUvs: boolean): gltf.Mesh {
         let mesh: gltf.Mesh = {
             primitives: []
         };
@@ -332,34 +332,34 @@ export class Writer {
         }
 
         // Output index buffer
-        const indexBufferView = this.writeBufferView(Buffer.from(fragmesh.indices.buffer));
-        const indexBufferViewID = this.findOrAddBufferView(indexBufferView);
-        const indexAccessor = this.writeAccessor(indexBufferViewID, 5123, indexBufferView.byteLength / 2, 'SCALAR');
-        const indexAccessorID = this.findOrAddAccessor(indexAccessor);
+        const indexBufferView = this.createBufferView(Buffer.from(fragmesh.indices.buffer));
+        const indexBufferViewID = this.addBufferView(indexBufferView);
+        const indexAccessor = this.createAccessor(indexBufferViewID, 5123, indexBufferView.byteLength / 2, 'SCALAR');
+        const indexAccessorID = this.addAccessor(indexAccessor);
 
         // Output vertex buffer
         const positionBounds = this.computeBoundsVec3(fragmesh.vertices); // Compute bounds manually, just in case
-        const positionBufferView = this.writeBufferView(Buffer.from(fragmesh.vertices.buffer));
-        const positionBufferViewID = this.findOrAddBufferView(positionBufferView);
-        const positionAccessor = this.writeAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max/*[fragmesh.min.x, fragmesh.min.y, fragmesh.min.z], [fragmesh.max.x, fragmesh.max.y, fragmesh.max.z]*/);
-        const positionAccessorID = this.findOrAddAccessor(positionAccessor);
+        const positionBufferView = this.createBufferView(Buffer.from(fragmesh.vertices.buffer));
+        const positionBufferViewID = this.addBufferView(positionBufferView);
+        const positionAccessor = this.createAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max/*[fragmesh.min.x, fragmesh.min.y, fragmesh.min.z], [fragmesh.max.x, fragmesh.max.y, fragmesh.max.z]*/);
+        const positionAccessorID = this.addAccessor(positionAccessor);
 
         // Output normals buffer
         let normalAccessorID: number | undefined = undefined;
         if (fragmesh.normals) {
-            const normalBufferView = this.writeBufferView(Buffer.from(fragmesh.normals.buffer));
-            const normalBufferViewID = this.findOrAddBufferView(normalBufferView);
-            const normalAccessor = this.writeAccessor(normalBufferViewID, 5126, normalBufferView.byteLength / 4 / 3, 'VEC3');
-            normalAccessorID = this.findOrAddAccessor(normalAccessor);
+            const normalBufferView = this.createBufferView(Buffer.from(fragmesh.normals.buffer));
+            const normalBufferViewID = this.addBufferView(normalBufferView);
+            const normalAccessor = this.createAccessor(normalBufferViewID, 5126, normalBufferView.byteLength / 4 / 3, 'VEC3');
+            normalAccessorID = this.addAccessor(normalAccessor);
         }
 
         // Output UV buffers
         let uvAccessorID: number | undefined = undefined;
         if (fragmesh.uvmaps && fragmesh.uvmaps.length > 0 && outputUvs) {
-            const uvBufferView = this.writeBufferView(Buffer.from(fragmesh.uvmaps[0].uvs.buffer));
-            const uvBufferViewID = this.findOrAddBufferView(uvBufferView);
-            const uvAccessor = this.writeAccessor(uvBufferViewID, 5126, uvBufferView.byteLength / 4 / 2, 'VEC2');
-            uvAccessorID = this.findOrAddAccessor(uvAccessor);
+            const uvBufferView = this.createBufferView(Buffer.from(fragmesh.uvmaps[0].uvs.buffer));
+            const uvBufferViewID = this.addBufferView(uvBufferView);
+            const uvAccessor = this.createAccessor(uvBufferViewID, 5126, uvBufferView.byteLength / 4 / 2, 'VEC2');
+            uvAccessorID = this.addAccessor(uvAccessor);
         }
 
         mesh.primitives.push({
@@ -379,7 +379,7 @@ export class Writer {
         return mesh;
     }
 
-    protected writeLineGeometry(fragmesh: ILines, svf: ISvfContent): gltf.Mesh {
+    protected createLineGeometry(fragmesh: ILines, svf: ISvfContent): gltf.Mesh {
         let mesh: gltf.Mesh = {
             primitives: []
         };
@@ -389,25 +389,25 @@ export class Writer {
         }
 
         // Output index buffer
-        const indexBufferView = this.writeBufferView(Buffer.from(fragmesh.indices.buffer));
-        const indexBufferViewID = this.findOrAddBufferView(indexBufferView);
-        const indexAccessor = this.writeAccessor(indexBufferViewID, 5123, indexBufferView.byteLength / 2, 'SCALAR');
-        const indexAccessorID = this.findOrAddAccessor(indexAccessor);
+        const indexBufferView = this.createBufferView(Buffer.from(fragmesh.indices.buffer));
+        const indexBufferViewID = this.addBufferView(indexBufferView);
+        const indexAccessor = this.createAccessor(indexBufferViewID, 5123, indexBufferView.byteLength / 2, 'SCALAR');
+        const indexAccessorID = this.addAccessor(indexAccessor);
 
         // Output vertex buffer
         const positionBounds = this.computeBoundsVec3(fragmesh.vertices);
-        const positionBufferView = this.writeBufferView(Buffer.from(fragmesh.vertices.buffer));
-        const positionBufferViewID = this.findOrAddBufferView(positionBufferView);
-        const positionAccessor = this.writeAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max);
-        const positionAccessorID = this.findOrAddAccessor(positionAccessor);
+        const positionBufferView = this.createBufferView(Buffer.from(fragmesh.vertices.buffer));
+        const positionBufferViewID = this.addBufferView(positionBufferView);
+        const positionAccessor = this.createAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max);
+        const positionAccessorID = this.addAccessor(positionAccessor);
 
         // Output color buffer
         let colorAccessorID: number | undefined = undefined;
         if (fragmesh.colors) {
-            const colorBufferView = this.writeBufferView(Buffer.from(fragmesh.colors.buffer));
-            const colorBufferViewID = this.findOrAddBufferView(colorBufferView);
-            const colorAccessor = this.writeAccessor(colorBufferViewID, 5126, colorBufferView.byteLength / 4 / 3, 'VEC3');
-            colorAccessorID = this.findOrAddAccessor(colorAccessor);
+            const colorBufferView = this.createBufferView(Buffer.from(fragmesh.colors.buffer));
+            const colorBufferViewID = this.addBufferView(colorBufferView);
+            const colorAccessor = this.createAccessor(colorBufferViewID, 5126, colorBufferView.byteLength / 4 / 3, 'VEC3');
+            colorAccessorID = this.addAccessor(colorAccessor);
         }
 
         mesh.primitives.push({
@@ -425,7 +425,7 @@ export class Writer {
         return mesh;
     }
 
-    protected writePointGeometry(fragmesh: IPoints, svf: ISvfContent): gltf.Mesh {
+    protected createPointGeometry(fragmesh: IPoints, svf: ISvfContent): gltf.Mesh {
         let mesh: gltf.Mesh = {
             primitives: []
         };
@@ -439,18 +439,18 @@ export class Writer {
 
         // Output vertex buffer
         const positionBounds = this.computeBoundsVec3(fragmesh.vertices);
-        const positionBufferView = this.writeBufferView(Buffer.from(fragmesh.vertices.buffer));
-        const positionBufferViewID = this.findOrAddBufferView(positionBufferView);
-        const positionAccessor = this.writeAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max);
-        const positionAccessorID = this.findOrAddAccessor(positionAccessor);
+        const positionBufferView = this.createBufferView(Buffer.from(fragmesh.vertices.buffer));
+        const positionBufferViewID = this.addBufferView(positionBufferView);
+        const positionAccessor = this.createAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max);
+        const positionAccessorID = this.addAccessor(positionAccessor);
 
         // Output color buffer
         let colorAccessorID: number | undefined = undefined;
         if (fragmesh.colors) {
-            const colorBufferView = this.writeBufferView(Buffer.from(fragmesh.colors.buffer));
-            const colorBufferViewID = this.findOrAddBufferView(colorBufferView);
-            const colorAccessor = this.writeAccessor(colorBufferViewID, 5126, colorBufferView.byteLength / 4 / 3, 'VEC3');
-            colorAccessorID = this.findOrAddAccessor(colorAccessor);
+            const colorBufferView = this.createBufferView(Buffer.from(fragmesh.colors.buffer));
+            const colorBufferViewID = this.addBufferView(colorBufferView);
+            const colorAccessor = this.createAccessor(colorBufferViewID, 5126, colorBufferView.byteLength / 4 / 3, 'VEC3');
+            colorAccessorID = this.addAccessor(colorAccessor);
         }
 
         mesh.primitives.push({
@@ -467,7 +467,7 @@ export class Writer {
         return mesh;
     }
 
-    protected findOrAddBufferView(bufferView: gltf.BufferView): number {
+    protected addBufferView(bufferView: gltf.BufferView): number {
         const bufferViews = this.manifest.bufferViews as gltf.BufferView[];
         let match = -1;
         if (this.deduplicate) {
@@ -491,7 +491,7 @@ export class Writer {
         }
     }
 
-    protected writeBufferView(data: Buffer): gltf.BufferView {
+    protected createBufferView(data: Buffer): gltf.BufferView {
         const hash = this.computeBufferHash(data);
         const cache = this.bufferViewCache.get(hash);
         if (this.deduplicate && cache) {
@@ -543,7 +543,7 @@ export class Writer {
         return bufferView;
     }
 
-    protected findOrAddAccessor(accessor: gltf.Accessor): number {
+    protected addAccessor(accessor: gltf.Accessor): number {
         const accessors = this.manifest.accessors as gltf.Accessor[];
         let match = -1
         if (this.deduplicate) {
@@ -565,7 +565,7 @@ export class Writer {
         }
     }
 
-    protected writeAccessor(bufferViewID: number, componentType: number, count: number, type: string, min?: number[], max?: number[]): gltf.Accessor {
+    protected createAccessor(bufferViewID: number, componentType: number, count: number, type: string, min?: number[], max?: number[]): gltf.Accessor {
         const key = `${bufferViewID}/${componentType}/${count}/${type}`;
         const cache = this.accessorCache.get(key);
         if (this.deduplicate && cache) {
@@ -594,7 +594,7 @@ export class Writer {
         return accessor;
     }
 
-    protected writeMaterial(mat: IMaterial | null, svf: ISvfContent): gltf.MaterialPbrMetallicRoughness {
+    protected createMaterial(mat: IMaterial | null, svf: ISvfContent): gltf.MaterialPbrMetallicRoughness {
         if (!mat) {
             return DefaultMaterial;
         }
@@ -615,7 +615,7 @@ export class Writer {
             const manifestTextures = this.manifest.textures as gltf.Texture[];
             if (mat.maps.diffuse) {
                 const textureID = manifestTextures.length;
-                manifestTextures.push(this.writeTexture(mat.maps.diffuse, svf));
+                manifestTextures.push(this.createTexture(mat.maps.diffuse, svf));
                 material.pbrMetallicRoughness.baseColorTexture = {
                     index: textureID,
                     texCoord: 0
@@ -625,7 +625,7 @@ export class Writer {
         return material;
     }
 
-    protected writeTexture(map: IMaterialMap, svf: ISvfContent): gltf.Texture {
+    protected createTexture(map: IMaterialMap, svf: ISvfContent): gltf.Texture {
         const manifestImages = this.manifest.images as gltf.Image[];
         let imageID = manifestImages.findIndex(image => image.uri === map.uri);
         if (imageID === -1) {

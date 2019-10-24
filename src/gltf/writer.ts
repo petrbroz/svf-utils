@@ -62,15 +62,17 @@ export class Writer {
     protected sqlite: boolean;
     protected log: (msg: string) => void;
 
-    private bufferViewCache = new Map<string, gltf.BufferView>();
-    private accessorCache = new Map<string, gltf.Accessor>();
-    private completeBuffers: Promise<void>[] = [];
+    private bufferViewCache = new Map<string, gltf.BufferView>(); // Cache of existing buffer views, indexed by hash of the binary data they point to
+    private meshHashes: string[] = []; // List of hashes of existing gltf.Mesh objects, used for deduplication
+    private bufferViewHashes: string[] = []; // List of hashes of existing gltf.BufferView objects, used for deduplication
+    private accessorHashes: string[] = []; // List of hashes of existing gltf.Accessor objects, used for deduplication
     private stats: IWriterStats = {
         materialsDeduplicated: 0,
         meshesDeduplicated: 0,
         accessorsDeduplicated: 0,
         bufferViewsDeduplicated: 0
     };
+    private completeBuffers: Promise<void>[] = [];
 
     /**
      * Initializes the writer.
@@ -131,7 +133,7 @@ export class Writer {
             const material = svf.materials[fragment.materialID];
             // Only output UVs if there are any textures or if the user specifically asked not to skip unused UVs
             const outputUvs = hasTextures(material) || !this.skipUnusedUvs;
-            const node = this.writeFragment(fragment, svf, outputUvs);
+            const node = this.createNode(fragment, svf, outputUvs);
             // Only output nodes that have a mesh
             if (!isUndefined(node.mesh)) {
                 const index = manifestNodes.push(node) - 1;
@@ -253,7 +255,7 @@ export class Writer {
         }
     }
 
-    protected writeFragment(fragment: IFragment, svf: ISvfContent, outputUvs: boolean): gltf.Node {
+    protected createNode(fragment: IFragment, svf: ISvfContent, outputUvs: boolean): gltf.Node {
         let node: gltf.Node = {
             name: fragment.dbID.toString()
         };
@@ -309,15 +311,16 @@ export class Writer {
 
     protected addMesh(mesh: gltf.Mesh): number {
         const meshes = this.manifest.meshes as gltf.Mesh[];
-        let match = -1;
-        if (this.deduplicate) {
-            const hash = this.computeMeshHash(mesh);
-            match = meshes.map(m => this.computeMeshHash(m)).indexOf(hash);
-        }
+        const hash = this.computeMeshHash(mesh);
+        const match = this.deduplicate ? this.meshHashes.indexOf(hash) : -1;
         if (match !== -1) {
+            this.log(`Skipping a duplicate mesh (${hash})`);
             this.stats.meshesDeduplicated++;
             return match;
         } else {
+            if (this.deduplicate) {
+                this.meshHashes.push(hash);
+            }
             return meshes.push(mesh) - 1;
         }
     }
@@ -469,24 +472,16 @@ export class Writer {
 
     protected addBufferView(bufferView: gltf.BufferView): number {
         const bufferViews = this.manifest.bufferViews as gltf.BufferView[];
-        let match = -1;
-        if (this.deduplicate) {
-            match = bufferViews.findIndex(item => {
-                if (item.buffer !== bufferView.buffer) return false;
-                if (item.byteLength !== bufferView.byteLength) return false;
-                if (!isUndefined(item.byteOffset) || !isUndefined(bufferView.byteOffset)) {
-                    if (item.byteOffset !== bufferView.byteOffset) return false;
-                }
-                if (!isUndefined(item.byteStride) || !isUndefined(bufferView.byteStride)) {
-                    if (item.byteStride !== bufferView.byteStride) return false;
-                }
-                return true;
-            });
-        }
+        const hash = this.computeBufferViewHash(bufferView);
+        const match = this.deduplicate ? this.bufferViewHashes.indexOf(hash) : -1;
         if (match !== -1) {
+            this.log(`Skipping a duplicate buffer view (${hash})`);
             this.stats.bufferViewsDeduplicated++;
             return match;
         } else {
+            if (this.deduplicate) {
+                this.bufferViewHashes.push(hash);
+            }
             return bufferViews.push(bufferView) - 1;
         }
     }
@@ -495,7 +490,7 @@ export class Writer {
         const hash = this.computeBufferHash(data);
         const cache = this.bufferViewCache.get(hash);
         if (this.deduplicate && cache) {
-            this.log(`Skipping a duplicate buffer view (hash: ${hash})`);
+            this.log(`Skipping a duplicate buffer (${hash})`);
             return cache;
         }
 
@@ -545,34 +540,21 @@ export class Writer {
 
     protected addAccessor(accessor: gltf.Accessor): number {
         const accessors = this.manifest.accessors as gltf.Accessor[];
-        let match = -1
-        if (this.deduplicate) {
-            match = accessors.findIndex(item => {
-                if (item.type !== accessor.type) return false;
-                if (item.componentType !== accessor.componentType) return false;
-                if (item.count !== accessor.count) return false;
-                if (!isUndefined(item.bufferView) || !isUndefined(accessor.bufferView)) {
-                    if (item.bufferView !== accessor.bufferView) return false;
-                }
-                return true;
-            });
-        }
+        const hash = this.computeAccessorHash(accessor);
+        const match = this.deduplicate ? this.accessorHashes.indexOf(hash) : -1;
         if (match !== -1) {
+            this.log(`Skipping a duplicate accessor (${hash})`);
             this.stats.accessorsDeduplicated++;
             return match;
         } else {
+            if (this.deduplicate) {
+                this.accessorHashes.push(hash);
+            }
             return accessors.push(accessor) - 1;
         }
     }
 
     protected createAccessor(bufferViewID: number, componentType: number, count: number, type: string, min?: number[], max?: number[]): gltf.Accessor {
-        const key = `${bufferViewID}/${componentType}/${count}/${type}`;
-        const cache = this.accessorCache.get(key);
-        if (this.deduplicate && cache) {
-            this.log(`Skipping a duplicate accessor (${key})`);
-            return cache;
-        }
-
         const accessor: gltf.Accessor = {
             bufferView: bufferViewID,
             componentType: componentType,
@@ -585,10 +567,6 @@ export class Writer {
         }
         if (!isUndefined(max)) {
             accessor.max = max.map(Math.fround);
-        }
-
-        if (this.deduplicate) {
-            this.accessorCache.set(key, accessor);
         }
 
         return accessor;
@@ -639,10 +617,18 @@ export class Writer {
         return { source: imageID };
     }
 
-    private computeMeshHash(mesh: gltf.Mesh) {
+    private computeMeshHash(mesh: gltf.Mesh): string {
         return mesh.primitives.map(p => {
             return `${p.mode || ''}/${p.material || ''}/${p.indices}/${p.attributes['POSITION'] || ''}/${p.attributes['NORMAL'] || ''}/${p.attributes['TEXCOORD_0'] || ''}/${p.attributes['COLOR_0'] || ''}`;
         }).join('/');
+    }
+
+    private computeBufferViewHash(bufferView: gltf.BufferView): string {
+        return `${bufferView.buffer}/${bufferView.byteLength}/${bufferView.byteOffset || ''}/${bufferView.byteStride || ''}`;
+    }
+
+    private computeAccessorHash(accessor: gltf.Accessor): string {
+        return `${accessor.type}/${accessor.componentType}/${accessor.count}/${accessor.bufferView || 'X'}`;
     }
 
     private computeBufferHash(buffer: Buffer): string {

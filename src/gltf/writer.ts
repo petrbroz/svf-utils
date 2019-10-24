@@ -27,6 +27,7 @@ export interface IWriterOptions {
     skipUnusedUvs?: boolean; /** Skip unused tex coordinates. */
     compress?: boolean; /** Compress output using Draco. */
     binary?: boolean; /** Output GLB instead of GLTF. */
+    sqlite?: boolean; /** Also output a sqlite version of GLTF manifest. */
     log?: (msg: string) => void; /** Optional logging function. */
 }
 
@@ -58,6 +59,7 @@ export class Writer {
     protected skipUnusedUvs: boolean;
     protected compress: boolean;
     protected binary: boolean;
+    protected sqlite: boolean;
     protected log: (msg: string) => void;
 
     private bufferViewCache = new Map<string, gltf.BufferView>();
@@ -84,6 +86,7 @@ export class Writer {
         this.skipUnusedUvs = !!options.skipUnusedUvs;
         this.compress = !!options.compress;
         this.binary = !!options.binary;
+        this.sqlite = !!options.sqlite;
         this.log = (options && options.log) || function (msg: string) {};
         this.manifest = {
             asset: {
@@ -196,14 +199,20 @@ export class Writer {
         this.log(`Closing gltf output: done`);
         this.log(`Stats: ${JSON.stringify(this.stats)}`);
 
-        // Serialize manifest into a sqlite database as well
-        this.log(`Serializing manifest into sqlite...`);
-        const sqlitePath = path.join(this.baseDir, 'manifest.sqlite');
-        if (fse.existsSync(sqlitePath)) {
-            fse.unlinkSync(sqlitePath);
+        if (this.sqlite) {
+            // Serialize manifest into a sqlite database as well
+            if (this.compress || this.binary) {
+                this.log(`Serializing manifest with embedded texture/buffer data into sqlite is not supported.`);
+            } else {
+                this.log(`Serializing manifest into sqlite...`);
+                const sqlitePath = path.join(this.baseDir, 'manifest.sqlite');
+                if (fse.existsSync(sqlitePath)) {
+                    fse.unlinkSync(sqlitePath);
+                }
+                this.serializeManifestDatabase(this.manifest, sqlitePath);
+                this.log(`Serializing manifest into sqlite: done`);
+            }
         }
-        this.serializeManifestDatabase(this.manifest, sqlitePath);
-        this.log(`Serializing manifest into sqlite: done`);
 
         if (this.compress || this.binary) {
             this.log(`Post-processing gltf output...`);

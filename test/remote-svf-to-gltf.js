@@ -19,6 +19,7 @@ async function run (urn, outputDir) {
         skipUnusedUvs: false,
         binary: false,
         compress: false,
+        sqlite: true,
         log: console.log
     };
 

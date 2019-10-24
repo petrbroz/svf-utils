@@ -311,34 +311,8 @@ export class Writer {
         const meshes = this.manifest.meshes as gltf.Mesh[];
         let match = -1;
         if (this.deduplicate) {
-            // TODO: optimize the search for matching mesh
-            match = meshes.findIndex(item => {
-                if (mesh.primitives.length !== item.primitives.length) {
-                    return false;
-                }
-                const prim1 = mesh.primitives[0] as gltf.MeshPrimitive;
-                const prim2 = item.primitives[0] as gltf.MeshPrimitive;
-                if (!isUndefined(prim1.mode) || !isUndefined(prim2.mode)) {
-                    if (prim1.mode !== prim2.mode) return false;
-                }
-                if (!isUndefined(prim1.indices) || !isUndefined(prim2.indices)) {
-                    if (prim1.indices !== prim2.indices) return false;
-                }
-                if (!isUndefined(prim1.material) || !isUndefined(prim2.material)) {
-                    if (prim1.material !== prim2.material) return false;
-                }
-                const attrs1 = Object.keys(prim1.attributes);
-                const attrs2 = Object.keys(prim2.attributes);
-                if (attrs1.length !== attrs2.length) {
-                    return false;
-                }
-                for (const attr in attrs1) {
-                    if (prim1.attributes[attr] !== prim2.attributes[attr]) {
-                        return false;
-                    }
-                }
-                return true;
-            });
+            const hash = this.computeMeshHash(mesh);
+            match = meshes.map(m => this.computeMeshHash(m)).indexOf(hash);
         }
         if (match !== -1) {
             this.stats.meshesDeduplicated++;
@@ -663,6 +637,12 @@ export class Writer {
             fse.writeFileSync(filePath, svf.images[normalizedUri]);
         }
         return { source: imageID };
+    }
+
+    private computeMeshHash(mesh: gltf.Mesh) {
+        return mesh.primitives.map(p => {
+            return `${p.mode || ''}/${p.material || ''}/${p.indices}/${p.attributes['POSITION'] || ''}/${p.attributes['NORMAL'] || ''}/${p.attributes['TEXCOORD_0'] || ''}/${p.attributes['COLOR_0'] || ''}`;
+        }).join('/');
     }
 
     private computeBufferHash(buffer: Buffer): string {

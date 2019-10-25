@@ -2,12 +2,12 @@ import * as path from 'path';
 import crypto from 'crypto';
 import * as fse from 'fs-extra';
 import * as pipeline from 'gltf-pipeline';
-import * as sqlite3 from 'sqlite3';
 
 import * as gltf from './schema';
 import { isUndefined, isNullOrUndefined } from 'util';
 import { IMaterial, IFragment, IMesh, ILines, IPoints, IMaterialMap } from '../svf/schema';
 import { ISvfContent } from '../svf/reader';
+import { serialize as serializeDatabase } from './sqlite';
 
 const MaxBufferSize = 5 << 20;
 const DefaultMaterial: gltf.MaterialPbrMetallicRoughness = {
@@ -211,7 +211,7 @@ export class Writer {
                 if (fse.existsSync(sqlitePath)) {
                     fse.unlinkSync(sqlitePath);
                 }
-                await this.serializeManifestDatabase(this.manifest, sqlitePath);
+                await serializeDatabase(this.manifest, sqlitePath);
                 this.log(`Serializing manifest into sqlite: done`);
             }
         }
@@ -668,185 +668,5 @@ export class Writer {
             min[2] = Math.min(min[2], array[i + 2]); max[2] = Math.max(max[2], array[i + 2]);
         }
         return { min, max };
-    }
-
-    private serializeManifestDatabase(gltf: gltf.GlTf, filepath: string): Promise<void> {
-        let db = new sqlite3.Database(filepath);
-        const log = this.log;
-        db.serialize(function () {
-            // Serialize nodes
-            db.run('CREATE TABLE nodes (dbid INTEGER, mesh_id INTEGER, matrix_json TEXT, translation_x REAL, translation_y REAL, translation_z REAL, scale_x REAL, scale_y REAL, scale_z REAL, rotation_x REAL, rotation_y REAL, rotation_z REAL, rotation_w REAL)');
-            if (gltf.nodes) {
-                let stmt = db.prepare('INSERT INTO nodes VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-                for (let i = 0, len = gltf.nodes.length; i < len; i++) {
-                    const node = gltf.nodes[i];
-                    const translation = isUndefined(node.translation) ? [null, null, null] : node.translation;
-                    const scale = isUndefined(node.scale) ? [null, null, null] : node.scale;
-                    const rotation = isUndefined(node.rotation) ? [null, null, null, null] : node.rotation;
-                    stmt.run(
-                        isUndefined(node.name) ? null : parseInt(node.name),
-                        isUndefined(node.mesh) ? null : node.mesh,
-                        isUndefined(node.matrix) ? null : JSON.stringify(node.matrix),
-                        translation[0],
-                        translation[1],
-                        translation[2],
-                        scale[0],
-                        scale[1],
-                        scale[2],
-                        rotation[0],
-                        rotation[1],
-                        rotation[2],
-                        rotation[3]
-                    );
-                }
-                log('Serializing node table...');
-                stmt.finalize((err) => err ? log('Serializing node table failed: ' + err) : log('Serializing node table: done'));
-            }
-            
-            // Serialize meshes
-            db.run('CREATE TABLE meshes (mode INTEGER, material_id INTEGER, index_accessor_id INTEGER, position_accessor_id INTEGER, normal_accessor_id INTEGER, uv_accessor_id INTEGER, color_accessor_id INTEGER)');
-            if (gltf.meshes) {
-                let stmt = db.prepare('INSERT INTO meshes VALUES (?, ?, ?, ?, ?, ?, ?)');
-                for (let i = 0, len = gltf.meshes.length; i < len; i++) {
-                    const mesh = gltf.meshes[i];
-                    const primitive = mesh.primitives[0] as gltf.MeshPrimitive; // Assuming we only have one primitive per mesh
-                    if (!primitive) {
-                        // Primitive can be undefined if the exporter is configured to ignore mesh, line, or point geometry
-                        stmt.run(null, null, null, null, null, null, null);
-                    } else {
-                        stmt.run(
-                            isUndefined(primitive.mode) ? null : primitive.mode,
-                            isUndefined(primitive.material) ? null : primitive.material,
-                            isUndefined(primitive.indices) ? null : primitive.indices,
-                            isUndefined(primitive.attributes['POSITION']) ? null : primitive.attributes['POSITION'],
-                            isUndefined(primitive.attributes['NORMAL']) ? null : primitive.attributes['NORMAL'],
-                            isUndefined(primitive.attributes['TEXCOORD_0']) ? null : primitive.attributes['TEXCOORD_0'],
-                            isUndefined(primitive.attributes['COLOR_0']) ? null : primitive.attributes['COLOR_0']
-                        );
-                    }
-                }
-                log('Serializing mesh table...');
-                stmt.finalize((err) => err ? log('Serializing mesh table failed: ' + err) : log('Serializing mesh table: done'));
-            }
-
-            // Serialize accessors
-            db.run('CREATE TABLE accessors (type TEXT, component_type INTEGER, count INTEGER, buffer_view_id INTEGER, min_x REAL, min_y REAL, min_z REAL, max_x REAL, max_y REAL, max_z REAL)');
-            if (gltf.accessors) {
-                let stmt = db.prepare('INSERT INTO accessors VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-                for (let i = 0, len = gltf.accessors.length; i < len; i++) {
-                    const accessor = gltf.accessors[i];
-                    const min = isUndefined(accessor.min) ? [null, null, null] : accessor.min;
-                    const max = isUndefined(accessor.max) ? [null, null, null] : accessor.max;
-                    stmt.run(
-                        accessor.type,
-                        accessor.componentType,
-                        accessor.count,
-                        isUndefined(accessor.bufferView) ? null : accessor.bufferView,
-                        min[0],
-                        min[1],
-                        min[2],
-                        max[0],
-                        max[1],
-                        max[2],
-                    );
-                }
-                log('Serializing accessor table...');
-                stmt.finalize((err) => err ? log('Serializing accessor table failed: ' + err) : log('Serializing accessor table: done'));
-            }
-
-            // Serialize buffer views
-            db.run('CREATE TABLE buffer_views (buffer_id INTEGER, byte_offset INTEGER, byte_length INTEGER)');
-            if (gltf.bufferViews) {
-                let stmt = db.prepare('INSERT INTO buffer_views VALUES (?, ?, ?)');
-                for (let i = 0, len = gltf.bufferViews.length; i < len; i++) {
-                    const bufferView = gltf.bufferViews[i];
-                    stmt.run(
-                        bufferView.buffer,
-                        isUndefined(bufferView.byteOffset) ? null : bufferView.byteOffset,
-                        bufferView.byteLength
-                    );
-                }
-                log('Serializing buffer view table...');
-                stmt.finalize((err) => err ? log('Serializing buffer view table failed: ' + err) : log('Serializing buffer view table: done'));
-            }
-
-            // Serialize buffers
-            db.run('CREATE TABLE buffers (uri TEXT, byte_length INTEGER)');
-            if (gltf.buffers) {
-                let stmt = db.prepare('INSERT INTO buffers VALUES (?, ?)');
-                for (let i = 0, len = gltf.buffers.length; i < len; i++) {
-                    const buffer = gltf.buffers[i];
-                    stmt.run(
-                        isUndefined(buffer.uri) ? null : buffer.uri,
-                        buffer.byteLength
-                    );
-                }
-                log('Serializing buffer table...');
-                stmt.finalize((err) => err ? log('Serializing buffer table failed: ' + err) : log('Serializing buffer table: done'));
-            }
-
-            // Serialize materials
-            db.run('CREATE TABLE materials (base_color_factor_r REAL, base_color_factor_g REAL, base_color_factor_b REAL, metallic_factor REAL, roughness_factor REAL, base_color_texture_id INTEGER, base_color_texture_uv INTEGER)');
-            if (gltf.materials) {
-                let stmt = db.prepare('INSERT INTO materials VALUES (?, ?, ?, ?, ?, ?, ?)');
-                for (let i = 0, len = gltf.materials.length; i < len; i++) {
-                    const material = gltf.materials[i];
-                    const pbr = material.pbrMetallicRoughness as gltf.MaterialPbrMetallicRoughness;
-                    const baseColorFactor = isUndefined(pbr.baseColorFactor) ? [null, null, null] : pbr.baseColorFactor;
-                    stmt.run(
-                        baseColorFactor[0],
-                        baseColorFactor[1],
-                        baseColorFactor[2],
-                        isUndefined(pbr.metallicFactor) ? null : pbr.metallicFactor,
-                        isUndefined(pbr.roughnessFactor) ? null : pbr.roughnessFactor,
-                        isUndefined(pbr.baseColorTexture) ? null : pbr.baseColorTexture.index,
-                        isUndefined(pbr.baseColorTexture) || isUndefined(pbr.baseColorTexture.texCoord) ? null : pbr.baseColorTexture.texCoord
-                    );
-                }
-                log('Serializing material table...');
-                stmt.finalize((err) => err ? log('Serializing material table failed: ' + err) : log('Serializing material table: done'));
-            }
-
-            // Serialize textures
-            db.run('CREATE TABLE textures (source_id INTEGER)');
-            if (gltf.textures) {
-                let stmt = db.prepare('INSERT INTO textures VALUES (?)');
-                for (let i = 0, len = gltf.textures.length; i < len; i++) {
-                    const texture = gltf.textures[i];
-                    stmt.run(
-                        isUndefined(texture.source) ? null : texture.source
-                    );
-                }
-                log('Serializing texture table...');
-                stmt.finalize((err) => err ? log('Serializing texture table failed: ' + err) : log('Serializing texture table: done'));
-            }
-
-            // Serialize images
-            db.run('CREATE TABLE images (uri TEXT)');
-            if (gltf.images) {
-                let stmt = db.prepare('INSERT INTO images VALUES (?)');
-                for (let i = 0, len = gltf.images.length; i < len; i++) {
-                    const image = gltf.images[i];
-                    stmt.run(
-                        isUndefined(image.uri) ? null : image.uri
-                    );
-                }
-                log('Serializing image table...');
-                stmt.finalize((err) => err ? log('Serializing image table failed: ' + err) : log('Serializing image table: done'));
-            }
-
-            // db.each("SELECT rowid AS id, info FROM lorem", function (err, row) {
-            //     console.log(row.id + ": " + row.info);
-            // });
-        });
-        return new Promise(function (resolve, reject) {
-            db.close(function (err) {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve();
-                }
-            });
-        });
     }
 }

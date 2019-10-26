@@ -25,10 +25,14 @@ export async function serialize(gltf: gltf.GlTf, sqlitePath: string): Promise<vo
 /**
  * Deserializes glTF manifest from sqlite database on disk.
  * @param {string} sqlitePath Path to local file the sqlite database should be read from.
- * @param {string} [filter] Optional body for a SQL WHERE-clause to be used for filtering dbids
- * in the deserialized glTF, for example, 'dbid > 2000 AND dbid < 4000'.
+ * @param {string | number[]} [filter] Optional filter of object IDs to include in the output gltf.
+ * Can be either a sqlite query returning a list of dbIDs, or an array of dbIDs.
+ * @example
+ * const gltf = await deserialize('./data/model/manifest.sqlite', 'SELECT dbid FROM nodes WHERE dbid >= 1000 AND dbid <= 2000');
+ * @example
+ * const gltf = await deserialize('./data/model/manifest.sqlite', [100, 101, 102, 103]);
  */
-export async function deserialize(sqlitePath: string, filter?: string): Promise<gltf.GlTf> {
+export async function deserialize(sqlitePath: string, filter?: string | number[]): Promise<gltf.GlTf> {
     let gltf: gltf.GlTf = {
         asset: {
             version: '2.0',
@@ -49,7 +53,7 @@ export async function deserialize(sqlitePath: string, filter?: string): Promise<
         scene: 0
     };
     const db = await openDatabase(sqlitePath);
-    const { meshSet } = await deserializeNodes(db, gltf, isUndefined(filter) ? '' : 'WHERE ' + filter);
+    const { meshSet } = await deserializeNodes(db, gltf, filter);
     const { materialSet, accessorSet} = await deserializeMeshes(db, gltf, meshSet);
     const { bufferViewSet } = await deserializeAccessors(db, gltf, accessorSet);
     const { bufferSet } = await deserializeBufferViews(db, gltf, bufferViewSet);
@@ -283,14 +287,14 @@ async function serializeNodes(db: sqlite3.Database, gltf: gltf.GlTf): Promise<vo
     }
 }
 
-function deserializeNodes(db: sqlite3.Database, gltf: gltf.GlTf, filter: string): Promise<{ count: number; meshSet: Set<number> }> {
+function deserializeNodes(db: sqlite3.Database, gltf: gltf.GlTf, filter?: string | number[]): Promise<{ count: number; meshSet: Set<number> }> {
     const meshSet = new Set<number>(); // Set of all mesh IDs to be returned by this function's promise
     const nodes = gltf.nodes as gltf.Node[];
     const scene = (gltf.scenes as gltf.Scene[])[0];
-    const query = `
+    let query = `
         SELECT id, dbid, mesh_id, matrix_json AS mtx, translation_x AS tx, translation_y AS ty, translation_z AS tz, scale_x AS sx, scale_y AS sy, scale_z AS sz, rotation_x AS rx, rotation_y AS ry, rotation_z AS rz, rotation_w AS rw
         FROM nodes
-        ${filter}
+        ${filter ? `WHERE dbid IN (${typeof filter === 'string' ? filter : filter.join(',')})` : ''}
     `;
     const onRow = (err: Error, row: any) => {
         if (err) {

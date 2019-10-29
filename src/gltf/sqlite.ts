@@ -35,6 +35,8 @@ export async function serialize(gltf: gltf.GlTf, sqlitePath: string, pdb?: PropD
  * @example
  * const gltf = await deserialize('./data/model/manifest.sqlite', 'SELECT dbid FROM nodes WHERE dbid >= 1000 AND dbid <= 2000');
  * @example
+ * const gltf = await deserialize('./data/model/manifest.sqlite', 'SELECT dbid FROM properties WHERE name = "Material" AND value LIKE "%Concrete%"');
+ * @example
  * const gltf = await deserialize('./data/model/manifest.sqlite', [100, 101, 102, 103]);
  */
 export async function deserialize(sqlitePath: string, filter?: string | number[]): Promise<gltf.GlTf> {

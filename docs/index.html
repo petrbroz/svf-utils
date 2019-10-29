@@ -141,23 +141,23 @@ forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to
     <span class="hljs-keyword">const</span> auth = { <span class="hljs-attr">client_id</span>: FORGE_CLIENT_ID, <span class="hljs-attr">client_secret</span>: FORGE_CLIENT_SECRET };
     <span class="hljs-keyword">const</span> modelDerivativeClient = <span class="hljs-keyword">new</span> ModelDerivativeClient(auth);
     <span class="hljs-keyword">const</span> helper = <span class="hljs-keyword">new</span> ManifestHelper(<span class="hljs-keyword">await</span> modelDerivativeClient.getManifest(urn));
-    <span class="hljs-keyword">const</span> derivatives = helper.search({ <span class="hljs-attr">type</span>: <span class="hljs-string">'resource'</span>, <span class="hljs-attr">role</span>: <span class="hljs-string">'graphics'</span> });
-    <span class="hljs-keyword">const</span> readerOptions = {
-        <span class="hljs-attr">log</span>: <span class="hljs-built_in">console</span>.log
-    };
-    <span class="hljs-keyword">const</span> writerOptions = {
-        <span class="hljs-attr">deduplicate</span>: <span class="hljs-literal">true</span>,
-        <span class="hljs-attr">skipUnusedUvs</span>: <span class="hljs-literal">true</span>,
-        <span class="hljs-attr">sqlite</span>: <span class="hljs-literal">true</span>,
-        <span class="hljs-attr">log</span>: <span class="hljs-built_in">console</span>.log
-    };
-    <span class="hljs-keyword">const</span> writer = <span class="hljs-keyword">new</span> GltfWriter(outputDir, writerOptions);
-    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> derivative <span class="hljs-keyword">of</span> derivatives.filter(<span class="hljs-function"><span class="hljs-params">d</span> =&gt;</span> d.mime === <span class="hljs-string">'application/autodesk-svf'</span>)) {
-        <span class="hljs-keyword">const</span> reader = <span class="hljs-keyword">await</span> SvfReader.FromDerivativeService(urn, derivative.guid, auth);
+    <span class="hljs-keyword">const</span> derivatives = helper.search({ <span class="hljs-attr">type</span>: <span class="hljs-string">'resource'</span>, <span class="hljs-attr">role</span>: <span class="hljs-string">'graphics'</span> }).filter(<span class="hljs-function"><span class="hljs-params">d</span> =&gt;</span> d.mime === <span class="hljs-string">'application/autodesk-svf'</span>);
+    <span class="hljs-keyword">if</span> (derivatives.length &gt; <span class="hljs-number">0</span>) {
+        <span class="hljs-keyword">const</span> readerOptions = {
+            <span class="hljs-attr">log</span>: <span class="hljs-built_in">console</span>.log
+        };
+        <span class="hljs-keyword">const</span> writerOptions = {
+            <span class="hljs-attr">deduplicate</span>: <span class="hljs-literal">true</span>,
+            <span class="hljs-attr">skipUnusedUvs</span>: <span class="hljs-literal">true</span>,
+            <span class="hljs-attr">sqlite</span>: <span class="hljs-literal">true</span>,
+            <span class="hljs-attr">log</span>: <span class="hljs-built_in">console</span>.log
+        };
+        <span class="hljs-keyword">const</span> writer = <span class="hljs-keyword">new</span> GltfWriter(outputDir, writerOptions);
+        <span class="hljs-keyword">const</span> reader = <span class="hljs-keyword">await</span> SvfReader.FromDerivativeService(urn, derivatives[<span class="hljs-number">0</span>].guid, auth);
         <span class="hljs-keyword">const</span> svf = <span class="hljs-keyword">await</span> reader.read(readerOptions);
         writer.write(svf);
+        <span class="hljs-keyword">await</span> writer.close();
     }
-    <span class="hljs-keyword">await</span> writer.close();
 }
 
 run(<span class="hljs-string">'your model urn'</span>, <span class="hljs-string">'path/to/output/folder'</span>);</code></pre>
@@ -267,6 +267,9 @@ run(<span class="hljs-string">'your model urn'</span>);</code></pre>
 					</li>
 					<li class=" tsd-kind-external-module">
 						<a href="modules/_gltf_schema_.html">"gltf/schema"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_gltf_sqlite_.html">"gltf/sqlite"</a>
 					</li>
 					<li class=" tsd-kind-external-module">
 						<a href="modules/_gltf_writer_.html">"gltf/writer"</a>

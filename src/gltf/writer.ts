@@ -8,6 +8,7 @@ import { isUndefined, isNullOrUndefined } from 'util';
 import { IMaterial, IFragment, IMesh, ILines, IPoints, IMaterialMap } from '../svf/schema';
 import { ISvfContent } from '../svf/reader';
 import { serialize as serializeDatabase } from './sqlite';
+import { PropDbReader } from '../common/propdb-reader';
 
 const MaxBufferSize = 5 << 20;
 const DefaultMaterial: gltf.MaterialPbrMetallicRoughness = {
@@ -48,6 +49,7 @@ interface IWriterStats {
 export class Writer {
     protected baseDir: string;
     protected manifest: gltf.GlTf;
+    protected pdb: PropDbReader | undefined = undefined;
     protected downloads: Promise<string>[] = [];
     protected bufferStream: fse.WriteStream | null;
     protected bufferSize: number;
@@ -183,6 +185,8 @@ export class Writer {
         }
 
         manifestScenes.push(scene);
+
+        this.pdb = svf.properties;
         this.log(`Writing scene: done`);
     }
 
@@ -217,7 +221,7 @@ export class Writer {
                 if (fse.existsSync(sqlitePath)) {
                     fse.unlinkSync(sqlitePath);
                 }
-                await serializeDatabase(this.manifest, sqlitePath);
+                await serializeDatabase(this.manifest, sqlitePath, this.pdb);
                 this.log(`Serializing manifest into sqlite: done`);
             }
         }

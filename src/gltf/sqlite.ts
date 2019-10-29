@@ -1,15 +1,17 @@
 import * as sqlite3 from 'sqlite3';
 import * as gltf from './schema';
 import { isUndefined } from 'util';
+import { PropDbReader } from '../common/propdb-reader';
 
 /**
  * Serializes glTF manifest into sqlite database on disk.
  * @async
  * @param {gltf.Gltf} gltf Original manifest.
  * @param {string} sqlitePath Path to local file where the sqlite database should be stored.
+ * @param {PropDbReader} [pdb] Optional property reader for properties to be merged into the sqlite manifest.
  * @returns {Promise<void>} Promise that resolves after the database is created.
  */
-export async function serialize(gltf: gltf.GlTf, sqlitePath: string): Promise<void> {
+export async function serialize(gltf: gltf.GlTf, sqlitePath: string, pdb?: PropDbReader): Promise<void> {
     const db = await openDatabase(sqlitePath);
     await serializeNodes(db, gltf);
     await serializeMeshes(db, gltf);
@@ -19,6 +21,9 @@ export async function serialize(gltf: gltf.GlTf, sqlitePath: string): Promise<vo
     await serializeMaterials(db, gltf);
     await serializeTextures(db, gltf);
     await serializeImages(db, gltf);
+    if (pdb) {
+        await serializeProperties(db, gltf, pdb);
+    }
     await closeDatabase(db);
 }
 
@@ -88,6 +93,30 @@ function closeDatabase(db: sqlite3.Database): Promise<void> {
 function run(db: sqlite3.Database, sql: string): Promise<void> {
     return new Promise(function (resolve, reject) {
         db.run(sql, function (err: Error) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
+async function serializeProperties(db: sqlite3.Database, gltf: gltf.GlTf, pdb: PropDbReader): Promise<void> {
+    // Collect list of unique dbids already in the database
+    const dbids = await readDbIds(db);
+
+    // Add properties for each dbid
+    await run(db, 'CREATE TABLE properties (dbid INTEGER, name TEXT, value TEXT)');
+    let stmt = db.prepare('INSERT INTO properties VALUES (?, ?, ?)');
+    for (const dbid of dbids) {
+        const props = pdb.getProperties(dbid);
+        for (const key of Object.keys(props)) {
+            stmt.run(dbid, key, props[key]);
+        }
+    }
+    return new Promise(function (resolve, reject) {
+        stmt.finalize(function (err) {
             if (err) {
                 reject(err);
             } else {
@@ -682,4 +711,20 @@ function rebuildIndices(gltf: gltf.GlTf) {
     for (const image of images) {
         delete image.__id;
     }
+}
+
+function readDbIds(db: sqlite3.Database): Promise<number[]> {
+    let query = `
+        SELECT DISTINCT dbid
+        FROM nodes
+    `;
+    return new Promise(function (resolve, reject) {
+        db.all(query, function onComplete(err: Error, rows: any[]) {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(rows.map(row => row.dbid));
+            }
+        });
+    });
 }

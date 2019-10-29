@@ -3,7 +3,7 @@ const fse = require('fs-extra');
 const { deserialize } = require('../lib/gltf/sqlite');
 
 async function extract(inputSqlitePath, newGltfPath) {
-    const filter = 'SELECT dbid FROM nodes WHERE dbid < 4000';
+    const filter = 'SELECT DISTINCT dbid FROM properties WHERE name = "Material" AND value = "Grass"';
     console.log('Creating new gltf:', newGltfPath);
     console.log('From sqlite manifest:', inputSqlitePath);
     console.log('Only including objects matching:', filter);

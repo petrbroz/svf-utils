@@ -114,7 +114,7 @@ export class Writer {
 
     /**
      * Outputs entire SVF as a glTF scene.
-     * Can be called multiple times to create a glTF with multiple scenes.
+     * Currently, only one SVF can be inserted into a single glTF file.
      * @param {ISvfContent} svf SVF content loaded in memory.
      */
     write(svf: ISvfContent) {
@@ -125,6 +125,12 @@ export class Writer {
         const manifestNodes = this.manifest.nodes as gltf.Node[];
         const manifestMaterials = this.manifest.materials as gltf.MaterialPbrMetallicRoughness[];
         const sceneNodeIndices = scene.nodes as number[];
+
+        if (manifestScenes.length > 0) {
+            // Currently, adding more than one SVF/scene into a glTF
+            // would break the mapping between nodes and materials.
+            throw new Error('Writing more than one SVF into single glTF is currently not supported.');
+        }
 
         fse.ensureDirSync(this.baseDir);
 

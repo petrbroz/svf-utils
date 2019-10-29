@@ -95,23 +95,23 @@ async function run (urn, outputDir) {
     const auth = { client_id: FORGE_CLIENT_ID, client_secret: FORGE_CLIENT_SECRET };
     const modelDerivativeClient = new ModelDerivativeClient(auth);
     const helper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
-    const derivatives = helper.search({ type: 'resource', role: 'graphics' });
-    const readerOptions = {
-        log: console.log
-    };
-    const writerOptions = {
-        deduplicate: true,
-        skipUnusedUvs: true,
-        sqlite: true,
-        log: console.log
-    };
-    const writer = new GltfWriter(outputDir, writerOptions);
-    for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
-        const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
+    const derivatives = helper.search({ type: 'resource', role: 'graphics' }).filter(d => d.mime === 'application/autodesk-svf');
+    if (derivatives.length > 0) {
+        const readerOptions = {
+            log: console.log
+        };
+        const writerOptions = {
+            deduplicate: true,
+            skipUnusedUvs: true,
+            sqlite: true,
+            log: console.log
+        };
+        const writer = new GltfWriter(outputDir, writerOptions);
+        const reader = await SvfReader.FromDerivativeService(urn, derivatives[0].guid, auth);
         const svf = await reader.read(readerOptions);
         writer.write(svf);
+        await writer.close();
     }
-    await writer.close();
 }
 
 run('your model urn', 'path/to/output/folder');

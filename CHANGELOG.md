@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2019-10-29
+
 - Added
   - The `sqlite` flag now generates a sqlite manifest with both the glTF data and the property database
   - When deserializing sqlite back to glTF, you can now pass in a filter of dbids

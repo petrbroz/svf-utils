@@ -36,8 +36,8 @@ export class PropDbReader {
      */
     *enumerateProperties(id: number): Iterable<{ name: string; category: string; value: any }> {
         if (id > 0 && id < this._offsets.length) {
-            const avStart = this._offsets[id];
-            const avEnd = (id + 1 < this._offsets.length) ? this._offsets[id + 1] : this._avs.length;
+            const avStart = 2 * this._offsets[id];
+            const avEnd = 2 * this._offsets[id + 1];
             for (let i = avStart; i < avEnd; i += 2) {
                 const attrOffset = this._avs[i];
                 const valOffset = this._avs[i + 1];

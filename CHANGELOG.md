@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2019-10-29
+
+- Added
+  - The `sqlite` flag now generates a sqlite manifest with both the glTF data and the property database
+  - When deserializing sqlite back to glTF, you can now pass in a filter of dbids
+    - The filter can be either a `SELECT dbid FROM properties WHERE ...`, or a list of dbids
+- Fixed
+  - Iterating of object properties
+- Changed
+  - Adding multiple SVFs into single glTF is now considered unsupported
+    - Trying to do so will cause an exception in the `GltfWriter.write` method
+
 ## [0.7.2] - 2019-10-25
 
 - Added

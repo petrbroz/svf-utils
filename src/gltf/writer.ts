@@ -8,6 +8,7 @@ import { isUndefined, isNullOrUndefined } from 'util';
 import { IMaterial, IFragment, IMesh, ILines, IPoints, IMaterialMap } from '../svf/schema';
 import { ISvfContent } from '../svf/reader';
 import { serialize as serializeDatabase } from './sqlite';
+import { PropDbReader } from '../common/propdb-reader';
 
 const MaxBufferSize = 5 << 20;
 const DefaultMaterial: gltf.MaterialPbrMetallicRoughness = {
@@ -48,6 +49,7 @@ interface IWriterStats {
 export class Writer {
     protected baseDir: string;
     protected manifest: gltf.GlTf;
+    protected pdb: PropDbReader | undefined = undefined;
     protected downloads: Promise<string>[] = [];
     protected bufferStream: fse.WriteStream | null;
     protected bufferSize: number;
@@ -114,7 +116,7 @@ export class Writer {
 
     /**
      * Outputs entire SVF as a glTF scene.
-     * Can be called multiple times to create a glTF with multiple scenes.
+     * Currently, only one SVF can be inserted into a single glTF file.
      * @param {ISvfContent} svf SVF content loaded in memory.
      */
     write(svf: ISvfContent) {
@@ -125,6 +127,12 @@ export class Writer {
         const manifestNodes = this.manifest.nodes as gltf.Node[];
         const manifestMaterials = this.manifest.materials as gltf.MaterialPbrMetallicRoughness[];
         const sceneNodeIndices = scene.nodes as number[];
+
+        if (manifestScenes.length > 0) {
+            // Currently, adding more than one SVF/scene into a glTF
+            // would break the mapping between nodes and materials.
+            throw new Error('Writing more than one SVF into single glTF is currently not supported.');
+        }
 
         fse.ensureDirSync(this.baseDir);
 
@@ -177,6 +185,8 @@ export class Writer {
         }
 
         manifestScenes.push(scene);
+
+        this.pdb = svf.properties;
         this.log(`Writing scene: done`);
     }
 
@@ -211,7 +221,7 @@ export class Writer {
                 if (fse.existsSync(sqlitePath)) {
                     fse.unlinkSync(sqlitePath);
                 }
-                await serializeDatabase(this.manifest, sqlitePath);
+                await serializeDatabase(this.manifest, sqlitePath, this.pdb);
                 this.log(`Serializing manifest into sqlite: done`);
             }
         }

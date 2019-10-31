@@ -116,7 +116,7 @@ export class Writer {
         fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
         this.options.log(`Closing gltf output: done`);
         this.options.log(`Stats: ${JSON.stringify(this.stats)}`);
-        this.postprocess(svf, gltfPath);
+        await this.postprocess(svf, gltfPath);
     }
 
     protected reset(outputDir: string) {

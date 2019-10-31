@@ -30,12 +30,11 @@ Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file f
   - `--ignore-lines` to exclude line geometry from the output
   - `--ignore-points` to exclude point geometry from the output
   - `--sqlite` to also generate a sqlite file containing the entire glTF manifest
-- optionally, set env. variable `DEBUG` to `cli:*` to see additional logs
 
 #### Unix/macOS
 
 ```
-DEBUG=cli:* forge-convert <path to local svf> --output-folder <path to output folder>
+forge-convert <path to local svf> --output-folder <path to output folder>
 ```
 
 or
@@ -43,20 +42,19 @@ or
 ```
 export FORGE_CLIENT_ID=<client id>
 export FORGE_CLIENT_SECRET=<client secret>
-DEBUG=cli:* forge-convert <urn> --output-folder <path to output folder>
+forge-convert <urn> --output-folder <path to output folder>
 ```
 
 or
 
 ```
 export FORGE_ACCESS_TOKEN=<access token>>
-DEBUG=cli:* forge-convert <urn> --output-folder <path to output folder>
+forge-convert <urn> --output-folder <path to output folder>
 ```
 
 #### Windows
 
 ```
-set DEBUG=cli:*
 forge-convert <path to local svf> --output-folder <path to output folder>
 ```
 
@@ -65,7 +63,6 @@ or
 ```
 set FORGE_CLIENT_ID=<client id>
 set FORGE_CLIENT_SECRET=<client secret>
-set DEBUG=cli:*
 forge-convert <urn> --output-folder <path to output folder>
 ```
 
@@ -73,7 +70,6 @@ or
 
 ```
 set FORGE_ACCESS_TOKEN=<access token>
-set DEBUG=cli:*
 forge-convert <urn> --output-folder <path to output folder>
 ```
 

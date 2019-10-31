@@ -4,7 +4,7 @@
  * Usage:
  *     export FORGE_CLIENT_ID=<your client id>
  *     export FORGE_CLIENT_SECRET=<your client secret>
- *     DEBUG=reader,writer:* node remote-svf-to-gltf.js <your model urn> <path to output folder>
+ *     node remote-svf-to-gltf.js <your model urn> <path to output folder>
  */
 
 const path = require('path');

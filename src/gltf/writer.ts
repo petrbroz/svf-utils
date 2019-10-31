@@ -46,16 +46,7 @@ interface IWriterStats {
  * Utility class for serializing SVF content to local file system as glTF (2.0).
  */
 export class Writer {
-    protected maxBufferSize: number;
-    protected ignoreMeshGeometry: boolean;
-    protected ignoreLineGeometry: boolean;
-    protected ignorePointGeometry: boolean;
-    protected deduplicate: boolean;
-    protected skipUnusedUvs: boolean;
-    protected compress: boolean;
-    protected binary: boolean;
-    protected sqlite: boolean;
-    protected log: (msg: string) => void;
+    protected options: Required<IWriterOptions>;
 
     protected baseDir: string;
     protected manifest: gltf.GlTf;
@@ -78,17 +69,18 @@ export class Writer {
      * @param {IWriterOptions} [options={}] Additional writer options.
      */
     constructor(options: IWriterOptions = {}) {
-        // Setup writer based on user supplied options
-        this.maxBufferSize = isNullOrUndefined(options.maxBufferSize) ? MaxBufferSize : options.maxBufferSize;
-        this.ignoreMeshGeometry = !!options.ignoreMeshGeometry;
-        this.ignoreLineGeometry = !!options.ignoreLineGeometry;
-        this.ignorePointGeometry = !!options.ignorePointGeometry;
-        this.deduplicate = !!options.deduplicate;
-        this.skipUnusedUvs = !!options.skipUnusedUvs;
-        this.compress = !!options.compress;
-        this.binary = !!options.binary;
-        this.sqlite = !!options.sqlite;
-        this.log = (options && options.log) || function (msg: string) {};
+        this.options = {
+            maxBufferSize: isNullOrUndefined(options.maxBufferSize) ? MaxBufferSize : options.maxBufferSize,
+            ignoreMeshGeometry: !!options.ignoreMeshGeometry,
+            ignoreLineGeometry: !!options.ignoreLineGeometry,
+            ignorePointGeometry: !!options.ignorePointGeometry,
+            deduplicate: !!options.deduplicate,
+            skipUnusedUvs: !!options.skipUnusedUvs,
+            compress: !!options.compress,
+            binary: !!options.binary,
+            sqlite: !!options.sqlite,
+            log: (options && options.log) || function (msg: string) {}
+        };
 
         // All these properties will be properly initialized in the 'reset' call
         this.manifest = {} as gltf.GlTf;
@@ -122,13 +114,13 @@ export class Writer {
         await Promise.all(this.pendingTasks);
         const gltfPath = path.join(this.baseDir, 'output.gltf');
         fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
-        this.log(`Closing gltf output: done`);
-        this.log(`Stats: ${JSON.stringify(this.stats)}`);
+        this.options.log(`Closing gltf output: done`);
+        this.options.log(`Stats: ${JSON.stringify(this.stats)}`);
         this.postprocess(svf, gltfPath);
     }
 
     protected reset(outputDir: string) {
-        this.baseDir = (this.compress || this.binary) ? path.join(outputDir, 'tmp') : outputDir;
+        this.baseDir = (this.options.compress || this.options.binary) ? path.join(outputDir, 'tmp') : outputDir;
         this.manifest = {
             asset: {
                 version: '2.0',
@@ -162,23 +154,23 @@ export class Writer {
     }
 
     protected async postprocess(svf: ISvfContent, gltfPath: string) {
-        if (this.sqlite && svf.properties) {
+        if (this.options.sqlite && svf.properties) {
             // Serialize manifest into a sqlite database as well
-            if (this.compress || this.binary) {
-                this.log(`Serializing manifest with embedded texture/buffer data into sqlite is not supported.`);
+            if (this.options.compress || this.options.binary) {
+                this.options.log(`Serializing manifest with embedded texture/buffer data into sqlite is not supported.`);
             } else {
-                this.log(`Serializing manifest into sqlite...`);
+                this.options.log(`Serializing manifest into sqlite...`);
                 const sqlitePath = path.join(this.baseDir, 'manifest.sqlite');
                 if (fse.existsSync(sqlitePath)) {
                     fse.unlinkSync(sqlitePath);
                 }
                 await serializeDatabase(this.manifest, sqlitePath, svf.properties);
-                this.log(`Serializing manifest into sqlite: done`);
+                this.options.log(`Serializing manifest into sqlite: done`);
             }
         }
 
-        if (this.compress || this.binary) {
-            this.log(`Post-processing gltf output...`);
+        if (this.options.compress || this.options.binary) {
+            this.options.log(`Post-processing gltf output...`);
             const options: any = {
                 resourceDirectory: this.baseDir,
                 separate: false,
@@ -186,7 +178,7 @@ export class Writer {
                 stats: false,
                 name: 'output'
             };
-            if (this.compress) {
+            if (this.options.compress) {
                 options.dracoOptions = {
                     compressionLevel: 10
                 };
@@ -197,9 +189,9 @@ export class Writer {
              * the manifest we just serialized couple lines above, gltfToGlb works fine...
              */
             const manifest = fse.readJsonSync(gltfPath);
-            const newPath = this.baseDir.replace(/tmp$/, this.binary ? 'output.glb' : 'output.gltf');
+            const newPath = this.baseDir.replace(/tmp$/, this.options.binary ? 'output.glb' : 'output.gltf');
             try {
-                if (this.binary) {
+                if (this.options.binary) {
                     const result = await pipeline.gltfToGlb(manifest, options);
                     fse.writeFileSync(newPath, result.glb);
                     // Delete the original gltf file
@@ -212,7 +204,7 @@ export class Writer {
             } catch(err) {
                 console.error('Could not post-process the output', err);
             }
-            this.log(`Post-processing gltf output: done`);
+            this.options.log(`Post-processing gltf output: done`);
         }
     }
 
@@ -226,11 +218,11 @@ export class Writer {
 
         fse.ensureDirSync(this.baseDir);
 
-        this.log(`Writing scene nodes...`);
+        this.options.log(`Writing scene nodes...`);
         for (const fragment of svf.fragments) {
             const material = svf.materials[fragment.materialID];
             // Only output UVs if there are any textures or if the user specifically asked not to skip unused UVs
-            const outputUvs = hasTextures(material) || !this.skipUnusedUvs;
+            const outputUvs = hasTextures(material) || !this.options.skipUnusedUvs;
             const node = this.createNode(fragment, svf, outputUvs);
             // Only output nodes that have a mesh
             if (!isUndefined(node.mesh)) {
@@ -239,8 +231,8 @@ export class Writer {
             }
         }
 
-        this.log(`Writing materials...`);
-        if (this.deduplicate) {
+        this.options.log(`Writing materials...`);
+        if (this.options.deduplicate) {
             const hashes: string[] = [];
             const newMaterialIndices = new Uint16Array(svf.materials.length);
             for (let i = 0, len = svf.materials.length; i < len; i++) {
@@ -254,7 +246,7 @@ export class Writer {
                     hashes.push(hash);
                 } else {
                     // Otherwise skip the material, and record an index to the first match below
-                    this.log(`Skipping a duplicate material (hash: ${hash})`);
+                    this.options.log(`Skipping a duplicate material (hash: ${hash})`);
                     newMaterialIndices[i] = match;
                     this.stats.materialsDeduplicated++;
                 }
@@ -274,7 +266,7 @@ export class Writer {
             }
         }
 
-        this.log(`Writing scene: done`);
+        this.options.log(`Writing scene: done`);
         return scene;
     }
 
@@ -334,13 +326,13 @@ export class Writer {
     protected addMesh(mesh: gltf.Mesh): number {
         const meshes = this.manifest.meshes as gltf.Mesh[];
         const hash = this.computeMeshHash(mesh);
-        const match = this.deduplicate ? this.meshHashes.indexOf(hash) : -1;
+        const match = this.options.deduplicate ? this.meshHashes.indexOf(hash) : -1;
         if (match !== -1) {
-            this.log(`Skipping a duplicate mesh (${hash})`);
+            this.options.log(`Skipping a duplicate mesh (${hash})`);
             this.stats.meshesDeduplicated++;
             return match;
         } else {
-            if (this.deduplicate) {
+            if (this.options.deduplicate) {
                 this.meshHashes.push(hash);
             }
             return meshes.push(mesh) - 1;
@@ -352,7 +344,7 @@ export class Writer {
             primitives: []
         };
 
-        if (this.ignoreMeshGeometry) {
+        if (this.options.ignoreMeshGeometry) {
             return mesh;
         }
 
@@ -409,7 +401,7 @@ export class Writer {
             primitives: []
         };
 
-        if (this.ignoreLineGeometry) {
+        if (this.options.ignoreLineGeometry) {
             return mesh;
         }
 
@@ -455,7 +447,7 @@ export class Writer {
             primitives: []
         };
 
-        if (this.ignorePointGeometry) {
+        if (this.options.ignorePointGeometry) {
             return mesh;
         }
 
@@ -492,13 +484,13 @@ export class Writer {
     protected addBufferView(bufferView: gltf.BufferView): number {
         const bufferViews = this.manifest.bufferViews as gltf.BufferView[];
         const hash = this.computeBufferViewHash(bufferView);
-        const match = this.deduplicate ? this.bufferViewHashes.indexOf(hash) : -1;
+        const match = this.options.deduplicate ? this.bufferViewHashes.indexOf(hash) : -1;
         if (match !== -1) {
-            this.log(`Skipping a duplicate buffer view (${hash})`);
+            this.options.log(`Skipping a duplicate buffer view (${hash})`);
             this.stats.bufferViewsDeduplicated++;
             return match;
         } else {
-            if (this.deduplicate) {
+            if (this.options.deduplicate) {
                 this.bufferViewHashes.push(hash);
             }
             return bufferViews.push(bufferView) - 1;
@@ -508,15 +500,15 @@ export class Writer {
     protected createBufferView(data: Buffer): gltf.BufferView {
         const hash = this.computeBufferHash(data);
         const cache = this.bufferViewCache.get(hash);
-        if (this.deduplicate && cache) {
-            this.log(`Skipping a duplicate buffer (${hash})`);
+        if (this.options.deduplicate && cache) {
+            this.options.log(`Skipping a duplicate buffer (${hash})`);
             return cache;
         }
 
         const manifestBuffers = this.manifest.buffers as gltf.Buffer[];
 
         // Prepare new writable stream if needed
-        if (this.bufferStream === null || this.bufferSize > this.maxBufferSize) {
+        if (this.bufferStream === null || this.bufferSize > this.options.maxBufferSize) {
             if (this.bufferStream) {
                 const stream = this.bufferStream as fse.WriteStream;
                 this.pendingTasks.push(new Promise((resolve, reject) => {
@@ -550,7 +542,7 @@ export class Writer {
             buffer.byteLength += pad;
         }
 
-        if (this.deduplicate) {
+        if (this.options.deduplicate) {
             this.bufferViewCache.set(hash, bufferView);
         }
 
@@ -560,13 +552,13 @@ export class Writer {
     protected addAccessor(accessor: gltf.Accessor): number {
         const accessors = this.manifest.accessors as gltf.Accessor[];
         const hash = this.computeAccessorHash(accessor);
-        const match = this.deduplicate ? this.accessorHashes.indexOf(hash) : -1;
+        const match = this.options.deduplicate ? this.accessorHashes.indexOf(hash) : -1;
         if (match !== -1) {
-            this.log(`Skipping a duplicate accessor (${hash})`);
+            this.options.log(`Skipping a duplicate accessor (${hash})`);
             this.stats.accessorsDeduplicated++;
             return match;
         } else {
-            if (this.deduplicate) {
+            if (this.options.deduplicate) {
                 this.accessorHashes.push(hash);
             }
             return accessors.push(accessor) - 1;

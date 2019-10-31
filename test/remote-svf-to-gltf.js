@@ -28,19 +28,16 @@ async function run (urn, outputDir) {
         const modelDerivativeClient = new ModelDerivativeClient(auth);
         const helper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
         const derivatives = helper.search({ type: 'resource', role: 'graphics' });
-        const writer0 = new GltfWriter(path.join(outputDir, 'gltf-raw'), Object.assign({}, defaultOptions));
-        const writer1 = new GltfWriter(path.join(outputDir, 'gltf'), Object.assign({}, defaultOptions, { deduplicate: true, skipUnusedUvs: true }));
-        const writer2 = new GltfWriter(path.join(outputDir, 'glb-draco'), Object.assign({}, defaultOptions, { deduplicate: true, skipUnusedUvs: true, binary: true, compress: true }));
+        const writer0 = new GltfWriter(Object.assign({}, defaultOptions));
+        const writer1 = new GltfWriter(Object.assign({}, defaultOptions, { deduplicate: true, skipUnusedUvs: true }));
+        const writer2 = new GltfWriter(Object.assign({}, defaultOptions, { deduplicate: true, skipUnusedUvs: true, binary: true, compress: true }));
         for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
             const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
             const svf = await reader.read({ log: console.log });
-            writer0.write(svf);
-            writer1.write(svf);
-            writer2.write(svf);
+            await writer0.write(svf, path.join(outputDir, derivative.guid, 'gltf-raw'));
+            await writer1.write(svf, path.join(outputDir, derivative.guid, 'gltf'));
+            await writer2.write(svf, path.join(outputDir, derivative.guid, 'glb-draco'));
         }
-        await writer0.close();
-        await writer1.close();
-        await writer2.close();
     } catch(err) {
         console.error(err);
         process.exit(1);

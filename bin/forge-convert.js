@@ -22,9 +22,8 @@ async function convertRemote(urn, guid, outputFolder, options) {
     const reader = await SvfReader.FromDerivativeService(urn, guid, auth);
     const svf = await reader.read({ log: debug('cli:reader') });
     options.log = debug('cli:writer');
-    const writer = new GltfWriter(outputFolder, options);
-    writer.write(svf);
-    await writer.close();
+    const writer = new GltfWriter(options);
+    await writer.write(svf, path.join(outputFolder, guid));
 }
 
 async function convertLocal(svfPath, outputFolder, options) {
@@ -33,9 +32,8 @@ async function convertLocal(svfPath, outputFolder, options) {
     const reader = await SvfReader.FromFileSystem(svfPath);
     const svf = await reader.read({ log: debug('cli:reader') });
     options.log = debug('cli:writer');
-    const writer = new GltfWriter(outputFolder, options);
-    writer.write(svf);
-    await writer.close();
+    const writer = new GltfWriter(options);
+    await writer.write(svf, path.join(outputFolder));
 }
 
 program

@@ -3,12 +3,11 @@ import crypto from 'crypto';
 import * as fse from 'fs-extra';
 import * as pipeline from 'gltf-pipeline';
 
-import * as gltf from './schema';
+import * as gltf from './gltf-schema';
 import { isUndefined, isNullOrUndefined } from 'util';
 import { IMaterial, IFragment, IMesh, ILines, IPoints, IMaterialMap } from '../svf/schema';
 import { ISvfContent } from '../svf/reader';
 import { serialize as serializeDatabase } from './sqlite';
-import { PropDbReader } from '../common/propdb-reader';
 
 const MaxBufferSize = 5 << 20;
 const DefaultMaterial: gltf.MaterialPbrMetallicRoughness = {
@@ -47,12 +46,6 @@ interface IWriterStats {
  * Utility class for serializing SVF content to local file system as glTF (2.0).
  */
 export class Writer {
-    protected baseDir: string;
-    protected manifest: gltf.GlTf;
-    protected pdb: PropDbReader | undefined = undefined;
-    protected downloads: Promise<string>[] = [];
-    protected bufferStream: fse.WriteStream | null;
-    protected bufferSize: number;
     protected maxBufferSize: number;
     protected ignoreMeshGeometry: boolean;
     protected ignoreLineGeometry: boolean;
@@ -64,24 +57,28 @@ export class Writer {
     protected sqlite: boolean;
     protected log: (msg: string) => void;
 
-    private bufferViewCache = new Map<string, gltf.BufferView>(); // Cache of existing buffer views, indexed by hash of the binary data they point to
-    private meshHashes: string[] = []; // List of hashes of existing gltf.Mesh objects, used for deduplication
-    private bufferViewHashes: string[] = []; // List of hashes of existing gltf.BufferView objects, used for deduplication
-    private accessorHashes: string[] = []; // List of hashes of existing gltf.Accessor objects, used for deduplication
-    private stats: IWriterStats = {
+    protected baseDir: string;
+    protected manifest: gltf.GlTf;
+    protected bufferStream: fse.WriteStream | null;
+    protected bufferSize: number;
+    protected bufferViewCache = new Map<string, gltf.BufferView>(); // Cache of existing buffer views, indexed by hash of the binary data they point to
+    protected meshHashes: string[] = []; // List of hashes of existing gltf.Mesh objects, used for deduplication
+    protected bufferViewHashes: string[] = []; // List of hashes of existing gltf.BufferView objects, used for deduplication
+    protected accessorHashes: string[] = []; // List of hashes of existing gltf.Accessor objects, used for deduplication
+    protected pendingTasks: Promise<void>[] = [];
+    protected stats: IWriterStats = {
         materialsDeduplicated: 0,
         meshesDeduplicated: 0,
         accessorsDeduplicated: 0,
         bufferViewsDeduplicated: 0
     };
-    private pendingTasks: Promise<void>[] = [];
 
     /**
      * Initializes the writer.
-     * @param {string} dir Output folder for the glTF manifest and all its assets.
      * @param {IWriterOptions} [options={}] Additional writer options.
      */
-    constructor(dir: string, options: IWriterOptions = {}) {
+    constructor(options: IWriterOptions = {}) {
+        // Setup writer based on user supplied options
         this.maxBufferSize = isNullOrUndefined(options.maxBufferSize) ? MaxBufferSize : options.maxBufferSize;
         this.ignoreMeshGeometry = !!options.ignoreMeshGeometry;
         this.ignoreLineGeometry = !!options.ignoreLineGeometry;
@@ -92,6 +89,46 @@ export class Writer {
         this.binary = !!options.binary;
         this.sqlite = !!options.sqlite;
         this.log = (options && options.log) || function (msg: string) {};
+
+        // All these properties will be properly initialized in the 'reset' call
+        this.manifest = {} as gltf.GlTf;
+        this.bufferStream = null;
+        this.bufferSize = 0;
+        this.baseDir = '';
+    }
+
+    /**
+     * Outputs entire SVF scene into glTF or glb.
+     * @async
+     * @param {ISvfContent} svf SVF content loaded in memory.
+     * @param {string} outputDir Path to output folder.
+     */
+    async write(svf: ISvfContent, outputDir: string) {
+        this.reset(outputDir);
+        const scene = this.createScene(svf);
+        const scenes = this.manifest.scenes as gltf.Scene[];
+        scenes.push(scene);
+
+        if (this.bufferStream) {
+            const stream = this.bufferStream as fse.WriteStream;
+            this.pendingTasks.push(new Promise((resolve, reject) => {
+                stream.on('finish', resolve);
+            }));
+            this.bufferStream.close();
+            this.bufferStream = null;
+            this.bufferSize = 0;
+        }
+
+        await Promise.all(this.pendingTasks);
+        const gltfPath = path.join(this.baseDir, 'output.gltf');
+        fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
+        this.log(`Closing gltf output: done`);
+        this.log(`Stats: ${JSON.stringify(this.stats)}`);
+        this.postprocess(svf, gltfPath);
+    }
+
+    protected reset(outputDir: string) {
+        this.baseDir = (this.compress || this.binary) ? path.join(outputDir, 'tmp') : outputDir;
         this.manifest = {
             asset: {
                 version: '2.0',
@@ -107,32 +144,85 @@ export class Writer {
             scenes: [],
             textures: [],
             images: [],
-            scene: 0 // For now, we always mark the first scene as the default one
+            scene: 0
         };
         this.bufferStream = null;
         this.bufferSize = 0;
-        this.baseDir = (this.compress || this.binary) ? path.join(dir, 'tmp') : dir;
+        this.bufferViewCache.clear();
+        this.meshHashes = [];
+        this.bufferViewHashes = [];
+        this.accessorHashes = [];
+        this.pendingTasks = [];
+        this.stats = {
+            materialsDeduplicated: 0,
+            meshesDeduplicated: 0,
+            accessorsDeduplicated: 0,
+            bufferViewsDeduplicated: 0
+        };
     }
 
-    /**
-     * Outputs entire SVF as a glTF scene.
-     * Currently, only one SVF can be inserted into a single glTF file.
-     * @param {ISvfContent} svf SVF content loaded in memory.
-     */
-    write(svf: ISvfContent) {
+    protected async postprocess(svf: ISvfContent, gltfPath: string) {
+        if (this.sqlite && svf.properties) {
+            // Serialize manifest into a sqlite database as well
+            if (this.compress || this.binary) {
+                this.log(`Serializing manifest with embedded texture/buffer data into sqlite is not supported.`);
+            } else {
+                this.log(`Serializing manifest into sqlite...`);
+                const sqlitePath = path.join(this.baseDir, 'manifest.sqlite');
+                if (fse.existsSync(sqlitePath)) {
+                    fse.unlinkSync(sqlitePath);
+                }
+                await serializeDatabase(this.manifest, sqlitePath, svf.properties);
+                this.log(`Serializing manifest into sqlite: done`);
+            }
+        }
+
+        if (this.compress || this.binary) {
+            this.log(`Post-processing gltf output...`);
+            const options: any = {
+                resourceDirectory: this.baseDir,
+                separate: false,
+                separateTextures: false,
+                stats: false,
+                name: 'output'
+            };
+            if (this.compress) {
+                options.dracoOptions = {
+                    compressionLevel: 10
+                };
+            }
+            /*
+             * For some reason, when trying to use the manifest that's already in memory,
+             * the call to gltfToGlb fails with "Draco Runtime Error". When we re-read
+             * the manifest we just serialized couple lines above, gltfToGlb works fine...
+             */
+            const manifest = fse.readJsonSync(gltfPath);
+            const newPath = this.baseDir.replace(/tmp$/, this.binary ? 'output.glb' : 'output.gltf');
+            try {
+                if (this.binary) {
+                    const result = await pipeline.gltfToGlb(manifest, options);
+                    fse.writeFileSync(newPath, result.glb);
+                    // Delete the original gltf file
+                    fse.unlinkSync(gltfPath);
+                } else {
+                    const result = await pipeline.processGltf(manifest, options);
+                    fse.writeJsonSync(newPath, result.gltf);
+                }
+                fse.removeSync(this.baseDir);
+            } catch(err) {
+                console.error('Could not post-process the output', err);
+            }
+            this.log(`Post-processing gltf output: done`);
+        }
+    }
+
+    protected createScene(svf: ISvfContent): gltf.Scene {
         let scene: gltf.Scene = {
             nodes: []
         };
-        const manifestScenes = this.manifest.scenes as gltf.Scene[];
         const manifestNodes = this.manifest.nodes as gltf.Node[];
         const manifestMaterials = this.manifest.materials as gltf.MaterialPbrMetallicRoughness[];
         const sceneNodeIndices = scene.nodes as number[];
-
-        if (manifestScenes.length > 0) {
-            // Currently, adding more than one SVF/scene into a glTF
-            // would break the mapping between nodes and materials.
-            throw new Error('Writing more than one SVF into single glTF is currently not supported.');
-        }
 
         fse.ensureDirSync(this.baseDir);
 
@@ -184,85 +274,8 @@ export class Writer {
             }
         }
 
-        manifestScenes.push(scene);
-
-        this.pdb = svf.properties;
         this.log(`Writing scene: done`);
-    }
-
-    /**
-     * Finalizes the glTF output.
-     */
-    async close() {
-        this.log(`Closing gltf output...`);
-        if (this.bufferStream) {
-            const stream = this.bufferStream as fse.WriteStream;
-            this.pendingTasks.push(new Promise((resolve, reject) => {
-                stream.on('finish', resolve);
-            }));
-            this.bufferStream.close();
-            this.bufferStream = null;
-            this.bufferSize = 0;
-        }
-
-        await Promise.all(this.pendingTasks);
-        const gltfPath = path.join(this.baseDir, 'output.gltf');
-        fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
-        this.log(`Closing gltf output: done`);
-        this.log(`Stats: ${JSON.stringify(this.stats)}`);
-
-        if (this.sqlite) {
-            // Serialize manifest into a sqlite database as well
-            if (this.compress || this.binary) {
-                this.log(`Serializing manifest with embedded texture/buffer data into sqlite is not supported.`);
-            } else {
-                this.log(`Serializing manifest into sqlite...`);
-                const sqlitePath = path.join(this.baseDir, 'manifest.sqlite');
-                if (fse.existsSync(sqlitePath)) {
-                    fse.unlinkSync(sqlitePath);
-                }
-                await serializeDatabase(this.manifest, sqlitePath, this.pdb);
-                this.log(`Serializing manifest into sqlite: done`);
-            }
-        }
-
-        if (this.compress || this.binary) {
-            this.log(`Post-processing gltf output...`);
-            const options: any = {
-                resourceDirectory: this.baseDir,
-                separate: false,
-                separateTextures: false,
-                stats: false,
-                name: 'output'
-            };
-            if (this.compress) {
-                options.dracoOptions = {
-                    compressionLevel: 10
-                };
-            }
-            /*
-             * For some reason, when trying to use the manifest that's already in memory,
-             * the call to gltfToGlb fails with "Draco Runtime Error". When we re-read
-             * the manifest we just serialized couple lines above, gltfToGlb works fine...
-             */
-            const manifest = fse.readJsonSync(gltfPath);
-            const newPath = this.baseDir.replace(/tmp$/, this.binary ? 'output.glb' : 'output.gltf');
-            try {
-                if (this.binary) {
-                    const result = await pipeline.gltfToGlb(manifest, options);
-                    fse.writeFileSync(newPath, result.glb);
-                    // Delete the original gltf file
-                    fse.unlinkSync(gltfPath);
-                } else {
-                    const result = await pipeline.processGltf(manifest, options);
-                    fse.writeJsonSync(newPath, result.gltf);
-                }
-                fse.removeSync(this.baseDir);
-            } catch(err) {
-                console.error('Could not post-process the output', err);
-            }
-            this.log(`Post-processing gltf output: done`);
-        }
+        return scene;
     }
 
     protected createNode(fragment: IFragment, svf: ISvfContent, outputUvs: boolean): gltf.Node {
@@ -623,27 +636,27 @@ export class Writer {
         return { source: imageID };
     }
 
-    private computeMeshHash(mesh: gltf.Mesh): string {
+    protected computeMeshHash(mesh: gltf.Mesh): string {
         return mesh.primitives.map(p => {
             return `${p.mode || ''}/${p.material || ''}/${p.indices}/${p.attributes['POSITION'] || ''}/${p.attributes['NORMAL'] || ''}/${p.attributes['TEXCOORD_0'] || ''}/${p.attributes['COLOR_0'] || ''}`;
         }).join('/');
     }
 
-    private computeBufferViewHash(bufferView: gltf.BufferView): string {
+    protected computeBufferViewHash(bufferView: gltf.BufferView): string {
         return `${bufferView.buffer}/${bufferView.byteLength}/${bufferView.byteOffset || ''}/${bufferView.byteStride || ''}`;
     }
 
-    private computeAccessorHash(accessor: gltf.Accessor): string {
+    protected computeAccessorHash(accessor: gltf.Accessor): string {
         return `${accessor.type}/${accessor.componentType}/${accessor.count}/${accessor.bufferView || 'X'}`;
     }
 
-    private computeBufferHash(buffer: Buffer): string {
+    protected computeBufferHash(buffer: Buffer): string {
         const hash = crypto.createHash('md5');
         hash.update(buffer);
         return hash.digest('hex');
     }
 
-    private computeMaterialHash(material: IMaterial | null): string {
+    protected computeMaterialHash(material: IMaterial | null): string {
         if (!material) {
             return 'null';
         }
@@ -669,7 +682,7 @@ export class Writer {
         return hash.digest('hex');
     }
 
-    private computeBoundsVec3(array: Float32Array): { min: number[], max: number[] } {
+    protected computeBoundsVec3(array: Float32Array): { min: number[], max: number[] } {
         const min = [array[0], array[1], array[2]];
         const max = [array[0], array[1], array[2]];
         for (let i = 0; i < array.length; i += 3) {

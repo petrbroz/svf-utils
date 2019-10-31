@@ -3,7 +3,6 @@
 const program = require('commander');
 const path = require('path');
 const fse = require('fs-extra');
-const debug = require('debug');
 const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
 
 const { SvfReader, GltfWriter } = require('..');
@@ -17,25 +16,19 @@ if (FORGE_ACCESS_TOKEN) {
 }
 
 async function convertRemote(urn, guid, outputFolder, options) {
-    const log = debug('cli');
-    log(`Converting urn ${urn}, guid ${guid}`);
+    console.log(`Converting urn ${urn}, guid ${guid}`);
     const reader = await SvfReader.FromDerivativeService(urn, guid, auth);
-    const svf = await reader.read({ log: debug('cli:reader') });
-    options.log = debug('cli:writer');
-    const writer = new GltfWriter(outputFolder, options);
-    writer.write(svf);
-    await writer.close();
+    const svf = await reader.read({ log: console.log });
+    const writer = new GltfWriter(options);
+    await writer.write(svf, path.join(outputFolder, guid));
 }
 
 async function convertLocal(svfPath, outputFolder, options) {
-    const log = debug('cli');
-    log(`Converting local file ${svfPath}`);
+    console.log(`Converting local file ${svfPath}`);
     const reader = await SvfReader.FromFileSystem(svfPath);
-    const svf = await reader.read({ log: debug('cli:reader') });
-    options.log = debug('cli:writer');
-    const writer = new GltfWriter(outputFolder, options);
-    writer.write(svf);
-    await writer.close();
+    const svf = await reader.read({ log: console.log });
+    const writer = new GltfWriter(options);
+    await writer.write(svf, path.join(outputFolder));
 }
 
 program
@@ -59,7 +52,8 @@ program
             skipUnusedUvs: program.skipUnusedUvs,
             ignoreMeshGeometry: program.ignoreMeshes,
             ignoreLineGeometry: program.ignoreLines,
-            ignorePointGeometry: program.ignorePoints
+            ignorePointGeometry: program.ignorePoints,
+            log: console.log
         };
         try {
             if (id.endsWith('.svf')) {

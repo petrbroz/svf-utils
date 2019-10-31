@@ -30,12 +30,11 @@ Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file f
   - `--ignore-lines` to exclude line geometry from the output
   - `--ignore-points` to exclude point geometry from the output
   - `--sqlite` to also generate a sqlite file containing the entire glTF manifest
-- optionally, set env. variable `DEBUG` to `cli:*` to see additional logs
 
 #### Unix/macOS
 
 ```
-DEBUG=cli:* forge-convert <path to local svf> --output-folder <path to output folder>
+forge-convert <path to local svf> --output-folder <path to output folder>
 ```
 
 or
@@ -43,20 +42,19 @@ or
 ```
 export FORGE_CLIENT_ID=<client id>
 export FORGE_CLIENT_SECRET=<client secret>
-DEBUG=cli:* forge-convert <urn> --output-folder <path to output folder>
+forge-convert <urn> --output-folder <path to output folder>
 ```
 
 or
 
 ```
 export FORGE_ACCESS_TOKEN=<access token>>
-DEBUG=cli:* forge-convert <urn> --output-folder <path to output folder>
+forge-convert <urn> --output-folder <path to output folder>
 ```
 
 #### Windows
 
 ```
-set DEBUG=cli:*
 forge-convert <path to local svf> --output-folder <path to output folder>
 ```
 
@@ -65,7 +63,6 @@ or
 ```
 set FORGE_CLIENT_ID=<client id>
 set FORGE_CLIENT_SECRET=<client secret>
-set DEBUG=cli:*
 forge-convert <urn> --output-folder <path to output folder>
 ```
 
@@ -73,7 +70,6 @@ or
 
 ```
 set FORGE_ACCESS_TOKEN=<access token>
-set DEBUG=cli:*
 forge-convert <urn> --output-folder <path to output folder>
 ```
 
@@ -86,31 +82,31 @@ using [SvfReader#read](https://petrbroz.github.io/forge-convert-utils/docs/class
 method, and save the model into glTF using [GltfWriter#write](https://petrbroz.github.io/forge-convert-utils/docs/classes/_gltf_writer_.writer.html#write):
 
 ```js
+const path = require('path');
 const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
 const { SvfReader, GltfWriter } = require('forge-convert-utils');
 
 const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
 
-async function run (urn, outputDir) {
+async function run(urn, outputDir) {
     const auth = { client_id: FORGE_CLIENT_ID, client_secret: FORGE_CLIENT_SECRET };
     const modelDerivativeClient = new ModelDerivativeClient(auth);
     const helper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
-    const derivatives = helper.search({ type: 'resource', role: 'graphics' }).filter(d => d.mime === 'application/autodesk-svf');
-    if (derivatives.length > 0) {
-        const readerOptions = {
-            log: console.log
-        };
-        const writerOptions = {
-            deduplicate: true,
-            skipUnusedUvs: true,
-            sqlite: true,
-            log: console.log
-        };
-        const writer = new GltfWriter(outputDir, writerOptions);
-        const reader = await SvfReader.FromDerivativeService(urn, derivatives[0].guid, auth);
+    const derivatives = helper.search({ type: 'resource', role: 'graphics' });
+    const readerOptions = {
+        log: console.log
+    };
+    const writerOptions = {
+        deduplicate: true,
+        skipUnusedUvs: true,
+        sqlite: true,
+        log: console.log
+    };
+    const writer = new GltfWriter(writerOptions);
+    for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
+        const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
         const svf = await reader.read(readerOptions);
-        writer.write(svf);
-        await writer.close();
+        await writer.write(svf, path.join(outputDir, derivative.guid));
     }
 }
 

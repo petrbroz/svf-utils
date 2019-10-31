@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2019-10-31
+
+- Changed
+  - **[BREAKING]** gltf/glb is now written with a single call (`await writer.write(svf, outputDir)`)
+- Removed
+  - `debug` dependency (using `console.log` instead)
+
 ## [0.8.0] - 2019-10-29
 
 - Added

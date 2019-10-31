@@ -1,5 +1,5 @@
 import * as sqlite3 from 'sqlite3';
-import * as gltf from './schema';
+import * as gltf from './gltf-schema';
 import { isUndefined } from 'util';
 import { PropDbReader } from '../common/propdb-reader';
 

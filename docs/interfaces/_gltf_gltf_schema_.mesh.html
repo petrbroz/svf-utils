@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>Skin | forge-convert-utils</title>
+	<title>Mesh | forge-convert-utils</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -56,13 +56,13 @@
 					<a href="../globals.html">Globals</a>
 				</li>
 				<li>
-					<a href="../modules/_gltf_schema_.html">&quot;gltf/schema&quot;</a>
+					<a href="../modules/_gltf_gltf_schema_.html">&quot;gltf/gltf-schema&quot;</a>
 				</li>
 				<li>
-					<a href="_gltf_schema_.skin.html">Skin</a>
+					<a href="_gltf_gltf_schema_.mesh.html">Mesh</a>
 				</li>
 			</ul>
-			<h1>Interface Skin</h1>
+			<h1>Interface Mesh</h1>
 		</div>
 	</div>
 </header>
@@ -72,7 +72,7 @@
 			<section class="tsd-panel tsd-comment">
 				<div class="tsd-comment tsd-typography">
 					<div class="lead">
-						<p>Joints and matrices defining a skin.</p>
+						<p>A set of primitives to be rendered.  A node can contain one mesh.  A node&#39;s transform places the mesh in the scene.</p>
 					</div>
 				</div>
 			</section>
@@ -80,7 +80,7 @@
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="target">Skin</span>
+						<span class="target">Mesh</span>
 					</li>
 				</ul>
 			</section>
@@ -89,7 +89,7 @@
 				<div class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">[</span>k: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">any</span></div>
 				<div class="tsd-comment tsd-typography">
 					<div class="lead">
-						<p>Joints and matrices defining a skin.</p>
+						<p>A set of primitives to be rendered.  A node can contain one mesh.  A node&#39;s transform places the mesh in the scene.</p>
 					</div>
 				</div>
 			</section>
@@ -100,12 +100,11 @@
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_gltf_schema_.skin.html#extensions" class="tsd-kind-icon">extensions</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_gltf_schema_.skin.html#extras" class="tsd-kind-icon">extras</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_gltf_schema_.skin.html#inversebindmatrices" class="tsd-kind-icon">inverse<wbr>Bind<wbr>Matrices</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_gltf_schema_.skin.html#joints" class="tsd-kind-icon">joints</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_gltf_schema_.skin.html#name" class="tsd-kind-icon">name</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_gltf_schema_.skin.html#skeleton" class="tsd-kind-icon">skeleton</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_gltf_gltf_schema_.mesh.html#extensions" class="tsd-kind-icon">extensions</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_gltf_gltf_schema_.mesh.html#extras" class="tsd-kind-icon">extras</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_gltf_gltf_schema_.mesh.html#name" class="tsd-kind-icon">name</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_gltf_gltf_schema_.mesh.html#primitives" class="tsd-kind-icon">primitives</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="_gltf_gltf_schema_.mesh.html#weights" class="tsd-kind-icon">weights</a></li>
 							</ul>
 						</section>
 					</div>
@@ -119,7 +118,7 @@
 					<div class="tsd-signature tsd-kind-icon">extensions<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/ff463f7/src/gltf/schema.ts#L588">gltf/schema.ts:588</a></li>
+							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/9452198/src/gltf/gltf-schema.ts#L484">gltf/gltf-schema.ts:484</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -129,39 +128,9 @@
 					<div class="tsd-signature tsd-kind-icon">extras<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/ff463f7/src/gltf/schema.ts#L589">gltf/schema.ts:589</a></li>
+							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/9452198/src/gltf/gltf-schema.ts#L485">gltf/gltf-schema.ts:485</a></li>
 						</ul>
 					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="inversebindmatrices" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> inverse<wbr>Bind<wbr>Matrices</h3>
-					<div class="tsd-signature tsd-kind-icon">inverse<wbr>Bind<wbr>Matrices<span class="tsd-signature-symbol">:</span> <a href="../modules/_gltf_schema_.html#gltfid" class="tsd-signature-type">GlTfId</a></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/ff463f7/src/gltf/schema.ts#L578">gltf/schema.ts:578</a></li>
-						</ul>
-					</aside>
-					<div class="tsd-comment tsd-typography">
-						<div class="lead">
-							<p>The index of the accessor containing the floating-point 4x4 inverse-bind matrices.  The default is that each matrix is a 4x4 identity matrix, which implies that inverse-bind matrices were pre-applied.</p>
-						</div>
-					</div>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="joints" class="tsd-anchor"></a>
-					<h3>joints</h3>
-					<div class="tsd-signature tsd-kind-icon">joints<span class="tsd-signature-symbol">:</span> <a href="../modules/_gltf_schema_.html#gltfid" class="tsd-signature-type">GlTfId</a><span class="tsd-signature-symbol">[]</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/ff463f7/src/gltf/schema.ts#L586">gltf/schema.ts:586</a></li>
-						</ul>
-					</aside>
-					<div class="tsd-comment tsd-typography">
-						<div class="lead">
-							<p>Indices of skeleton nodes, used as joints in this skin.</p>
-						</div>
-					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="name" class="tsd-anchor"></a>
@@ -169,22 +138,37 @@
 					<div class="tsd-signature tsd-kind-icon">name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/ff463f7/src/gltf/schema.ts#L587">gltf/schema.ts:587</a></li>
+							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/9452198/src/gltf/gltf-schema.ts#L483">gltf/gltf-schema.ts:483</a></li>
 						</ul>
 					</aside>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
-					<a name="skeleton" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> skeleton</h3>
-					<div class="tsd-signature tsd-kind-icon">skeleton<span class="tsd-signature-symbol">:</span> <a href="../modules/_gltf_schema_.html#gltfid" class="tsd-signature-type">GlTfId</a></div>
+					<a name="primitives" class="tsd-anchor"></a>
+					<h3>primitives</h3>
+					<div class="tsd-signature tsd-kind-icon">primitives<span class="tsd-signature-symbol">:</span> <a href="_gltf_gltf_schema_.meshprimitive.html" class="tsd-signature-type">MeshPrimitive</a><span class="tsd-signature-symbol">[]</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/ff463f7/src/gltf/schema.ts#L582">gltf/schema.ts:582</a></li>
+							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/9452198/src/gltf/gltf-schema.ts#L478">gltf/gltf-schema.ts:478</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
 						<div class="lead">
-							<p>The index of the node used as a skeleton root.</p>
+							<p>An array of primitives, each defining geometry to be rendered with a material.</p>
+						</div>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="weights" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> weights</h3>
+					<div class="tsd-signature tsd-kind-icon">weights<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">[]</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/petrbroz/forge-convert-utils/blob/9452198/src/gltf/gltf-schema.ts#L482">gltf/gltf-schema.ts:482</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>Array of weights to be applied to the Morph Targets.</p>
 						</div>
 					</div>
 				</section>
@@ -206,7 +190,7 @@
 						<a href="../modules/_common_propdb_reader_.html">"common/propdb-<wbr>reader"</a>
 					</li>
 					<li class="current tsd-kind-external-module">
-						<a href="../modules/_gltf_schema_.html">"gltf/schema"</a>
+						<a href="../modules/_gltf_gltf_schema_.html">"gltf/gltf-<wbr>schema"</a>
 					</li>
 					<li class=" tsd-kind-external-module">
 						<a href="../modules/_gltf_sqlite_.html">"gltf/sqlite"</a>
@@ -240,115 +224,112 @@
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.accessor.html" class="tsd-kind-icon">Accessor</a>
+						<a href="_gltf_gltf_schema_.accessor.html" class="tsd-kind-icon">Accessor</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.accessorsparse.html" class="tsd-kind-icon">Accessor<wbr>Sparse</a>
+						<a href="_gltf_gltf_schema_.accessorsparse.html" class="tsd-kind-icon">Accessor<wbr>Sparse</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.accessorsparseindices.html" class="tsd-kind-icon">Accessor<wbr>Sparse<wbr>Indices</a>
+						<a href="_gltf_gltf_schema_.accessorsparseindices.html" class="tsd-kind-icon">Accessor<wbr>Sparse<wbr>Indices</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.accessorsparsevalues.html" class="tsd-kind-icon">Accessor<wbr>Sparse<wbr>Values</a>
+						<a href="_gltf_gltf_schema_.accessorsparsevalues.html" class="tsd-kind-icon">Accessor<wbr>Sparse<wbr>Values</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.animation.html" class="tsd-kind-icon">Animation</a>
+						<a href="_gltf_gltf_schema_.animation.html" class="tsd-kind-icon">Animation</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.animationchannel.html" class="tsd-kind-icon">Animation<wbr>Channel</a>
+						<a href="_gltf_gltf_schema_.animationchannel.html" class="tsd-kind-icon">Animation<wbr>Channel</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.animationchanneltarget.html" class="tsd-kind-icon">Animation<wbr>Channel<wbr>Target</a>
+						<a href="_gltf_gltf_schema_.animationchanneltarget.html" class="tsd-kind-icon">Animation<wbr>Channel<wbr>Target</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.animationsampler.html" class="tsd-kind-icon">Animation<wbr>Sampler</a>
+						<a href="_gltf_gltf_schema_.animationsampler.html" class="tsd-kind-icon">Animation<wbr>Sampler</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.asset.html" class="tsd-kind-icon">Asset</a>
+						<a href="_gltf_gltf_schema_.asset.html" class="tsd-kind-icon">Asset</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.buffer.html" class="tsd-kind-icon">Buffer</a>
+						<a href="_gltf_gltf_schema_.buffer.html" class="tsd-kind-icon">Buffer</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.bufferview.html" class="tsd-kind-icon">Buffer<wbr>View</a>
+						<a href="_gltf_gltf_schema_.bufferview.html" class="tsd-kind-icon">Buffer<wbr>View</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.camera.html" class="tsd-kind-icon">Camera</a>
+						<a href="_gltf_gltf_schema_.camera.html" class="tsd-kind-icon">Camera</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.cameraorthographic.html" class="tsd-kind-icon">Camera<wbr>Orthographic</a>
+						<a href="_gltf_gltf_schema_.cameraorthographic.html" class="tsd-kind-icon">Camera<wbr>Orthographic</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.cameraperspective.html" class="tsd-kind-icon">Camera<wbr>Perspective</a>
+						<a href="_gltf_gltf_schema_.cameraperspective.html" class="tsd-kind-icon">Camera<wbr>Perspective</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.gltf.html" class="tsd-kind-icon">Gl<wbr>Tf</a>
+						<a href="_gltf_gltf_schema_.gltf.html" class="tsd-kind-icon">Gl<wbr>Tf</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.image.html" class="tsd-kind-icon">Image</a>
+						<a href="_gltf_gltf_schema_.image.html" class="tsd-kind-icon">Image</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.material.html" class="tsd-kind-icon">Material</a>
+						<a href="_gltf_gltf_schema_.material.html" class="tsd-kind-icon">Material</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.materialnormaltextureinfo.html" class="tsd-kind-icon">Material<wbr>Normal<wbr>Texture<wbr>Info</a>
+						<a href="_gltf_gltf_schema_.materialnormaltextureinfo.html" class="tsd-kind-icon">Material<wbr>Normal<wbr>Texture<wbr>Info</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.materialocclusiontextureinfo.html" class="tsd-kind-icon">Material<wbr>Occlusion<wbr>Texture<wbr>Info</a>
+						<a href="_gltf_gltf_schema_.materialocclusiontextureinfo.html" class="tsd-kind-icon">Material<wbr>Occlusion<wbr>Texture<wbr>Info</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.materialpbrmetallicroughness.html" class="tsd-kind-icon">Material<wbr>Pbr<wbr>Metallic<wbr>Roughness</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.mesh.html" class="tsd-kind-icon">Mesh</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.meshprimitive.html" class="tsd-kind-icon">Mesh<wbr>Primitive</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.node.html" class="tsd-kind-icon">Node</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.sampler.html" class="tsd-kind-icon">Sampler</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.scene.html" class="tsd-kind-icon">Scene</a>
+						<a href="_gltf_gltf_schema_.materialpbrmetallicroughness.html" class="tsd-kind-icon">Material<wbr>Pbr<wbr>Metallic<wbr>Roughness</a>
 					</li>
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.skin.html" class="tsd-kind-icon">Skin</a>
+						<a href="_gltf_gltf_schema_.mesh.html" class="tsd-kind-icon">Mesh</a>
 						<ul>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_gltf_schema_.skin.html#extensions" class="tsd-kind-icon">extensions</a>
+								<a href="_gltf_gltf_schema_.mesh.html#extensions" class="tsd-kind-icon">extensions</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_gltf_schema_.skin.html#extras" class="tsd-kind-icon">extras</a>
+								<a href="_gltf_gltf_schema_.mesh.html#extras" class="tsd-kind-icon">extras</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_gltf_schema_.skin.html#inversebindmatrices" class="tsd-kind-icon">inverse<wbr>Bind<wbr>Matrices</a>
+								<a href="_gltf_gltf_schema_.mesh.html#name" class="tsd-kind-icon">name</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_gltf_schema_.skin.html#joints" class="tsd-kind-icon">joints</a>
+								<a href="_gltf_gltf_schema_.mesh.html#primitives" class="tsd-kind-icon">primitives</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_gltf_schema_.skin.html#name" class="tsd-kind-icon">name</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface">
-								<a href="_gltf_schema_.skin.html#skeleton" class="tsd-kind-icon">skeleton</a>
+								<a href="_gltf_gltf_schema_.mesh.html#weights" class="tsd-kind-icon">weights</a>
 							</li>
 						</ul>
 					</li>
 				</ul>
 				<ul class="after-current">
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.texture.html" class="tsd-kind-icon">Texture</a>
+						<a href="_gltf_gltf_schema_.meshprimitive.html" class="tsd-kind-icon">Mesh<wbr>Primitive</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
-						<a href="_gltf_schema_.textureinfo.html" class="tsd-kind-icon">Texture<wbr>Info</a>
+						<a href="_gltf_gltf_schema_.node.html" class="tsd-kind-icon">Node</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
+						<a href="_gltf_gltf_schema_.sampler.html" class="tsd-kind-icon">Sampler</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
+						<a href="_gltf_gltf_schema_.scene.html" class="tsd-kind-icon">Scene</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
+						<a href="_gltf_gltf_schema_.skin.html" class="tsd-kind-icon">Skin</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
+						<a href="_gltf_gltf_schema_.texture.html" class="tsd-kind-icon">Texture</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-parent-kind-external-module">
+						<a href="_gltf_gltf_schema_.textureinfo.html" class="tsd-kind-icon">Texture<wbr>Info</a>
 					</li>
 					<li class=" tsd-kind-type-alias tsd-parent-kind-external-module">
-						<a href="../modules/_gltf_schema_.html#gltfid" class="tsd-kind-icon">Gl<wbr>TfId</a>
+						<a href="../modules/_gltf_gltf_schema_.html#gltfid" class="tsd-kind-icon">Gl<wbr>TfId</a>
 					</li>
 				</ul>
 			</nav>

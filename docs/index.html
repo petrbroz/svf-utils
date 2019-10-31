@@ -102,28 +102,24 @@
 							<li><code>--sqlite</code> to also generate a sqlite file containing the entire glTF manifest</li>
 						</ul>
 					</li>
-					<li>optionally, set env. variable <code>DEBUG</code> to <code>cli:*</code> to see additional logs</li>
 				</ul>
 				<a href="#unixmacos" id="unixmacos" style="color: inherit; text-decoration: none;">
 					<h4>Unix/macOS</h4>
 				</a>
-				<pre><code><span class="hljs-keyword">DEBUG</span>=cli:* forge-convert &lt;<span class="hljs-type">path</span> <span class="hljs-keyword">to</span> <span class="hljs-keyword">local</span> svf&gt; <span class="hljs-comment">--output-folder &lt;path to output folder&gt;</span></code></pre><p>or</p>
+				<pre><code>forge-<span class="hljs-built_in">convert</span> &lt;path <span class="hljs-built_in">to</span> <span class="hljs-built_in">local</span> svf&gt; <span class="hljs-comment">--output-folder &lt;path to output folder&gt;</span></code></pre><p>or</p>
 				<pre><code><span class="hljs-builtin-name">export</span> <span class="hljs-attribute">FORGE_CLIENT_ID</span>=&lt;client id&gt;
 <span class="hljs-builtin-name">export</span> <span class="hljs-attribute">FORGE_CLIENT_SECRET</span>=&lt;client secret&gt;
-<span class="hljs-attribute">DEBUG</span>=cli:* forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to</span> output folder&gt;</code></pre><p>or</p>
+forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to</span> output folder&gt;</code></pre><p>or</p>
 				<pre><code><span class="hljs-builtin-name">export</span> <span class="hljs-attribute">FORGE_ACCESS_TOKEN</span>=&lt;access token&gt;&gt;
-<span class="hljs-attribute">DEBUG</span>=cli:* forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to</span> output folder&gt;</code></pre>
+forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to</span> output folder&gt;</code></pre>
 				<a href="#windows" id="windows" style="color: inherit; text-decoration: none;">
 					<h4>Windows</h4>
 				</a>
-				<pre><code><span class="hljs-keyword">set</span> <span class="hljs-keyword">DEBUG</span>=cli:*
-forge-convert &lt;<span class="hljs-type">path</span> <span class="hljs-keyword">to</span> <span class="hljs-keyword">local</span> svf&gt; <span class="hljs-comment">--output-folder &lt;path to output folder&gt;</span></code></pre><p>or</p>
+				<pre><code>forge-<span class="hljs-built_in">convert</span> &lt;path <span class="hljs-built_in">to</span> <span class="hljs-built_in">local</span> svf&gt; <span class="hljs-comment">--output-folder &lt;path to output folder&gt;</span></code></pre><p>or</p>
 				<pre><code><span class="hljs-builtin-name">set</span> <span class="hljs-attribute">FORGE_CLIENT_ID</span>=&lt;client id&gt;
 <span class="hljs-builtin-name">set</span> <span class="hljs-attribute">FORGE_CLIENT_SECRET</span>=&lt;client secret&gt;
-<span class="hljs-builtin-name">set</span> <span class="hljs-attribute">DEBUG</span>=cli:*
 forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to</span> output folder&gt;</code></pre><p>or</p>
 				<pre><code><span class="hljs-builtin-name">set</span> <span class="hljs-attribute">FORGE_ACCESS_TOKEN</span>=&lt;access token&gt;
-<span class="hljs-builtin-name">set</span> <span class="hljs-attribute">DEBUG</span>=cli:*
 forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to</span> output folder&gt;</code></pre>
 				<a href="#nodejs" id="nodejs" style="color: inherit; text-decoration: none;">
 					<h3>Node.js</h3>
@@ -132,31 +128,31 @@ forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to
 				<p>The easiest way to convert an SVF file is to read the entire model into memory
 					using <a href="https://petrbroz.github.io/forge-convert-utils/docs/classes/_svf_reader_.reader.html#read">SvfReader#read</a>
 				method, and save the model into glTF using <a href="https://petrbroz.github.io/forge-convert-utils/docs/classes/_gltf_writer_.writer.html#write">GltfWriter#write</a>:</p>
-				<pre><code class="language-js"><span class="hljs-keyword">const</span> { ModelDerivativeClient, ManifestHelper } = <span class="hljs-built_in">require</span>(<span class="hljs-string">'forge-server-utils'</span>);
+				<pre><code class="language-js"><span class="hljs-keyword">const</span> path = <span class="hljs-built_in">require</span>(<span class="hljs-string">'path'</span>);
+<span class="hljs-keyword">const</span> { ModelDerivativeClient, ManifestHelper } = <span class="hljs-built_in">require</span>(<span class="hljs-string">'forge-server-utils'</span>);
 <span class="hljs-keyword">const</span> { SvfReader, GltfWriter } = <span class="hljs-built_in">require</span>(<span class="hljs-string">'forge-convert-utils'</span>);
 
 <span class="hljs-keyword">const</span> { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
 
-<span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">run</span> (<span class="hljs-params">urn, outputDir</span>) </span>{
+<span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">run</span>(<span class="hljs-params">urn, outputDir</span>) </span>{
     <span class="hljs-keyword">const</span> auth = { <span class="hljs-attr">client_id</span>: FORGE_CLIENT_ID, <span class="hljs-attr">client_secret</span>: FORGE_CLIENT_SECRET };
     <span class="hljs-keyword">const</span> modelDerivativeClient = <span class="hljs-keyword">new</span> ModelDerivativeClient(auth);
     <span class="hljs-keyword">const</span> helper = <span class="hljs-keyword">new</span> ManifestHelper(<span class="hljs-keyword">await</span> modelDerivativeClient.getManifest(urn));
-    <span class="hljs-keyword">const</span> derivatives = helper.search({ <span class="hljs-attr">type</span>: <span class="hljs-string">'resource'</span>, <span class="hljs-attr">role</span>: <span class="hljs-string">'graphics'</span> }).filter(<span class="hljs-function"><span class="hljs-params">d</span> =&gt;</span> d.mime === <span class="hljs-string">'application/autodesk-svf'</span>);
-    <span class="hljs-keyword">if</span> (derivatives.length &gt; <span class="hljs-number">0</span>) {
-        <span class="hljs-keyword">const</span> readerOptions = {
-            <span class="hljs-attr">log</span>: <span class="hljs-built_in">console</span>.log
-        };
-        <span class="hljs-keyword">const</span> writerOptions = {
-            <span class="hljs-attr">deduplicate</span>: <span class="hljs-literal">true</span>,
-            <span class="hljs-attr">skipUnusedUvs</span>: <span class="hljs-literal">true</span>,
-            <span class="hljs-attr">sqlite</span>: <span class="hljs-literal">true</span>,
-            <span class="hljs-attr">log</span>: <span class="hljs-built_in">console</span>.log
-        };
-        <span class="hljs-keyword">const</span> writer = <span class="hljs-keyword">new</span> GltfWriter(outputDir, writerOptions);
-        <span class="hljs-keyword">const</span> reader = <span class="hljs-keyword">await</span> SvfReader.FromDerivativeService(urn, derivatives[<span class="hljs-number">0</span>].guid, auth);
+    <span class="hljs-keyword">const</span> derivatives = helper.search({ <span class="hljs-attr">type</span>: <span class="hljs-string">'resource'</span>, <span class="hljs-attr">role</span>: <span class="hljs-string">'graphics'</span> });
+    <span class="hljs-keyword">const</span> readerOptions = {
+        <span class="hljs-attr">log</span>: <span class="hljs-built_in">console</span>.log
+    };
+    <span class="hljs-keyword">const</span> writerOptions = {
+        <span class="hljs-attr">deduplicate</span>: <span class="hljs-literal">true</span>,
+        <span class="hljs-attr">skipUnusedUvs</span>: <span class="hljs-literal">true</span>,
+        <span class="hljs-attr">sqlite</span>: <span class="hljs-literal">true</span>,
+        <span class="hljs-attr">log</span>: <span class="hljs-built_in">console</span>.log
+    };
+    <span class="hljs-keyword">const</span> writer = <span class="hljs-keyword">new</span> GltfWriter(writerOptions);
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> derivative <span class="hljs-keyword">of</span> derivatives.filter(<span class="hljs-function"><span class="hljs-params">d</span> =&gt;</span> d.mime === <span class="hljs-string">'application/autodesk-svf'</span>)) {
+        <span class="hljs-keyword">const</span> reader = <span class="hljs-keyword">await</span> SvfReader.FromDerivativeService(urn, derivative.guid, auth);
         <span class="hljs-keyword">const</span> svf = <span class="hljs-keyword">await</span> reader.read(readerOptions);
-        writer.write(svf);
-        <span class="hljs-keyword">await</span> writer.close();
+        <span class="hljs-keyword">await</span> writer.write(svf, path.join(outputDir, derivative.guid));
     }
 }
 
@@ -266,7 +262,7 @@ run(<span class="hljs-string">'your model urn'</span>);</code></pre>
 						<a href="modules/_common_propdb_reader_.html">"common/propdb-<wbr>reader"</a>
 					</li>
 					<li class=" tsd-kind-external-module">
-						<a href="modules/_gltf_schema_.html">"gltf/schema"</a>
+						<a href="modules/_gltf_gltf_schema_.html">"gltf/gltf-<wbr>schema"</a>
 					</li>
 					<li class=" tsd-kind-external-module">
 						<a href="modules/_gltf_sqlite_.html">"gltf/sqlite"</a>

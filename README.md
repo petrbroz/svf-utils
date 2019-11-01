@@ -10,6 +10,9 @@
 Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file format into
 [glTF 2.0](https://github.com/KhronosGroup/glTF/tree/master/specification/2.0).
 
+> Check out [forge-convert-sqlite](https://github.com/petrbroz/forge-convert-sqlite) with an experimental
+> serialization/deserialization of glTF to/from sqlite.
+
 ## Usage
 
 ### Command line

@@ -99,7 +99,6 @@
 							<li><code>--ignore-meshes</code> to exclude mesh geometry from the output</li>
 							<li><code>--ignore-lines</code> to exclude line geometry from the output</li>
 							<li><code>--ignore-points</code> to exclude point geometry from the output</li>
-							<li><code>--sqlite</code> to also generate a sqlite file containing the entire glTF manifest</li>
 						</ul>
 					</li>
 				</ul>
@@ -145,7 +144,6 @@ forge-convert &lt;urn&gt; --output-folder &lt;path <span class="hljs-keyword">to
     <span class="hljs-keyword">const</span> writerOptions = {
         <span class="hljs-attr">deduplicate</span>: <span class="hljs-literal">true</span>,
         <span class="hljs-attr">skipUnusedUvs</span>: <span class="hljs-literal">true</span>,
-        <span class="hljs-attr">sqlite</span>: <span class="hljs-literal">true</span>,
         <span class="hljs-attr">log</span>: <span class="hljs-built_in">console</span>.log
     };
     <span class="hljs-keyword">const</span> writer = <span class="hljs-keyword">new</span> GltfWriter(writerOptions);
@@ -263,9 +261,6 @@ run(<span class="hljs-string">'your model urn'</span>);</code></pre>
 					</li>
 					<li class=" tsd-kind-external-module">
 						<a href="modules/_gltf_gltf_schema_.html">"gltf/gltf-<wbr>schema"</a>
-					</li>
-					<li class=" tsd-kind-external-module">
-						<a href="modules/_gltf_sqlite_.html">"gltf/sqlite"</a>
 					</li>
 					<li class=" tsd-kind-external-module">
 						<a href="modules/_gltf_writer_.html">"gltf/writer"</a>

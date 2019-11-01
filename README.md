@@ -29,7 +29,6 @@ Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file f
   - `--ignore-meshes` to exclude mesh geometry from the output
   - `--ignore-lines` to exclude line geometry from the output
   - `--ignore-points` to exclude point geometry from the output
-  - `--sqlite` to also generate a sqlite file containing the entire glTF manifest
 
 #### Unix/macOS
 
@@ -99,7 +98,6 @@ async function run(urn, outputDir) {
     const writerOptions = {
         deduplicate: true,
         skipUnusedUvs: true,
-        sqlite: true,
         log: console.log
     };
     const writer = new GltfWriter(writerOptions);

@@ -7,7 +7,6 @@ import * as gltf from './gltf-schema';
 import { isUndefined, isNullOrUndefined } from 'util';
 import { IMaterial, IFragment, IMesh, ILines, IPoints, IMaterialMap } from '../svf/schema';
 import { ISvfContent } from '../svf/reader';
-import { serialize as serializeDatabase } from './sqlite';
 
 const MaxBufferSize = 5 << 20;
 const DefaultMaterial: gltf.MaterialPbrMetallicRoughness = {
@@ -27,7 +26,6 @@ export interface IWriterOptions {
     skipUnusedUvs?: boolean; /** Skip unused tex coordinates. */
     compress?: boolean; /** Compress output using Draco. */
     binary?: boolean; /** Output GLB instead of GLTF. */
-    sqlite?: boolean; /** Also output a sqlite version of GLTF manifest. */
     log?: (msg: string) => void; /** Optional logging function. */
 }
 
@@ -78,7 +76,6 @@ export class Writer {
             skipUnusedUvs: !!options.skipUnusedUvs,
             compress: !!options.compress,
             binary: !!options.binary,
-            sqlite: !!options.sqlite,
             log: (options && options.log) || function (msg: string) {}
         };
 
@@ -154,21 +151,6 @@ export class Writer {
     }
 
     protected async postprocess(svf: ISvfContent, gltfPath: string) {
-        if (this.options.sqlite && svf.properties) {
-            // Serialize manifest into a sqlite database as well
-            if (this.options.compress || this.options.binary) {
-                this.options.log(`Serializing manifest with embedded texture/buffer data into sqlite is not supported.`);
-            } else {
-                this.options.log(`Serializing manifest into sqlite...`);
-                const sqlitePath = path.join(this.baseDir, 'manifest.sqlite');
-                if (fse.existsSync(sqlitePath)) {
-                    fse.unlinkSync(sqlitePath);
-                }
-                await serializeDatabase(this.manifest, sqlitePath, svf.properties);
-                this.options.log(`Serializing manifest into sqlite: done`);
-            }
-        }
-
         if (this.options.compress || this.options.binary) {
             this.options.log(`Post-processing gltf output...`);
             const options: any = {

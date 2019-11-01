@@ -1,6 +1,6 @@
 {
   "name": "forge-convert-utils",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Tools for converting Autodesk Forge file formats.",
   "main": "lib/index.js",
   "bin": {
@@ -37,12 +37,10 @@
     "typescript": "^3.6.3"
   },
   "dependencies": {
-    "@types/sqlite3": "^3.1.5",
     "adm-zip": "^0.4.13",
     "commander": "^3.0.2",
     "forge-server-utils": "^7.0.0",
     "fs-extra": "^8.1.0",
-    "gltf-pipeline": "^2.1.4",
-    "sqlite3": "^4.1.0"
+    "gltf-pipeline": "^2.1.4"
   }
 }

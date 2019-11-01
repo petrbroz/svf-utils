@@ -41,13 +41,11 @@ program
     .option('-im, --ignore-meshes', 'ignore mesh geometry', false)
     .option('-il, --ignore-lines', 'ignore line geometry', false)
     .option('-ip, --ignore-points', 'ignore point geometry', false)
-    .option('--sqlite', 'serialize gltf manifest into sqlite', false)
     .arguments('<URN or path/to/svf> [GUID]')
     .action(async function (id, guid) {
         const options = {
             binary: program.outputType === 'glb',
             compress: program.compress,
-            sqlite: program.sqlite,
             deduplicate: program.deduplicate,
             skipUnusedUvs: program.skipUnusedUvs,
             ignoreMeshGeometry: program.ignoreMeshes,

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2019-11-01
+
+- Removed
+  - Support for sqlite output
+    - Since [sqlite3](https://www.npmjs.com/package/sqlite3) is a native Node.js module, it was a [pain](https://css-tricks.com/what-i-learned-by-building-my-own-vs-code-extension/) to use this library in [vscode-forge-tools](https://github.com/petrbroz/vscode-forge-tools)
+    - The experimental serialization/deserialization to/from sqlite is now developed in [forge-convert-sqlite](https://github.com/petrbroz/forge-convert-sqlite)
+
 ## [1.0.1] - 2019-10-31
 
 - Fixed

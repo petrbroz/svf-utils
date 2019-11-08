@@ -41,6 +41,7 @@ program
     .option('-im, --ignore-meshes', 'ignore mesh geometry', false)
     .option('-il, --ignore-lines', 'ignore line geometry', false)
     .option('-ip, --ignore-points', 'ignore point geometry', false)
+    .option('--center', 'move model to origin', false)
     .arguments('<URN or path/to/svf> [GUID]')
     .action(async function (id, guid) {
         const options = {
@@ -51,6 +52,7 @@ program
             ignoreMeshGeometry: program.ignoreMeshes,
             ignoreLineGeometry: program.ignoreLines,
             ignorePointGeometry: program.ignorePoints,
+            center: program.center,
             log: console.log
         };
         try {

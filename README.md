@@ -10,6 +10,9 @@
 Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file format into
 [glTF 2.0](https://github.com/KhronosGroup/glTF/tree/master/specification/2.0).
 
+> Check out [forge-convert-sqlite](https://github.com/petrbroz/forge-convert-sqlite) with an experimental
+> serialization/deserialization of glTF to/from sqlite.
+
 ## Usage
 
 ### Command line
@@ -29,6 +32,7 @@ Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file f
   - `--ignore-meshes` to exclude mesh geometry from the output
   - `--ignore-lines` to exclude line geometry from the output
   - `--ignore-points` to exclude point geometry from the output
+  - `--center` move the model to origin
 
 #### Unix/macOS
 
@@ -98,6 +102,7 @@ async function run(urn, outputDir) {
     const writerOptions = {
         deduplicate: true,
         skipUnusedUvs: true,
+        center: true,
         log: console.log
     };
     const writer = new GltfWriter(writerOptions);

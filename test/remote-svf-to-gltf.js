@@ -19,6 +19,7 @@ async function run (urn, outputDir) {
         skipUnusedUvs: false,
         binary: false,
         compress: false,
+        center: true,
         log: console.log
     };
 

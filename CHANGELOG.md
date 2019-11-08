@@ -7,8 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added
+  - Opt-in feature to move the model to origin
 - Changed
   - Forge models are now reoriented based on their metadata to align with the glTF coordinate system (X=left, Y=up, Z=front)
+
+> Note: scene hierarchies in the generated glTFs now contain two additional levels:
+all scene objects are grouped into an _xform node_ that applies additional
+transformations (for example, moving the model to origin), and the _xform node_
+is a child of a _root node_ which transforms the entire scene to the glTF
+coordinate system.
 
 ## [1.0.2] - 2019-11-01
 

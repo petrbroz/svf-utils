@@ -32,6 +32,7 @@ Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file f
   - `--ignore-meshes` to exclude mesh geometry from the output
   - `--ignore-lines` to exclude line geometry from the output
   - `--ignore-points` to exclude point geometry from the output
+  - `--center` move the model to origin
 
 #### Unix/macOS
 
@@ -101,6 +102,7 @@ async function run(urn, outputDir) {
     const writerOptions = {
         deduplicate: true,
         skipUnusedUvs: true,
+        center: true,
         log: console.log
     };
     const writer = new GltfWriter(writerOptions);

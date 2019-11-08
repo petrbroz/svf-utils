@@ -26,6 +26,7 @@ export interface IWriterOptions {
     skipUnusedUvs?: boolean; /** Skip unused tex coordinates. */
     compress?: boolean; /** Compress output using Draco. */
     binary?: boolean; /** Output GLB instead of GLTF. */
+    center?: boolean; /** Move the model to origin. */
     log?: (msg: string) => void; /** Optional logging function. */
 }
 
@@ -76,6 +77,7 @@ export class Writer {
             skipUnusedUvs: !!options.skipUnusedUvs,
             compress: !!options.compress,
             binary: !!options.binary,
+            center: !!options.center,
             log: (options && options.log) || function (msg: string) {}
         };
 
@@ -191,19 +193,58 @@ export class Writer {
     }
 
     protected createScene(svf: ISvfContent): gltf.Scene {
+        fse.ensureDirSync(this.baseDir);
+
         let scene: gltf.Scene = {
             nodes: []
         };
         const manifestNodes = this.manifest.nodes as gltf.Node[];
         const manifestMaterials = this.manifest.materials as gltf.MaterialPbrMetallicRoughness[];
-        const root: gltf.Node = { children: [] };
-        const sceneNodeIndices = scene.nodes as number[];
-        const rootNodeIndices = root.children as number[];
+        const rootNode: gltf.Node = { children: [] }; // Root node with transform to glTF coordinate system
+        const xformNode: gltf.Node = { children: [] }; // Transform node with additional global transform (e.g., moving model to origin)
+        (scene.nodes as number[]).push(manifestNodes.push(rootNode) - 1);
+        (rootNode.children as number[]).push(manifestNodes.push(xformNode) - 1);
 
-        fse.ensureDirSync(this.baseDir);
+        // Setup transformation to glTF coordinate system
+        const { metadata } = svf.metadata;
+        if (metadata['world up vector'] && metadata['world front vector']) {
+            const svfUp = metadata['world up vector'].XYZ;
+            const svfFront = metadata['world front vector'].XYZ;
+            if (svfUp && svfFront) {
+                const svfLeft = [
+                    svfUp[1] * svfFront[2] - svfUp[2] * svfFront[1],
+                    svfUp[2] * svfFront[0] - svfUp[0] * svfFront[2],
+                    svfUp[0] * svfFront[1] - svfUp[1] * svfFront[0]
+                ];
+                rootNode.matrix = [
+                    svfLeft[0], svfUp[0], svfFront[0], 0,
+                    svfLeft[1], svfUp[1], svfFront[1], 0,
+                    svfLeft[2], svfUp[2], svfFront[2], 0,
+                    0, 0, 0, 1
+                ];
+            }
+        }
+        // Setup translation to origin when enabled
+        if (metadata['world bounding box'] && this.options.center) {
+            const svfBoundsMin = metadata['world bounding box'].minXYZ;
+            const svfBoundsMax = metadata['world bounding box'].maxXYZ;
+            if (svfBoundsMin && svfBoundsMax) {
+                let translation = [
+                    -0.5 * (svfBoundsMin[0] + svfBoundsMax[0]),
+                    -0.5 * (svfBoundsMin[1] + svfBoundsMax[1]),
+                    -0.5 * (svfBoundsMin[2] + svfBoundsMax[2])
+                ];
+                xformNode.matrix = [
+                    1, 0, 0, 0,
+                    0, 1, 0, 0,
+                    0, 0, 1, 0,
+                    translation[0], translation[1], translation[2], 1
+                ];
+            }
+        }
 
+        const nodeIndices = (xformNode.children as number[]);
         this.options.log(`Writing scene nodes...`);
-        sceneNodeIndices.push(manifestNodes.push(root) - 1);
         for (const fragment of svf.fragments) {
             const material = svf.materials[fragment.materialID];
             // Only output UVs if there are any textures or if the user specifically asked not to skip unused UVs
@@ -211,8 +252,7 @@ export class Writer {
             const node = this.createNode(fragment, svf, outputUvs);
             // Only output nodes that have a mesh
             if (!isUndefined(node.mesh)) {
-                const index = manifestNodes.push(node) - 1;
-                rootNodeIndices.push(index);
+                nodeIndices.push(manifestNodes.push(node) - 1);
             }
         }
 
@@ -248,26 +288,6 @@ export class Writer {
             for (const material of svf.materials) {
                 const mat = this.createMaterial(material, svf);
                 manifestMaterials.push(mat);
-            }
-        }
-
-        // Setup transformation of root node
-        const { metadata } = svf.metadata;
-        if (metadata['world up vector'] && metadata['world front vector']) {
-            const svfUp = metadata['world up vector'].XYZ;
-            const svfFront = metadata['world front vector'].XYZ;
-            if (svfUp && svfFront) {
-                const svfLeft = [
-                    svfUp[1] * svfFront[2] - svfUp[2] * svfFront[1],
-                    svfUp[2] * svfFront[0] - svfUp[0] * svfFront[2],
-                    svfUp[0] * svfFront[1] - svfUp[1] * svfFront[0]
-                ];
-                root.matrix = [
-                    svfLeft[0], svfUp[0], svfFront[0], 0,
-                    svfLeft[1], svfUp[1], svfFront[1], 0,
-                    svfLeft[2], svfUp[2], svfFront[2], 0,
-                    0, 0, 0, 1
-                ];
             }
         }
 

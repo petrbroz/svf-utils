@@ -196,11 +196,14 @@ export class Writer {
         };
         const manifestNodes = this.manifest.nodes as gltf.Node[];
         const manifestMaterials = this.manifest.materials as gltf.MaterialPbrMetallicRoughness[];
+        const root: gltf.Node = { children: [] };
         const sceneNodeIndices = scene.nodes as number[];
+        const rootNodeIndices = root.children as number[];
 
         fse.ensureDirSync(this.baseDir);
 
         this.options.log(`Writing scene nodes...`);
+        sceneNodeIndices.push(manifestNodes.push(root) - 1);
         for (const fragment of svf.fragments) {
             const material = svf.materials[fragment.materialID];
             // Only output UVs if there are any textures or if the user specifically asked not to skip unused UVs
@@ -209,7 +212,7 @@ export class Writer {
             // Only output nodes that have a mesh
             if (!isUndefined(node.mesh)) {
                 const index = manifestNodes.push(node) - 1;
-                sceneNodeIndices.push(index);
+                rootNodeIndices.push(index);
             }
         }
 
@@ -245,6 +248,26 @@ export class Writer {
             for (const material of svf.materials) {
                 const mat = this.createMaterial(material, svf);
                 manifestMaterials.push(mat);
+            }
+        }
+
+        // Setup transformation of root node
+        const { metadata } = svf.metadata;
+        if (metadata['world up vector'] && metadata['world front vector']) {
+            const svfUp = metadata['world up vector'].XYZ;
+            const svfFront = metadata['world front vector'].XYZ;
+            if (svfUp && svfFront) {
+                const svfLeft = [
+                    svfUp[1] * svfFront[2] - svfUp[2] * svfFront[1],
+                    svfUp[2] * svfFront[0] - svfUp[0] * svfFront[2],
+                    svfUp[0] * svfFront[1] - svfUp[1] * svfFront[0]
+                ];
+                root.matrix = [
+                    svfLeft[0], svfUp[0], svfFront[0], 0,
+                    svfLeft[1], svfUp[1], svfFront[1], 0,
+                    svfLeft[2], svfUp[2], svfFront[2], 0,
+                    0, 0, 0, 1
+                ];
             }
         }
 

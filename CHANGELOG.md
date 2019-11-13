@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2019-11-13
+
 - Changed
   - When exporting to glTF+Draco, resources are no longer embedded into the manifest ([#7](https://github.com/petrbroz/forge-convert-utils/issues/7))
 

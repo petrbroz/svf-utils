@@ -157,9 +157,8 @@ export class Writer {
             this.options.log(`Post-processing gltf output...`);
             const options: any = {
                 resourceDirectory: this.baseDir,
-                separate: false,
-                separateTextures: false,
-                stats: false,
+                separate: !this.options.binary,
+                stats: true,
                 name: 'output'
             };
             if (this.options.compress) {
@@ -173,16 +172,17 @@ export class Writer {
              * the manifest we just serialized couple lines above, gltfToGlb works fine...
              */
             const manifest = fse.readJsonSync(gltfPath);
-            const newPath = this.baseDir.replace(/tmp$/, this.options.binary ? 'output.glb' : 'output.gltf');
+            const outputFolder = this.baseDir.replace(/tmp$/, '');
             try {
                 if (this.options.binary) {
                     const result = await pipeline.gltfToGlb(manifest, options);
-                    fse.writeFileSync(newPath, result.glb);
-                    // Delete the original gltf file
-                    fse.unlinkSync(gltfPath);
+                    fse.writeFileSync(path.join(outputFolder, 'output.glb'), result.glb);
                 } else {
                     const result = await pipeline.processGltf(manifest, options);
-                    fse.writeJsonSync(newPath, result.gltf);
+                    fse.writeJsonSync(path.join(outputFolder, 'output.gltf'), result.gltf);
+                    for (const name of Object.getOwnPropertyNames(result.separateResources)) {
+                        fse.writeFileSync(path.join(outputFolder, name), result.separateResources[name]);
+                    }
                 }
                 fse.removeSync(this.baseDir);
             } catch(err) {

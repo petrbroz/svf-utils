@@ -20,8 +20,15 @@ export function *parseFragments(buffer: Buffer): Iterable<IFragment> {
             const materialID = pfr.getVarint();
             const geometryID = pfr.getVarint();
             const transform = pfr.getTransform();
-            const bboxOffset = [0, 0, 0]; // TODO: find the bbox offset
-            const bbox = [0, 0, 0, 0, 0, 0];
+            let bbox = [0, 0, 0, 0, 0, 0];
+            let bboxOffset = [0, 0, 0];
+            if (entryType.version > 3) {
+                if (transform && 't' in transform) {
+                    bboxOffset[0] = transform.t.x;
+                    bboxOffset[1] = transform.t.y;
+                    bboxOffset[2] = transform.t.z;
+                }
+            }
             for (let j = 0; j < 6; j++) {
                 bbox[j] = pfr.getFloat32() + bboxOffset[j % 3];
             }

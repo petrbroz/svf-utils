@@ -88,10 +88,10 @@ export class Reader {
             throw new Error(`Viewable '${guid}' not found.`);
         }
         const svfUrn = (resources[0] as IDerivativeResourceChild).urn;
-        const svf = await modelDerivativeClient.getDerivative(urn, svfUrn) as Buffer;
+        const svf = await modelDerivativeClient.getDerivative(urn, encodeURI(svfUrn)) as Buffer;
         const baseUri = svfUrn.substr(0, svfUrn.lastIndexOf('/'));
         const resolve = async (uri: string) => {
-            const buffer = await modelDerivativeClient.getDerivative(urn, baseUri + '/' + uri) as Buffer;
+            const buffer = await modelDerivativeClient.getDerivative(urn, encodeURI(baseUri) + '/' + uri) as Buffer;
             return buffer;
         };
         return new Reader(svf, resolve);

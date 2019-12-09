@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed
+  - Missing folders when post-processing ([#11](https://github.com/petrbroz/forge-convert-utils/issues/11), fixed by @AlexPiro)
+
 ## [1.1.2] - 2019-11-30
 
 - Fixed

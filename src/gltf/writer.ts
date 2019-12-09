@@ -181,7 +181,9 @@ export class Writer {
                     const result = await pipeline.processGltf(manifest, options);
                     fse.writeJsonSync(path.join(outputFolder, 'output.gltf'), result.gltf);
                     for (const name of Object.getOwnPropertyNames(result.separateResources)) {
-                        fse.writeFileSync(path.join(outputFolder, name), result.separateResources[name]);
+                        const filePath = path.join(outputFolder, name);
+                        fse.ensureDirSync(path.dirname(filePath));
+                        fse.writeFileSync(filePath, result.separateResources[name]);
                     }
                 }
                 fse.removeSync(this.baseDir);

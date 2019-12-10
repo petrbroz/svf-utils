@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2019-12-10
+
+- Fixed
+  - Missing folders when post-processing ([#11](https://github.com/petrbroz/forge-convert-utils/issues/11), fixed by @AlexPiro)
+- Added
+  - Filtering of objects to be included in the output glTF
+
 ## [1.1.2] - 2019-11-30
 
 - Fixed

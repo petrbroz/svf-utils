@@ -209,19 +209,43 @@ export class Writer {
 
         // Setup transformation to glTF coordinate system
         const { metadata } = svf.metadata;
-        if (metadata['world up vector'] && metadata['world front vector']) {
+        if (metadata['world up vector'] && metadata['world front vector'] && metadata['distance unit']) {
             const svfUp = metadata['world up vector'].XYZ;
             const svfFront = metadata['world front vector'].XYZ;
-            if (svfUp && svfFront) {
+            const distanceUnit = metadata['distance unit'].value
+            if (svfUp && svfFront && distanceUnit) {
                 const svfLeft = [
                     svfUp[1] * svfFront[2] - svfUp[2] * svfFront[1],
                     svfUp[2] * svfFront[0] - svfUp[0] * svfFront[2],
                     svfUp[0] * svfFront[1] - svfUp[1] * svfFront[0]
                 ];
+
+                let scale: number
+                switch (distanceUnit) {
+                    case 'centimeter':
+                    case 'cm':
+                        scale = 0.01
+                        break
+                    case 'millimeter':
+                    case 'mm':
+                        scale = 0.001
+                        break
+                    case 'foot':
+                    case 'ft':
+                        scale = 0.3048
+                        break
+                    case 'inch':
+                    case 'in':
+                        scale = 0.0254
+                        break
+                    default:    // "meter" / "m"
+                        scale = 1.0
+                }
+
                 rootNode.matrix = [
-                    svfLeft[0], svfUp[0], svfFront[0], 0,
-                    svfLeft[1], svfUp[1], svfFront[1], 0,
-                    svfLeft[2], svfUp[2], svfFront[2], 0,
+                    svfLeft[0] * scale, svfUp[0] * scale, svfFront[0] * scale, 0,
+                    svfLeft[1] * scale, svfUp[1] * scale, svfFront[1] * scale, 0,
+                    svfLeft[2] * scale, svfUp[2] * scale, svfFront[2] * scale, 0,
                     0, 0, 0, 1
                 ];
             }

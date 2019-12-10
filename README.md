@@ -103,7 +103,8 @@ async function run(urn, outputDir) {
         deduplicate: true,
         skipUnusedUvs: true,
         center: true,
-        log: console.log
+        log: console.log,
+        filter: (dbid) => (dbid >= 100 && dbid <= 200) // only output objects with dbIDs between 100 and 200
     };
     const writer = new GltfWriter(writerOptions);
     for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {

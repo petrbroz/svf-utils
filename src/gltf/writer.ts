@@ -28,6 +28,7 @@ export interface IWriterOptions {
     binary?: boolean; /** Output GLB instead of GLTF. */
     center?: boolean; /** Move the model to origin. */
     log?: (msg: string) => void; /** Optional logging function. */
+    filter?: (dbid: number) => boolean;
 }
 
 function hasTextures(material: IMaterial | null): boolean {
@@ -78,7 +79,8 @@ export class Writer {
             compress: !!options.compress,
             binary: !!options.binary,
             center: !!options.center,
-            log: (options && options.log) || function (msg: string) {}
+            log: (options && options.log) || function (msg: string) {},
+            filter: options && options.filter || ((dbid: number) => true)
         };
 
         // All these properties will be properly initialized in the 'reset' call
@@ -247,7 +249,11 @@ export class Writer {
 
         const nodeIndices = (xformNode.children as number[]);
         this.options.log(`Writing scene nodes...`);
+        const { filter } = this.options;
         for (const fragment of svf.fragments) {
+            if (!filter(fragment.dbID)) {
+                continue;
+            }
             const material = svf.materials[fragment.materialID];
             // Only output UVs if there are any textures or if the user specifically asked not to skip unused UVs
             const outputUvs = hasTextures(material) || !this.options.skipUnusedUvs;

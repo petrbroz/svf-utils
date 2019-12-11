@@ -214,7 +214,7 @@ export class Writer {
         if (metadata['world up vector'] && metadata['world front vector'] && metadata['distance unit']) {
             const svfUp = metadata['world up vector'].XYZ;
             const svfFront = metadata['world front vector'].XYZ;
-            const distanceUnit = metadata['distance unit'].value
+            const distanceUnit = metadata['distance unit'].value;
             if (svfUp && svfFront && distanceUnit) {
                 const svfLeft = [
                     svfUp[1] * svfFront[2] - svfUp[2] * svfFront[1],
@@ -222,26 +222,26 @@ export class Writer {
                     svfUp[0] * svfFront[1] - svfUp[1] * svfFront[0]
                 ];
 
-                let scale: number
+                let scale = 1.0;
                 switch (distanceUnit) {
                     case 'centimeter':
                     case 'cm':
-                        scale = 0.01
-                        break
+                        scale = 0.01;
+                        break;
                     case 'millimeter':
                     case 'mm':
-                        scale = 0.001
-                        break
+                        scale = 0.001;
+                        break;
                     case 'foot':
                     case 'ft':
-                        scale = 0.3048
-                        break
+                        scale = 0.3048;
+                        break;
                     case 'inch':
                     case 'in':
-                        scale = 0.0254
-                        break
+                        scale = 0.0254;
+                        break;
                     default:    // "meter" / "m"
-                        scale = 1.0
+                        scale = 1.0;
                 }
 
                 rootNode.matrix = [

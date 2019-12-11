@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added
+  - Scaling the output model based on SVF distance units (added by @dykarohora)
+
 ## [1.2.0] - 2019-12-10
 
 - Fixed

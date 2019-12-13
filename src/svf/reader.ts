@@ -81,6 +81,7 @@ export class Reader {
      * @returns {Promise<Reader>} Reader for the provided SVF.
      */
     static async FromDerivativeService(urn: string, guid: string, auth: IAuthOptions): Promise<Reader> {
+        urn = urn.replace(/=/g, '');
         const modelDerivativeClient = new ModelDerivativeClient(auth);
         const helper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
         const resources = helper.search({ type: 'resource', role: 'graphics', guid });

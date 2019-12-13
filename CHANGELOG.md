@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2019-12-13
+
+- Added
+  - Scaling the output model based on SVF distance units (added by @dykarohora)
+- Fixed
+  - Sanitizing URNs (removing trailing '='s)
+
 ## [1.2.0] - 2019-12-10
 
 - Fixed

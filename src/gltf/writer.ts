@@ -1,7 +1,6 @@
 import * as path from 'path';
 import crypto from 'crypto';
 import * as fse from 'fs-extra';
-import * as pipeline from 'gltf-pipeline';
 
 import * as gltf from './gltf-schema';
 import { isUndefined, isNullOrUndefined } from 'util';
@@ -24,8 +23,6 @@ export interface IWriterOptions {
     ignorePointGeometry?: boolean; /** Don't output point geometry */
     deduplicate?: boolean; /** Find and remove mesh geometry duplicates (increases the processing time) */
     skipUnusedUvs?: boolean; /** Skip unused tex coordinates. */
-    compress?: boolean; /** Compress output using Draco. */
-    binary?: boolean; /** Output GLB instead of GLTF. */
     center?: boolean; /** Move the model to origin. */
     log?: (msg: string) => void; /** Optional logging function. */
     filter?: (dbid: number) => boolean;
@@ -76,8 +73,6 @@ export class Writer {
             ignorePointGeometry: !!options.ignorePointGeometry,
             deduplicate: !!options.deduplicate,
             skipUnusedUvs: !!options.skipUnusedUvs,
-            compress: !!options.compress,
-            binary: !!options.binary,
             center: !!options.center,
             log: (options && options.log) || function (msg: string) {},
             filter: options && options.filter || ((dbid: number) => true)
@@ -121,7 +116,7 @@ export class Writer {
     }
 
     protected reset(outputDir: string) {
-        this.baseDir = (this.options.compress || this.options.binary) ? path.join(outputDir, 'tmp') : outputDir;
+        this.baseDir = outputDir;
         this.manifest = {
             asset: {
                 version: '2.0',
@@ -155,45 +150,6 @@ export class Writer {
     }
 
     protected async postprocess(svf: ISvfContent, gltfPath: string) {
-        if (this.options.compress || this.options.binary) {
-            this.options.log(`Post-processing gltf output...`);
-            const options: any = {
-                resourceDirectory: this.baseDir,
-                separate: !this.options.binary,
-                stats: true,
-                name: 'output'
-            };
-            if (this.options.compress) {
-                options.dracoOptions = {
-                    compressionLevel: 10
-                };
-            }
-            /*
-             * For some reason, when trying to use the manifest that's already in memory,
-             * the call to gltfToGlb fails with "Draco Runtime Error". When we re-read
-             * the manifest we just serialized couple lines above, gltfToGlb works fine...
-             */
-            const manifest = fse.readJsonSync(gltfPath);
-            const outputFolder = this.baseDir.replace(/tmp$/, '');
-            try {
-                if (this.options.binary) {
-                    const result = await pipeline.gltfToGlb(manifest, options);
-                    fse.writeFileSync(path.join(outputFolder, 'output.glb'), result.glb);
-                } else {
-                    const result = await pipeline.processGltf(manifest, options);
-                    fse.writeJsonSync(path.join(outputFolder, 'output.gltf'), result.gltf);
-                    for (const name of Object.getOwnPropertyNames(result.separateResources)) {
-                        const filePath = path.join(outputFolder, name);
-                        fse.ensureDirSync(path.dirname(filePath));
-                        fse.writeFileSync(filePath, result.separateResources[name]);
-                    }
-                }
-                fse.removeSync(this.baseDir);
-            } catch(err) {
-                console.error('Could not post-process the output', err);
-            }
-            this.options.log(`Post-processing gltf output: done`);
-        }
     }
 
     protected createScene(svf: ISvfContent): gltf.Scene {

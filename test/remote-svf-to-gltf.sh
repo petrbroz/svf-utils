@@ -39,7 +39,8 @@ for gltf in $(find $2/gltf -name "output.gltf"); do
 
     # Post-process with [gltfpack](https://github.com/zeux/meshoptimizer#gltfpack), if available
     if [ -x "$(command -v gltfpack)" ]; then
-        mkdir -p $2/glb-pack/$urn/$guid
-        gltfpack -i $gltf -o $2/glb-pack/$urn/$guid/output.glb
+        mkdir -p $2/glb-gltfpack/$urn/$guid
+        gltfpack -i $gltf -o $2/glb-gltfpack/$urn/$guid/output.glb
+        gltf-pipeline -i $2/glb-gltfpack/$urn/$guid/output.glb -o $2/glb-gltfpack-draco/$urn/$guid/output.glb -d
     fi
 done

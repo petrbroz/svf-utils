@@ -74,7 +74,7 @@ program
                 } else {
                     const derivatives = helper.search({ type: 'resource', role: 'graphics' });
                     for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
-                        await convertRemote(urn, derivative.guid, path.join(folder, derivative.guid), options);
+                        await convertRemote(urn, derivative.guid, folder, options);
                     }
                 }
 

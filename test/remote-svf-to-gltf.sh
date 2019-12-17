@@ -12,23 +12,34 @@
 #   export FORGE_ACCESS_TOKEN=<your token>
 #   ./remote-svf-to-gltf.sh <your model urn> <path to output folder>
 
+# Install dependencies
+npm install --global forge-convert-utils gltf-pipeline
+
 # Convert SVF to glTF with [forge-convert-utils](https://github.com/petrbroz/forge-convert-utils)
-npm install --global forge-convert-utils
 forge-convert $1 --output-folder $2/gltf --deduplicate --skip-unused-uvs --ignore-lines --ignore-points
 
-# Validate glTF using [gltf-validator](https://github.com/KhronosGroup/glTF-Validator), if available
-if [ -x "$(command -v gltf_validator)" ]; then
-    gltf_validator $2/gltf/output.gltf
-fi
+# Iterate over glTFs generated for all viewables (in <urn>/<guid> subfolders)
+for gltf in $(find $2/gltf -name "output.gltf"); do
+    guid_dir=$(dirname $gltf)
+    guid=$(basename $guid_dir)
+    urn_dir=$(dirname $guid_dir)
+    urn=$(basename $urn_dir)
 
-# Post-process with [gltf-pipeline](https://github.com/AnalyticalGraphicsInc/gltf-pipeline)
-npm install --global gltf-pipeline
-gltf-pipeline -i $2/gltf/output.gltf -o $2/gltf-draco/output.gltf -d
-gltf-pipeline -i $2/gltf/output.gltf -o $2/glb/output.glb
-gltf-pipeline -i $2/gltf/output.gltf -o $2/glb-draco/output.glb -d
+    echo Postprocessing URN: $urn GUID: $guid
 
-# Post-process with [gltfpack](https://github.com/zeux/meshoptimizer#gltfpack), if available
-if [ -x "$(command -v gltfpack)" ]; then
-    mkdir -p $2/glb-pack
-    gltfpack -i $2/gltf/output.gltf -o $2/glb-pack/output.glb
-fi
+    # Validate glTF using [gltf-validator](https://github.com/KhronosGroup/glTF-Validator), if available
+    if [ -x "$(command -v gltf_validator)" ]; then
+        gltf_validator $gltf
+    fi
+
+    # Post-process with [gltf-pipeline](https://github.com/AnalyticalGraphicsInc/gltf-pipeline)
+    gltf-pipeline -i $gltf -o $2/gltf-draco/$urn/$guid/output.gltf -d
+    gltf-pipeline -i $gltf -o $2/glb/$urn/$guid/output.glb
+    gltf-pipeline -i $gltf -o $2/glb-draco/$urn/$guid/output.glb -d
+
+    # Post-process with [gltfpack](https://github.com/zeux/meshoptimizer#gltfpack), if available
+    if [ -x "$(command -v gltfpack)" ]; then
+        mkdir -p $2/glb-pack
+        gltfpack -i $gltf -o $2/glb-pack/$urn/$guid/output.glb
+    fi
+done

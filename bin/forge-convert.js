@@ -34,10 +34,8 @@ async function convertLocal(svfPath, outputFolder, options) {
 program
     .version(require('../package.json').version, '-v, --version')
     .option('-o, --output-folder [folder]', 'output folder', '.')
-    .option('-t, --output-type [type]', 'output file format (gltf, glb)', 'gltf')
     .option('-d, --deduplicate', 'deduplicate geometries (may increase processing time)', false)
     .option('-s, --skip-unused-uvs', 'skip unused texture coordinate data', false)
-    .option('-c, --compress', 'compress meshes using Draco (may increase processing time)', false)
     .option('-im, --ignore-meshes', 'ignore mesh geometry', false)
     .option('-il, --ignore-lines', 'ignore line geometry', false)
     .option('-ip, --ignore-points', 'ignore point geometry', false)
@@ -45,8 +43,6 @@ program
     .arguments('<URN or path/to/svf> [GUID]')
     .action(async function (id, guid) {
         const options = {
-            binary: program.outputType === 'glb',
-            compress: program.compress,
             deduplicate: program.deduplicate,
             skipUnusedUvs: program.skipUnusedUvs,
             ignoreMeshGeometry: program.ignoreMeshes,
@@ -78,7 +74,7 @@ program
                 } else {
                     const derivatives = helper.search({ type: 'resource', role: 'graphics' });
                     for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
-                        await convertRemote(urn, derivative.guid, path.join(folder, derivative.guid), options);
+                        await convertRemote(urn, derivative.guid, folder, options);
                     }
                 }
 

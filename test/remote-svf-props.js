@@ -1,5 +1,5 @@
 /*
- * Example: parsing object properties for all viewables in a Model Derivative URN
+ * Example: parsing object properties for all viewables in a Model Derivative URN.
  * Usage:
  *     export FORGE_CLIENT_ID=<your client id>
  *     export FORGE_CLIENT_SECRET=<your client secret>

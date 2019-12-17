@@ -1,6 +1,5 @@
 /*
- * Example: converting an SVF (without property database) from Model Derivative service
- * with different output options.
+ * Example: converting an SVF (without property database) from Model Derivative service.
  * Usage:
  *     export FORGE_CLIENT_ID=<your client id>
  *     export FORGE_CLIENT_SECRET=<your client secret>
@@ -17,8 +16,6 @@ async function run (urn, outputDir) {
     const defaultOptions = {
         deduplicate: false,
         skipUnusedUvs: false,
-        binary: false,
-        compress: false,
         center: true,
         log: console.log
     };
@@ -30,17 +27,11 @@ async function run (urn, outputDir) {
         const derivatives = helper.search({ type: 'resource', role: 'graphics' });
         const writer0 = new GltfWriter(Object.assign({}, defaultOptions));
         const writer1 = new GltfWriter(Object.assign({}, defaultOptions, { deduplicate: true, skipUnusedUvs: true }));
-        const writer2 = new GltfWriter(Object.assign({}, defaultOptions, { deduplicate: true, skipUnusedUvs: true, compress: true }));        
-        const writer3 = new GltfWriter(Object.assign({}, defaultOptions, { deduplicate: true, skipUnusedUvs: true, binary: true }));
-        const writer4 = new GltfWriter(Object.assign({}, defaultOptions, { deduplicate: true, skipUnusedUvs: true, binary: true, compress: true }));
         for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
             const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
             const svf = await reader.read({ log: console.log });
             await writer0.write(svf, path.join(outputDir, derivative.guid, 'gltf-raw'));
             await writer1.write(svf, path.join(outputDir, derivative.guid, 'gltf-dedup'));
-            await writer2.write(svf, path.join(outputDir, derivative.guid, 'gltf-draco'));
-            await writer3.write(svf, path.join(outputDir, derivative.guid, 'glb-dedup'));
-            await writer4.write(svf, path.join(outputDir, derivative.guid, 'glb-draco'));
         }
     } catch(err) {
         console.error(err);

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed
+  - Missing SVF textures no longer cause the conversion to fail, and are instead replaced with 1x1 black pixel images
+
 ## [2.0.0] - 2019-12-17
 
 - Changed

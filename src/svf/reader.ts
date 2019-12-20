@@ -162,13 +162,42 @@ export class Reader {
             tasks.push((async (uri: string) => {
                 log(`Downloading image ${uri}...`);
                 const normalizedUri = uri.toLowerCase().split(/[\/\\]/).join(path.sep);
+                let imageData = null;
+                // Sometimes, Model Derivative service URIs must be left unmodified...
                 try {
-                    // Sometimes, Model Derivative service URIs must be left unmodified...
-                    output.images[normalizedUri] = await this.getAsset(uri);
-                } catch(err) {
-                    // ... and sometimes they must be lower-cased :/
-                    output.images[normalizedUri] = await this.getAsset(uri.toLowerCase());
+                    imageData = await this.getAsset(uri);
+                } catch (err) {}
+                // Sometimes, they must be lower-cased...
+                if (!imageData) {
+                    log(`Could not find image ${uri}, trying a lower-cased version of the URI...`);
+                    try {
+                        imageData = await this.getAsset(uri.toLowerCase());
+                    } catch (err) {}
                 }
+                // And sometimes, they're just missing...
+                if (!imageData) {
+                    log(`Still could not find image ${uri}; defaulting to a single black pixel placeholder image...`);
+                    // Default to a placeholder image based on the extension
+                    const resFolder = path.join(__dirname, '..', '..', 'res');
+                    switch (uri.substr(uri.lastIndexOf('.')).toLowerCase()) {
+                        case '.jpg':
+                        case '.jpeg':
+                            imageData = fse.readFileSync(path.join(resFolder, 'placeholder.jpg'));
+                            break;
+                        case '.png':
+                            imageData = fse.readFileSync(path.join(resFolder, 'placeholder.png'));
+                            break;
+                        case '.bmp':
+                            imageData = fse.readFileSync(path.join(resFolder, 'placeholder.bmp'));
+                            break;
+                        case '.gif':
+                            imageData = fse.readFileSync(path.join(resFolder, 'placeholder.gif'));
+                            break;
+                        default:
+                            throw new Error(`Unsupported image format for ${uri}`);
+                    }
+                }
+                output.images[normalizedUri] = imageData;
                 log(`Downloading image ${uri}: done`);
             })(img));
         }

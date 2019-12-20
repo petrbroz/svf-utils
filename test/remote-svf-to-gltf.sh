@@ -25,21 +25,28 @@ for gltf in $(find $2/gltf -name "output.gltf"); do
     urn_dir=$(dirname $guid_dir)
     urn=$(basename $urn_dir)
 
-    echo Postprocessing URN: $urn GUID: $guid
+    echo "Postprocessing URN: $urn GUID: $guid"
 
     # Validate glTF using [gltf-validator](https://github.com/KhronosGroup/glTF-Validator), if available
     if [ -x "$(command -v gltf_validator)" ]; then
+        echo "Validating glTF manifest"
         gltf_validator $gltf
     fi
 
     # Post-process with [gltf-pipeline](https://github.com/AnalyticalGraphicsInc/gltf-pipeline)
+    echo "Post-processing into glTF with Draco"
     gltf-pipeline -i $gltf -o $2/gltf-draco/$urn/$guid/output.gltf -d
+    echo "Post-processing into glb"
     gltf-pipeline -i $gltf -o $2/glb/$urn/$guid/output.glb
+    echo "Post-processing into glb with Draco"
     gltf-pipeline -i $gltf -o $2/glb-draco/$urn/$guid/output.glb -d
 
     # Post-process with [gltfpack](https://github.com/zeux/meshoptimizer#gltfpack), if available
     if [ -x "$(command -v gltfpack)" ]; then
-        mkdir -p $2/glb-pack
-        gltfpack -i $gltf -o $2/glb-pack/$urn/$guid/output.glb
+        echo "Post-processing into glb with gltfpack"
+        mkdir -p $2/glb-gltfpack/$urn/$guid
+        gltfpack -i $gltf -o $2/glb-gltfpack/$urn/$guid/output.glb
+        echo "Post-processing gltfpack-ed glb with Draco"
+        gltf-pipeline -i $2/glb-gltfpack/$urn/$guid/output.glb -o $2/glb-gltfpack-draco/$urn/$guid/output.glb -d
     fi
 done

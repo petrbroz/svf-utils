@@ -1,7 +1,7 @@
 const path = require('path');
 const fse = require('fs-extra');
 const { AuthenticationClient } = require('forge-server-utils');
-const { OtgClient } = require('../lib');
+const { OtgClient, OtgManifestHelper, OtgViewHelper } = require('../lib');
 
 const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
 
@@ -15,33 +15,6 @@ function writeBuffer(filepath, data) {
     fse.writeFileSync(filepath, data);
 }
 
-async function downloadAssets(otgClient, assets, modelUrn, versionRoot, basePath, outputPath) {
-    try {
-        for (const asset of Object.values(assets)) {
-            if (typeof asset === 'string') {
-                if (asset.startsWith('urn:')) {
-                    // Skip urns inside assets for now
-                    continue;
-                }
-                const assetUrn = path.normalize(path.join(versionRoot, basePath, asset));
-                const buff = await otgClient.getAsset(modelUrn, assetUrn);
-                const assetPath = path.join(outputPath, asset);
-                writeBuffer(assetPath, buff);
-            } else if (typeof asset === 'object') {
-                await downloadAssets(otgClient, asset, modelUrn, versionRoot, basePath, outputPath);
-            } else {
-                // No other asset values are supported
-            }
-        }
-    } catch (err) {
-        if (err.isAxiosError) {
-            console.error(err.toJSON());
-        } else {
-            console.error(err);
-        }
-    }
-}
-
 async function run(urn, outputDir) {
     try {
         const authClient = new AuthenticationClient(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET);
@@ -52,22 +25,45 @@ async function run(urn, outputDir) {
 
         const viewables = manifest.children.filter(child => child.role === 'viewable' && 'otg_manifest' in child);
         for (const viewable of viewables) {
+            const otgManifestHelper = new OtgManifestHelper(viewable.otg_manifest);
             const viewableDir = path.join(outputDir, viewable.guid);
             fse.ensureDirSync(viewableDir);
-            const otg = viewable.otg_manifest;
-            const versionRoot = otg.paths.version_root;
-            const sharedRoot = otg.paths.shared_root;
-            for (const [guid, view] of Object.entries(otg.views)) {
+
+            // Store shared database assets
+            for (const asset of otgManifestHelper.listSharedDatabaseAssets()) {
+                const assetPath = path.join(viewableDir, asset.resolvedUrn.replace(otgManifestHelper.sharedRoot, ''));
+                const assetData = await otgClient.getAsset(urn, asset.resolvedUrn);
+                writeBuffer(assetPath, assetData);
+            }
+
+            // Store each view manifest
+            for (const view of otgManifestHelper.listViews()) {
                 console.assert(view.role === 'graphics');
                 console.assert(view.mime === 'application/autodesk-otg');
-                const otgPath = path.join(viewableDir, view.urn);
-                const otgBasePath = path.dirname(view.urn);
-                const outputPath = path.dirname(otgPath);
-                const otgBuff = await otgClient.getAsset(urn, path.normalize(path.join(versionRoot, view.urn)));
-                writeBuffer(otgPath, otgBuff);
-                const otg = JSON.parse(otgBuff.toString());
-                await downloadAssets(otgClient, otg.manifest.assets, urn, versionRoot, otgBasePath, outputPath);
-                await downloadAssets(otgClient, otg.manifest.shared_assets, urn, versionRoot, otgBasePath, outputPath);
+                const viewPath = path.join(viewableDir, view.resolvedUrn.replace(otgManifestHelper.sharedRoot, ''));
+                const viewData = await otgClient.getAsset(urn, view.resolvedUrn);
+                writeBuffer(viewPath, viewData);
+                const otgViewHelper = new OtgViewHelper(JSON.parse(viewData.toString()), view.resolvedUrn);
+
+                // Store private model assets
+                const privateModelAssets = otgViewHelper.listPrivateModelAssets();
+                if (privateModelAssets) {
+                    for (const asset of Object.values(privateModelAssets)) {
+                        const assetPath = path.join(viewableDir, asset.resolvedUrn.replace(otgManifestHelper.sharedRoot, ''));
+                        const assetData = await otgClient.getAsset(urn, asset.resolvedUrn);
+                        writeBuffer(assetPath, assetData);
+                    }
+                }
+
+                // Store private database assets
+                const privateDatabaseAssets = otgViewHelper.listPrivateDatabaseAssets();
+                if (privateDatabaseAssets) {
+                    for (const asset of Object.values(privateDatabaseAssets)) {
+                        const assetPath = path.join(viewableDir, asset.resolvedUrn.replace(otgManifestHelper.sharedRoot, ''));
+                        const assetData = await otgClient.getAsset(urn, asset.resolvedUrn);
+                        writeBuffer(assetPath, assetData);
+                    }
+                }
             }
         }
     } catch(err) {

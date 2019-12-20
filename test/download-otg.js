@@ -1,7 +1,7 @@
 const path = require('path');
 const fse = require('fs-extra');
 const { AuthenticationClient } = require('forge-server-utils');
-const { OtgClient, OtgManifestHelper, OtgViewHelper } = require('../lib');
+const { OtgClient, OtgManifestHelper, OtgViewHelper } = require('..');
 
 const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
 

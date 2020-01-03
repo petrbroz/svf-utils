@@ -3,6 +3,7 @@ import { IAuthOptions } from 'forge-server-utils/dist/common';
 import { Client as OtgClient, ManifestHelper as OtgManifestHelper, ViewHelper as OtgViewHelper } from './client';
 import { parseGeometryHashes } from './geometry-hashes';
 import { parseMaterialHashes } from './material-hashes';
+import { parseFragments } from './fragments';
 
 interface IOtg {
     views: IOtgView[];
@@ -10,6 +11,7 @@ interface IOtg {
 
 interface IOtgView {
     id: string;
+    fragments: any[];
     geometryHashes: string[];
     materialHashes: string[];
 }
@@ -51,6 +53,7 @@ export class Reader {
     }
 
     protected async readView(id: string, resolvedUrn: string): Promise<IOtgView> {
+        let fragments: any[] = [];
         let geometryHashes: string[] = [];
         let materialHashes: string[] = [];
         const viewData = await this.client.getAsset(this.urn, resolvedUrn);
@@ -69,9 +72,16 @@ export class Reader {
                     materialHashes.push(hash);
                 }
             }
+            if (privateModelAssets.fragments) {
+                const fragmentData = await this.client.getAsset(this.urn, privateModelAssets.fragments.resolvedUrn);
+                for (const fragment of parseFragments(fragmentData)) {
+                    fragments.push(fragment);
+                }
+            }
         }
         return {
             id,
+            fragments,
             geometryHashes,
             materialHashes
         };

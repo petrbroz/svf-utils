@@ -174,6 +174,18 @@ export class ViewHelper {
             );
         }
     }
+
+    getGeometryUrn(hash: string): string {
+        return this.view.manifest.shared_assets.geometry + hash;
+    }
+
+    getMaterialUrn(hash: string): string {
+        return this.view.manifest.shared_assets.materials + hash;
+    }
+
+    getTextureUrn(hash: string): string {
+        return this.view.manifest.shared_assets.textures + hash;
+    }
 }
 
 /**
@@ -246,5 +258,24 @@ export class Client extends ForgeClient {
      */
     async getAsset(urn: string, assetUrn: string): Promise<Buffer> {
         return this.getBuffer(`file/${assetUrn}?acmsession=${urn}`, {}, ReadTokenScopes);
+    }
+}
+
+export class SharedClient extends ForgeClient {
+    protected sharding: number = 4;
+
+    constructor(auth: IAuthOptions, host: string = ApiHost) {
+        super('cdn', auth, host);
+        this.axios.defaults.headers = this.axios.defaults.headers || {};
+        this.axios.defaults.headers['Pragma'] = 'no-cache';
+    }
+
+    async getAsset(urn: string, assetUrn: string): Promise<Buffer> {
+        const assetUrnTokens = assetUrn.split('/');
+        const account = assetUrnTokens[1];
+        const assetType = assetUrnTokens[2];
+        const assetHash = assetUrnTokens[3];
+        const cdnUrn = `${assetHash.substr(0, 4)}/${account}/${assetType}/${assetHash.substr(4)}`;
+        return this.getBuffer(cdnUrn + `?acmsession=${urn}`, {}, ReadTokenScopes);
     }
 }

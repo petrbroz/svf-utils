@@ -176,26 +176,8 @@ export class Reader {
                 }
                 // And sometimes, they're just missing...
                 if (!imageData) {
-                    log(`Still could not find image ${uri}; defaulting to a single black pixel placeholder image...`);
-                    // Default to a placeholder image based on the extension
-                    const resFolder = path.join(__dirname, '..', '..', 'res');
-                    switch (uri.substr(uri.lastIndexOf('.')).toLowerCase()) {
-                        case '.jpg':
-                        case '.jpeg':
-                            imageData = fse.readFileSync(path.join(resFolder, 'placeholder.jpg'));
-                            break;
-                        case '.png':
-                            imageData = fse.readFileSync(path.join(resFolder, 'placeholder.png'));
-                            break;
-                        case '.bmp':
-                            imageData = fse.readFileSync(path.join(resFolder, 'placeholder.bmp'));
-                            break;
-                        case '.gif':
-                            imageData = fse.readFileSync(path.join(resFolder, 'placeholder.gif'));
-                            break;
-                        default:
-                            throw new Error(`Unsupported image format for ${uri}`);
-                    }
+                    log(`Still could not find image ${uri}; will default to a single black pixel placeholder image...`);
+                    imageData = undefined;
                 }
                 output.images[normalizedUri] = imageData;
                 log(`Downloading image ${uri}: done`);

@@ -6,6 +6,7 @@ import * as gltf from './gltf-schema';
 import { isUndefined, isNullOrUndefined } from 'util';
 import { IMaterial, IFragment, IMesh, ILines, IPoints, IMaterialMap } from '../svf/schema';
 import { ISvfContent } from '../svf/reader';
+import { ImagePlaceholder } from '../common/image-placeholders';
 
 const MaxBufferSize = 5 << 20;
 const DefaultMaterial: gltf.MaterialPbrMetallicRoughness = {
@@ -636,7 +637,28 @@ export class Writer {
             manifestImages.push({ uri: normalizedUri });
             const filePath = path.join(this.baseDir, normalizedUri);
             fse.ensureDirSync(path.dirname(filePath));
-            fse.writeFileSync(filePath, svf.images[normalizedUri]);
+            let imageData = svf.images[normalizedUri];
+            if (!imageData) {
+                // Default to a placeholder image based on the extension
+                switch (normalizedUri.substr(normalizedUri.lastIndexOf('.'))) {
+                    case '.jpg':
+                    case '.jpeg':
+                        imageData = ImagePlaceholder.JPG;
+                        break;
+                    case '.png':
+                        imageData = ImagePlaceholder.PNG;
+                        break;
+                    case '.bmp':
+                        imageData = ImagePlaceholder.BMP;
+                        break;
+                    case '.gif':
+                        imageData = ImagePlaceholder.GIF;
+                        break;
+                    default:
+                        throw new Error(`Unsupported image format for ${normalizedUri}`);
+                }
+            }
+            fse.writeFileSync(filePath, imageData);
         }
         return { source: imageID };
     }

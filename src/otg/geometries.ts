@@ -1,21 +1,28 @@
 import { InputStream } from '../common/input-stream';
 
 interface IGeometry {
-    flags: number;
+    type: GeometryType;
     attributes: IGeometryAttribute[];
     buffers: Buffer[];
 }
 
 interface IGeometryAttribute {
-    name: AttributeName;
-    type: AttributeType;
-    itemSize: number;
+    attributeType: AttributeType; // Type of attribute (indices, vertices, UVs, etc.)
+    componentType: ComponentType; // Type of individual components of each item for this attribute (for example, FLOAT for vec3 vertices)
+    itemSize: number; // Number of components in each item for this attribute (for example, 3 for vec3 vertices)
     itemOffset: number;
     itemStride: number;
     bufferId: number;
 }
 
-enum AttributeName {
+enum GeometryType {
+    Triangles = 0,
+    Lines = 1,
+    Points = 2,
+    WideLines = 3
+}
+
+enum AttributeType {
 	Index = 0,
 	IndexEdges = 1,
 	Position = 2,
@@ -24,7 +31,7 @@ enum AttributeName {
 	Color = 5
 }
 
-enum AttributeType {
+enum ComponentType {
 	BYTE = 0,
 	SHORT = 1,
 	UBYTE = 2,
@@ -46,6 +53,7 @@ export function parseGeometry(buffer: Buffer): IGeometry {
     const magic = stream.getString(4);
     console.assert(magic === 'OTG0');
     const flags = stream.getUint16();
+    const geomType: GeometryType = flags & 0x03;
     const buffCount = stream.getUint8();
     const attrCount = stream.getUint8();
     let buffOffsets = [0];
@@ -70,23 +78,23 @@ export function parseGeometry(buffer: Buffer): IGeometry {
     }
 
     return {
-        flags,
+        type: geomType,
         attributes,
         buffers
     };
 }
 
 function parseGeometryAttribute(stream: InputStream): IGeometryAttribute {
-    const attrName: AttributeName = stream.getUint8();
+    const attributeType: AttributeType = stream.getUint8();
     const b = stream.getUint8();
     const itemSize: number = b & 0x0f;
-    const itemType: AttributeType = (b >> 4) & 0x0f;
+    const componentType: ComponentType = (b >> 4) & 0x0f;
     const itemOffset: number = stream.getUint8(); // offset in bytes
     const itemStride: number = stream.getUint8(); // stride in bytes
     const bufferId: number = stream.getUint8();
     return {
-        name: attrName,
-        type: itemType,
+        attributeType,
+        componentType,
         itemSize,
         itemOffset,
         itemStride,

@@ -1,8 +1,7 @@
 import { AuthenticationClient } from 'forge-server-utils';
 import { IAuthOptions } from 'forge-server-utils/dist/common';
 import { Client as OtgClient, SharedClient as OtgSharedClient, ManifestHelper as OtgManifestHelper, ViewHelper as OtgViewHelper } from './client';
-import { parseGeometryHashes } from './geometry-hashes';
-import { parseMaterialHashes } from './material-hashes';
+import { parseHashes } from './hashes';
 import { parseFragments } from './fragments';
 import { parseGeometry } from './geometries';
 
@@ -93,7 +92,7 @@ export class Reader {
 
     protected async parseGeometries(geomHashListUrn: string, otgViewHelper: OtgViewHelper, output: Map<string, any>): Promise<void> {
         const assetData = await this.client.getAsset(this.urn, geomHashListUrn);
-        for (const hash of parseGeometryHashes(assetData)) {
+        for (const hash of parseHashes(assetData)) {
             const geometryUrn = otgViewHelper.getGeometryUrn(hash);
             const geometryData = await this.sharedClient.getAsset(this.urn, geometryUrn);
             output.set(hash, parseGeometry(geometryData));
@@ -102,7 +101,7 @@ export class Reader {
 
     protected async parseMaterials(matHashListUrn: string, otgViewHelper: OtgViewHelper, output: Map<string, any>): Promise<void> {
         const assetData = await this.client.getAsset(this.urn, matHashListUrn);
-        for (const hash of parseMaterialHashes(assetData)) {
+        for (const hash of parseHashes(assetData)) {
             const materialUrn = otgViewHelper.getMaterialUrn(hash);
             const materialData = await this.sharedClient.getAsset(this.urn, materialUrn);
             output.set(hash, JSON.parse(materialData.toString()));

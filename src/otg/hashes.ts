@@ -1,6 +1,6 @@
 import { InputStream } from '../common/input-stream';
 
-export function *parseMaterialHashes(buffer: Buffer): Iterable<string> {
+export function *parseHashes(buffer: Buffer): Iterable<string> {
     const stream = new InputStream(buffer);
     const hashSize = stream.getUint16();
     console.assert(hashSize % 4 === 0);

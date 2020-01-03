@@ -1,9 +1,10 @@
 import { AuthenticationClient } from 'forge-server-utils';
 import { IAuthOptions } from 'forge-server-utils/dist/common';
-import { Client as OtgClient, ManifestHelper as OtgManifestHelper, ViewHelper as OtgViewHelper } from './client';
+import { Client as OtgClient, SharedClient as OtgSharedClient, ManifestHelper as OtgManifestHelper, ViewHelper as OtgViewHelper } from './client';
 import { parseGeometryHashes } from './geometry-hashes';
 import { parseMaterialHashes } from './material-hashes';
 import { parseFragments } from './fragments';
+import { parseGeometry } from './geometries';
 
 interface IOtg {
     views: IOtgView[];
@@ -12,20 +13,23 @@ interface IOtg {
 interface IOtgView {
     id: string;
     fragments: any[];
-    geometryHashes: string[];
-    materialHashes: string[];
+    geometries: Map<string, any>;
+    materials: Map<string, any>;
 }
 
 export class Reader {
     static async FromDerivativeService(urn: string, guid: string, auth: IAuthOptions): Promise<Reader> {
         urn = urn.replace(/=/g, '');
         let otgClient: OtgClient;
+        let sharedClient: OtgSharedClient;
         if ('token' in auth) {
             otgClient = new OtgClient({ token: auth.token });
+            sharedClient = new OtgSharedClient({ token: auth.token });
         } else {
             const authClient = new AuthenticationClient(auth.client_id, auth.client_secret);
             const newAuth = await authClient.authenticate(['viewables:read', 'data:read']);
             otgClient = new OtgClient({ token: newAuth.access_token });
+            sharedClient = new OtgSharedClient({ token: newAuth.access_token });
         }
 
         const manifest = await otgClient.getManifest(urn);
@@ -33,10 +37,10 @@ export class Reader {
         console.assert(viewable);
         console.assert(viewable.role === 'viewable');
         console.assert('otg_manifest' in viewable);
-        return new Reader(urn, viewable.otg_manifest, otgClient);
+        return new Reader(urn, viewable.otg_manifest, otgClient, sharedClient);
     }
 
-    protected constructor(protected urn: string, protected manifest: any, protected client: OtgClient) {
+    protected constructor(protected urn: string, protected manifest: any, protected client: OtgClient, protected sharedClient: OtgSharedClient) {
     }
 
     async read(): Promise<IOtg> {
@@ -54,36 +58,54 @@ export class Reader {
 
     protected async readView(id: string, resolvedUrn: string): Promise<IOtgView> {
         let fragments: any[] = [];
-        let geometryHashes: string[] = [];
-        let materialHashes: string[] = [];
+        let geometries: Map<string, any> = new Map<string, any>();
+        let materials: Map<string, any> = new Map<string, any>();
         const viewData = await this.client.getAsset(this.urn, resolvedUrn);
         const otgViewHelper = new OtgViewHelper(JSON.parse(viewData.toString()), resolvedUrn);
         const privateModelAssets = otgViewHelper.listPrivateModelAssets();
+        let tasks: Promise<void>[] = [];
         if (privateModelAssets) {
+            if (privateModelAssets.fragments) {
+                tasks.push(this.parseFragments(privateModelAssets.fragments.resolvedUrn, fragments));
+            }
             if (privateModelAssets.geometry_ptrs) {
-                const assetData = await this.client.getAsset(this.urn, privateModelAssets.geometry_ptrs.resolvedUrn);
-                for (const hash of parseGeometryHashes(assetData)) {
-                    geometryHashes.push(hash);
-                }
+                tasks.push(this.parseGeometries(privateModelAssets.geometry_ptrs.resolvedUrn, otgViewHelper, geometries));
             }
             if (privateModelAssets.materials_ptrs) {
-                const assetData = await this.client.getAsset(this.urn, privateModelAssets.materials_ptrs.resolvedUrn);
-                for (const hash of parseMaterialHashes(assetData)) {
-                    materialHashes.push(hash);
-                }
-            }
-            if (privateModelAssets.fragments) {
-                const fragmentData = await this.client.getAsset(this.urn, privateModelAssets.fragments.resolvedUrn);
-                for (const fragment of parseFragments(fragmentData)) {
-                    fragments.push(fragment);
-                }
+                tasks.push(this.parseMaterials(privateModelAssets.materials_ptrs.resolvedUrn, otgViewHelper, materials));
             }
         }
+        await Promise.all(tasks);
         return {
             id,
             fragments,
-            geometryHashes,
-            materialHashes
+            geometries,
+            materials
         };
+    }
+
+    protected async parseFragments(fragListUrn: string, output: any[]): Promise<void> {
+        const fragmentData = await this.client.getAsset(this.urn, fragListUrn);
+        for (const fragment of parseFragments(fragmentData)) {
+            output.push(fragment);
+        }
+    }
+
+    protected async parseGeometries(geomHashListUrn: string, otgViewHelper: OtgViewHelper, output: Map<string, any>): Promise<void> {
+        const assetData = await this.client.getAsset(this.urn, geomHashListUrn);
+        for (const hash of parseGeometryHashes(assetData)) {
+            const geometryUrn = otgViewHelper.getGeometryUrn(hash);
+            const geometryData = await this.sharedClient.getAsset(this.urn, geometryUrn);
+            output.set(hash, parseGeometry(geometryData));
+        }
+    }
+
+    protected async parseMaterials(matHashListUrn: string, otgViewHelper: OtgViewHelper, output: Map<string, any>): Promise<void> {
+        const assetData = await this.client.getAsset(this.urn, matHashListUrn);
+        for (const hash of parseMaterialHashes(assetData)) {
+            const materialUrn = otgViewHelper.getMaterialUrn(hash);
+            const materialData = await this.sharedClient.getAsset(this.urn, materialUrn);
+            output.set(hash, JSON.parse(materialData.toString()));
+        }
     }
 }

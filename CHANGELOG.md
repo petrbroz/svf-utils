@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Changed
+  - Updated to TypeScript version 3.7
+- Fixed
+  - Extended fix from version 2.0.1: 1x1 black pixel images now used also when materials reference non-existent texture URIs
+
 ## [2.0.1] - 2019-12-20
 
 - Fixed

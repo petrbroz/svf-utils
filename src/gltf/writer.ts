@@ -2,7 +2,7 @@ import * as path from 'path';
 import crypto from 'crypto';
 import * as fse from 'fs-extra';
 
-import * as gltf from './gltf-schema';
+import * as gltf from './schema';
 import { isUndefined, isNullOrUndefined } from 'util';
 import { ImagePlaceholder } from '../common/image-placeholders';
 import * as IntermediateSchema from '../imf/schema';
@@ -40,7 +40,7 @@ interface IWriterStats {
 }
 
 /**
- * Utility class for serializing SVF content to local file system as glTF (2.0).
+ * Utility class for serializing parsed 3D content to local file system as glTF (2.0).
  */
 export class Writer {
     protected options: Required<IWriterOptions>;
@@ -168,14 +168,14 @@ export class Writer {
         // Setup transformation to glTF coordinate system
         const metadata = imf.getMetadata();
         if (metadata['world up vector'] && metadata['world front vector'] && metadata['distance unit']) {
-            const svfUp = metadata['world up vector'].XYZ;
-            const svfFront = metadata['world front vector'].XYZ;
+            const up = metadata['world up vector'].XYZ;
+            const front = metadata['world front vector'].XYZ;
             const distanceUnit = metadata['distance unit'].value;
-            if (svfUp && svfFront && distanceUnit) {
-                const svfLeft = [
-                    svfUp[1] * svfFront[2] - svfUp[2] * svfFront[1],
-                    svfUp[2] * svfFront[0] - svfUp[0] * svfFront[2],
-                    svfUp[0] * svfFront[1] - svfUp[1] * svfFront[0]
+            if (up && front && distanceUnit) {
+                const left = [
+                    up[1] * front[2] - up[2] * front[1],
+                    up[2] * front[0] - up[0] * front[2],
+                    up[0] * front[1] - up[1] * front[0]
                 ];
 
                 let scale = 1.0;
@@ -201,22 +201,22 @@ export class Writer {
                 }
 
                 rootNode.matrix = [
-                    svfLeft[0] * scale, svfUp[0] * scale, svfFront[0] * scale, 0,
-                    svfLeft[1] * scale, svfUp[1] * scale, svfFront[1] * scale, 0,
-                    svfLeft[2] * scale, svfUp[2] * scale, svfFront[2] * scale, 0,
+                    left[0] * scale, up[0] * scale, front[0] * scale, 0,
+                    left[1] * scale, up[1] * scale, front[1] * scale, 0,
+                    left[2] * scale, up[2] * scale, front[2] * scale, 0,
                     0, 0, 0, 1
                 ];
             }
         }
         // Setup translation to origin when enabled
         if (metadata['world bounding box'] && this.options.center) {
-            const svfBoundsMin = metadata['world bounding box'].minXYZ;
-            const svfBoundsMax = metadata['world bounding box'].maxXYZ;
-            if (svfBoundsMin && svfBoundsMax) {
+            const boundsMin = metadata['world bounding box'].minXYZ;
+            const boundsMax = metadata['world bounding box'].maxXYZ;
+            if (boundsMin && boundsMax) {
                 let translation = [
-                    -0.5 * (svfBoundsMin[0] + svfBoundsMax[0]),
-                    -0.5 * (svfBoundsMin[1] + svfBoundsMax[1]),
-                    -0.5 * (svfBoundsMin[2] + svfBoundsMax[2])
+                    -0.5 * (boundsMin[0] + boundsMax[0]),
+                    -0.5 * (boundsMin[1] + boundsMax[1]),
+                    -0.5 * (boundsMin[2] + boundsMax[2])
                 ];
                 xformNode.matrix = [
                     1, 0, 0, 0,
@@ -232,6 +232,7 @@ export class Writer {
         const { filter } = this.options;
         for (let i = 0, len = imf.getNodeCount(); i < len; i++) {
             const fragment = imf.getNode(i);
+            // Currently we only support flat lists of objects, no hierarchies
             if (fragment.kind !== IntermediateSchema.NodeKind.Object) {
                 continue;
             }

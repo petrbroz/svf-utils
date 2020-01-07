@@ -18,6 +18,7 @@ export interface IScene {
     getCamera(id: CameraID): Camera;
     getLightCount(): number;
     getLight(id: LightID): Light;
+    getImage(uri: string): Buffer | undefined;
 }
 
 export interface IVec3 {
@@ -132,6 +133,9 @@ export interface IPhysicalMaterial {
     diffuse: IVec3;
     metallic: number;
     opacity: number;
+    maps?: {
+        diffuse?: string;
+    };
 }
 
 export type Material = IPhysicalMaterial;

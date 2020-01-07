@@ -628,54 +628,54 @@ export class Writer {
             material.pbrMetallicRoughness.baseColorFactor[3] = mat.opacity;
         }
 
-        // if (mat.maps) {
-        //     const manifestTextures = this.manifest.textures as gltf.Texture[];
-        //     if (mat.maps.diffuse) {
-        //         const textureID = manifestTextures.length;
-        //         manifestTextures.push(this.createTexture(mat.maps.diffuse, svf));
-        //         material.pbrMetallicRoughness.baseColorTexture = {
-        //             index: textureID,
-        //             texCoord: 0
-        //         };
-        //     }
-        // }
+        if (mat.maps) {
+            const manifestTextures = this.manifest.textures as gltf.Texture[];
+            if (mat.maps.diffuse) {
+                const textureID = manifestTextures.length;
+                manifestTextures.push(this.createTexture(mat.maps.diffuse, imf));
+                material.pbrMetallicRoughness.baseColorTexture = {
+                    index: textureID,
+                    texCoord: 0
+                };
+            }
+        }
         return material;
     }
 
-    // protected createTexture(map: IMaterialMap, svf: ISvfContent): gltf.Texture {
-    //     const manifestImages = this.manifest.images as gltf.Image[];
-    //     let imageID = manifestImages.findIndex(image => image.uri === map.uri);
-    //     if (imageID === -1) {
-    //         imageID = manifestImages.length;
-    //         const normalizedUri = map.uri.toLowerCase().split(/[\/\\]/).join(path.sep);
-    //         manifestImages.push({ uri: normalizedUri });
-    //         const filePath = path.join(this.baseDir, normalizedUri);
-    //         fse.ensureDirSync(path.dirname(filePath));
-    //         let imageData = svf.images[normalizedUri];
-    //         if (!imageData) {
-    //             // Default to a placeholder image based on the extension
-    //             switch (normalizedUri.substr(normalizedUri.lastIndexOf('.'))) {
-    //                 case '.jpg':
-    //                 case '.jpeg':
-    //                     imageData = ImagePlaceholder.JPG;
-    //                     break;
-    //                 case '.png':
-    //                     imageData = ImagePlaceholder.PNG;
-    //                     break;
-    //                 case '.bmp':
-    //                     imageData = ImagePlaceholder.BMP;
-    //                     break;
-    //                 case '.gif':
-    //                     imageData = ImagePlaceholder.GIF;
-    //                     break;
-    //                 default:
-    //                     throw new Error(`Unsupported image format for ${normalizedUri}`);
-    //             }
-    //         }
-    //         fse.writeFileSync(filePath, imageData);
-    //     }
-    //     return { source: imageID };
-    // }
+    protected createTexture(uri: string, imf: IntermediateSchema.IScene): gltf.Texture {
+        const manifestImages = this.manifest.images as gltf.Image[];
+        let imageID = manifestImages.findIndex(image => image.uri === uri);
+        if (imageID === -1) {
+            imageID = manifestImages.length;
+            const normalizedUri = uri.toLowerCase().split(/[\/\\]/).join(path.sep);
+            manifestImages.push({ uri: normalizedUri });
+            const filePath = path.join(this.baseDir, normalizedUri);
+            fse.ensureDirSync(path.dirname(filePath));
+            let imageData = imf.getImage(normalizedUri);
+            if (!imageData) {
+                // Default to a placeholder image based on the extension
+                switch (normalizedUri.substr(normalizedUri.lastIndexOf('.'))) {
+                    case '.jpg':
+                    case '.jpeg':
+                        imageData = ImagePlaceholder.JPG;
+                        break;
+                    case '.png':
+                        imageData = ImagePlaceholder.PNG;
+                        break;
+                    case '.bmp':
+                        imageData = ImagePlaceholder.BMP;
+                        break;
+                    case '.gif':
+                        imageData = ImagePlaceholder.GIF;
+                        break;
+                    default:
+                        throw new Error(`Unsupported image format for ${normalizedUri}`);
+                }
+            }
+            fse.writeFileSync(filePath, imageData);
+        }
+        return { source: imageID };
+    }
 
     protected computeMeshHash(mesh: gltf.Mesh): string {
         return mesh.primitives.map(p => {

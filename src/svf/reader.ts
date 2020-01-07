@@ -121,12 +121,16 @@ export class Scene implements IntermediateSchema.IScene {
             kind: IntermediateSchema.MaterialKind.Physical,
             diffuse: { x: 0, y: 0, z: 0 },
             metallic: _mat?.metal ? 1.0 : 0.0,
-            opacity: _mat?.opacity ?? 1.0
+            opacity: _mat?.opacity ?? 1.0,
         };
         if (_mat?.diffuse) {
             mat.diffuse.x = _mat.diffuse[0];
             mat.diffuse.y = _mat.diffuse[1];
             mat.diffuse.z = _mat.diffuse[2];
+        }
+        if (_mat?.maps?.diffuse) {
+            mat.maps = mat.maps || {};
+            mat.maps.diffuse = _mat.maps.diffuse.uri
         }
         return mat;
     }
@@ -145,6 +149,10 @@ export class Scene implements IntermediateSchema.IScene {
 
     getLight(id: number): IntermediateSchema.ISpotLight {
         throw new Error("Method not implemented.");
+    }
+
+    getImage(uri: string): Buffer | undefined {
+        return this.svf.images[uri];
     }
 }
 

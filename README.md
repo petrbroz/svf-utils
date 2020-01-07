@@ -217,3 +217,10 @@ In _.vscode/launch.json_:
 }
 ...
 ```
+
+### Intermediate Format
+
+The project provides a collection of interfaces for an [intermediate 3D format](./src/imf/schema.ts)
+that is meant to be used by all loaders and writers. When implementing a new loader, make sure that
+its output implements the intermediate format's `IScene` interface. Similarly, this interface should
+also be expected as the input to all new writers.

@@ -175,8 +175,8 @@ export interface IReaderOptions {
  * @example
  * const auth = { client_id: 'forge client id', client_secret: 'forge client secreet' };
  * const reader = await Reader.FromDerivativeService('model urn', 'viewable guid', auth);
- * const svf = await reader.read(); // Read entire SVF into memory
- * console.log(svf);
+ * const imf = await reader.read(); // Read entire scene into an intermediate, in-memory representation
+ * console.log(imf);
  *
  * @example
  * const reader = await Reader.FromFileSystem('path/to/svf');
@@ -243,11 +243,13 @@ export class Reader {
     }
 
     /**
-     * Reads the entire SVF and all its referenced assets into memory.
+     * Reads the entire scene and all its referenced assets into memory.
      * In cases where a more granular control is needed (for example, when trying to control
      * memory consumption), consider parsing the different SVF elements individually,
      * using methods like {@link readFragments}, {@link enumerateGeometries}, etc.
+     * @async
      * @param {IReaderOptions} [options] Additional reading options.
+     * @returns {Promise<IntermediateSchema.IScene>} Intermediate, in-memory representation of the loaded scene.
      */
     async read(options?: IReaderOptions): Promise<IntermediateSchema.IScene> {
         let output: any = {

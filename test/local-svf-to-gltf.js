@@ -17,12 +17,12 @@ async function run (filepath, outputDir) {
 
     try {
         const reader = await SvfReader.FromFileSystem(filepath);
-        const svf = await reader.read();
+        const scene = await reader.read();
         let writer;
         writer = new GltfWriter(Object.assign({}, defaultOptions));
-        await writer.write(svf, path.join(outputDir, 'gltf-raw'));
+        await writer.write(scene, path.join(outputDir, 'gltf-raw'));
         writer = new GltfWriter(Object.assign({}, defaultOptions, { deduplicate: true, skipUnusedUvs: true }));
-        await writer.write(svf, path.join(outputDir, 'gltf-dedup'));
+        await writer.write(scene, path.join(outputDir, 'gltf-dedup'));
     } catch(err) {
         console.error(err);
         process.exit(1);

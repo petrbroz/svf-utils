@@ -109,8 +109,8 @@ async function run(urn, outputDir) {
     const writer = new GltfWriter(writerOptions);
     for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
         const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
-        const svf = await reader.read(readerOptions);
-        await writer.write(svf, path.join(outputDir, derivative.guid));
+        const scene = await reader.read(readerOptions);
+        await writer.write(scene, path.join(outputDir, derivative.guid));
     }
 }
 
@@ -217,3 +217,10 @@ In _.vscode/launch.json_:
 }
 ...
 ```
+
+### Intermediate Format
+
+The project provides a collection of interfaces for an [intermediate 3D format](./src/imf/schema.ts)
+that is meant to be used by all loaders and writers. When implementing a new loader, make sure that
+its output implements the intermediate format's `IScene` interface. Similarly, this interface should
+also be expected as the input to all new writers.

@@ -2,10 +2,10 @@ import * as path from 'path';
 import crypto from 'crypto';
 import * as fse from 'fs-extra';
 
-import * as gltf from './gltf-schema';
+import * as gltf from './schema';
 import { isUndefined, isNullOrUndefined } from 'util';
-import { IMaterial, IFragment, IMesh, ILines, IPoints, IMaterialMap } from '../svf/schema';
-import { ISvfContent } from '../svf/reader';
+import { ImagePlaceholder } from '../common/image-placeholders';
+import * as IntermediateSchema from '../imf/schema';
 
 const MaxBufferSize = 5 << 20;
 const DefaultMaterial: gltf.MaterialPbrMetallicRoughness = {
@@ -28,8 +28,8 @@ export interface IWriterOptions {
     filter?: (dbid: number) => boolean;
 }
 
-function hasTextures(material: IMaterial | null): boolean {
-    return !!material && !!material.maps && (!!material.maps.diffuse || !!material.maps.specular);
+function hasTextures(material: IntermediateSchema.Material | null): boolean {
+    return !!(material?.maps?.diffuse);
 }
 
 interface IWriterStats {
@@ -40,7 +40,7 @@ interface IWriterStats {
 }
 
 /**
- * Utility class for serializing SVF content to local file system as glTF (2.0).
+ * Utility class for serializing parsed 3D content to local file system as glTF (2.0).
  */
 export class Writer {
     protected options: Required<IWriterOptions>;
@@ -86,14 +86,14 @@ export class Writer {
     }
 
     /**
-     * Outputs entire SVF scene into glTF or glb.
+     * Outputs scene into glTF or glb.
      * @async
-     * @param {ISvfContent} svf SVF content loaded in memory.
+     * @param {IntermediateSchema.IScene} imf Complete scene in intermediate, in-memory format.
      * @param {string} outputDir Path to output folder.
      */
-    async write(svf: ISvfContent, outputDir: string) {
+    async write(imf: IntermediateSchema.IScene, outputDir: string) {
         this.reset(outputDir);
-        const scene = this.createScene(svf);
+        const scene = this.createScene(imf);
         const scenes = this.manifest.scenes as gltf.Scene[];
         scenes.push(scene);
 
@@ -112,7 +112,7 @@ export class Writer {
         fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
         this.options.log(`Closing gltf output: done`);
         this.options.log(`Stats: ${JSON.stringify(this.stats)}`);
-        await this.postprocess(svf, gltfPath);
+        await this.postprocess(imf, gltfPath);
     }
 
     protected reset(outputDir: string) {
@@ -149,10 +149,10 @@ export class Writer {
         };
     }
 
-    protected async postprocess(svf: ISvfContent, gltfPath: string) {
+    protected async postprocess(imf: IntermediateSchema.IScene, gltfPath: string) {
     }
 
-    protected createScene(svf: ISvfContent): gltf.Scene {
+    protected createScene(imf: IntermediateSchema.IScene): gltf.Scene {
         fse.ensureDirSync(this.baseDir);
 
         let scene: gltf.Scene = {
@@ -166,16 +166,16 @@ export class Writer {
         (rootNode.children as number[]).push(manifestNodes.push(xformNode) - 1);
 
         // Setup transformation to glTF coordinate system
-        const { metadata } = svf.metadata;
+        const metadata = imf.getMetadata();
         if (metadata['world up vector'] && metadata['world front vector'] && metadata['distance unit']) {
-            const svfUp = metadata['world up vector'].XYZ;
-            const svfFront = metadata['world front vector'].XYZ;
+            const up = metadata['world up vector'].XYZ;
+            const front = metadata['world front vector'].XYZ;
             const distanceUnit = metadata['distance unit'].value;
-            if (svfUp && svfFront && distanceUnit) {
-                const svfLeft = [
-                    svfUp[1] * svfFront[2] - svfUp[2] * svfFront[1],
-                    svfUp[2] * svfFront[0] - svfUp[0] * svfFront[2],
-                    svfUp[0] * svfFront[1] - svfUp[1] * svfFront[0]
+            if (up && front && distanceUnit) {
+                const left = [
+                    up[1] * front[2] - up[2] * front[1],
+                    up[2] * front[0] - up[0] * front[2],
+                    up[0] * front[1] - up[1] * front[0]
                 ];
 
                 let scale = 1.0;
@@ -201,22 +201,22 @@ export class Writer {
                 }
 
                 rootNode.matrix = [
-                    svfLeft[0] * scale, svfUp[0] * scale, svfFront[0] * scale, 0,
-                    svfLeft[1] * scale, svfUp[1] * scale, svfFront[1] * scale, 0,
-                    svfLeft[2] * scale, svfUp[2] * scale, svfFront[2] * scale, 0,
+                    left[0] * scale, up[0] * scale, front[0] * scale, 0,
+                    left[1] * scale, up[1] * scale, front[1] * scale, 0,
+                    left[2] * scale, up[2] * scale, front[2] * scale, 0,
                     0, 0, 0, 1
                 ];
             }
         }
         // Setup translation to origin when enabled
         if (metadata['world bounding box'] && this.options.center) {
-            const svfBoundsMin = metadata['world bounding box'].minXYZ;
-            const svfBoundsMax = metadata['world bounding box'].maxXYZ;
-            if (svfBoundsMin && svfBoundsMax) {
+            const boundsMin = metadata['world bounding box'].minXYZ;
+            const boundsMax = metadata['world bounding box'].maxXYZ;
+            if (boundsMin && boundsMax) {
                 let translation = [
-                    -0.5 * (svfBoundsMin[0] + svfBoundsMax[0]),
-                    -0.5 * (svfBoundsMin[1] + svfBoundsMax[1]),
-                    -0.5 * (svfBoundsMin[2] + svfBoundsMax[2])
+                    -0.5 * (boundsMin[0] + boundsMax[0]),
+                    -0.5 * (boundsMin[1] + boundsMax[1]),
+                    -0.5 * (boundsMin[2] + boundsMax[2])
                 ];
                 xformNode.matrix = [
                     1, 0, 0, 0,
@@ -230,14 +230,19 @@ export class Writer {
         const nodeIndices = (xformNode.children as number[]);
         this.options.log(`Writing scene nodes...`);
         const { filter } = this.options;
-        for (const fragment of svf.fragments) {
-            if (!filter(fragment.dbID)) {
+        for (let i = 0, len = imf.getNodeCount(); i < len; i++) {
+            const fragment = imf.getNode(i);
+            // Currently we only support flat lists of objects, no hierarchies
+            if (fragment.kind !== IntermediateSchema.NodeKind.Object) {
                 continue;
             }
-            const material = svf.materials[fragment.materialID];
+            if (!filter(fragment.dbid)) {
+                continue;
+            }
+            const material = imf.getMaterial(fragment.material);
             // Only output UVs if there are any textures or if the user specifically asked not to skip unused UVs
             const outputUvs = hasTextures(material) || !this.options.skipUnusedUvs;
-            const node = this.createNode(fragment, svf, outputUvs);
+            const node = this.createNode(fragment, imf, outputUvs);
             // Only output nodes that have a mesh
             if (!isUndefined(node.mesh)) {
                 nodeIndices.push(manifestNodes.push(node) - 1);
@@ -247,15 +252,15 @@ export class Writer {
         this.options.log(`Writing materials...`);
         if (this.options.deduplicate) {
             const hashes: string[] = [];
-            const newMaterialIndices = new Uint16Array(svf.materials.length);
-            for (let i = 0, len = svf.materials.length; i < len; i++) {
-                const material = svf.materials[i];
+            const newMaterialIndices = new Uint16Array(imf.getMaterialCount());
+            for (let i = 0, len = imf.getMaterialCount(); i < len; i++) {
+                const material = imf.getMaterial(i);
                 const hash = this.computeMaterialHash(material);
                 const match = hashes.indexOf(hash);
                 if (match === -1) {
                     // If this is a first occurrence of the hash in the array, output a new material
                     newMaterialIndices[i] = manifestMaterials.length;
-                    manifestMaterials.push(this.createMaterial(material, svf));
+                    manifestMaterials.push(this.createMaterial(material, imf));
                     hashes.push(hash);
                 } else {
                     // Otherwise skip the material, and record an index to the first match below
@@ -273,8 +278,9 @@ export class Writer {
                 }
             }
         } else {
-            for (const material of svf.materials) {
-                const mat = this.createMaterial(material, svf);
+            for (let i = 0, len = imf.getMaterialCount(); i < len; i++) {
+                const material = imf.getMaterial(i);
+                const mat = this.createMaterial(material, imf);
                 manifestMaterials.push(mat);
             }
         }
@@ -283,55 +289,54 @@ export class Writer {
         return scene;
     }
 
-    protected createNode(fragment: IFragment, svf: ISvfContent, outputUvs: boolean): gltf.Node {
+    protected createNode(fragment: IntermediateSchema.IObjectNode, imf: IntermediateSchema.IScene, outputUvs: boolean): gltf.Node {
         let node: gltf.Node = {
-            name: fragment.dbID.toString()
+            name: fragment.dbid.toString()
         };
 
         if (fragment.transform) {
-            const xform = fragment.transform as any;
-            if ('t' in xform) {
-                const t = xform.t;
-                node.translation = [t.x, t.y, t.z];
-            }
-            if ('s' in xform) {
-                const s = xform.s;
-                node.scale = [s.x, s.y, s.z];
-            }
-            if ('q' in xform) {
-                const q = xform.q;
-                node.rotation = [q.x, q.y, q.z, q.w];
-            }
-            if ('matrix' in xform) {
-                const m = xform.matrix;
-                const t = xform.t;
-                node.matrix = [
-                    m[0], m[3], m[6], 0,
-                    m[1], m[4], m[7], 0,
-                    m[2], m[5], m[8], 0,
-                    t.x, t.y, t.z, 1
-                ]; // 4x4, column major
-                delete node.translation; // Translation is already included in the 4x4 matrix
+            switch (fragment.transform.kind) {
+                case IntermediateSchema.TransformKind.Matrix:
+                    node.matrix = fragment.transform.elements;
+                    break;
+                case IntermediateSchema.TransformKind.Decomposed:
+                    if (fragment.transform.scale) {
+                        const s = fragment.transform.scale;
+                        node.scale = [s.x, s.y, s.z];
+                    }
+                    if (fragment.transform.rotation) {
+                        const r = fragment.transform.rotation;
+                        node.rotation = [r.x, r.y, r.z, r.w];
+                    }
+                    if (fragment.transform.translation) {
+                        const t = fragment.transform.translation;
+                        node.translation = [t.x, t.y, t.z];
+                    }
+                    break;
             }
         }
 
-        const geometry = svf.geometries[fragment.geometryID];
-        const fragmesh = svf.meshpacks[geometry.packID][geometry.entityID];
-        if (fragmesh) {
-            let mesh: gltf.Mesh;
-            if ('isLines' in fragmesh) {
-                mesh = this.createLineGeometry(fragmesh, svf);
-            } else if ('isPoints' in fragmesh) {
-                mesh = this.createPointGeometry(fragmesh, svf);
-            } else {
-                mesh = this.createMeshGeometry(fragmesh, svf, outputUvs);
-            }
+        const geometry = imf.getGeometry(fragment.geometry);
+        let mesh: gltf.Mesh | undefined = undefined;
+        switch (geometry.kind) {
+            case IntermediateSchema.GeometryKind.Mesh:
+                mesh = this.createMeshGeometry(geometry, imf, outputUvs);
+                break;
+            case IntermediateSchema.GeometryKind.Lines:
+                mesh = this.createLineGeometry(geometry, imf);
+                break;
+            case IntermediateSchema.GeometryKind.Points:
+                mesh = this.createPointGeometry(geometry, imf);
+                break;
+            case IntermediateSchema.GeometryKind.Empty:
+                console.warn('Could not find mesh for fragment', fragment, 'geometry', geometry);
+                break;
+        }
+        if (mesh) {
             for (const primitive of mesh.primitives) {
-                primitive.material = fragment.materialID;
+                primitive.material = fragment.material;
             }
             node.mesh = this.addMesh(mesh);
-        } else {
-            console.warn('Could not find mesh for fragment', fragment, 'geometry', geometry);
         }
         return node;
     }
@@ -352,7 +357,7 @@ export class Writer {
         }
     }
 
-    protected createMeshGeometry(fragmesh: IMesh, svf: ISvfContent, outputUvs: boolean): gltf.Mesh {
+    protected createMeshGeometry(geometry: IntermediateSchema.IMeshGeometry, imf: IntermediateSchema.IScene, outputUvs: boolean): gltf.Mesh {
         let mesh: gltf.Mesh = {
             primitives: []
         };
@@ -362,22 +367,25 @@ export class Writer {
         }
 
         // Output index buffer
-        const indexBufferView = this.createBufferView(Buffer.from(fragmesh.indices.buffer));
+        const indices = geometry.getIndices();
+        const indexBufferView = this.createBufferView(Buffer.from(indices.buffer));
         const indexBufferViewID = this.addBufferView(indexBufferView);
         const indexAccessor = this.createAccessor(indexBufferViewID, 5123, indexBufferView.byteLength / 2, 'SCALAR');
         const indexAccessorID = this.addAccessor(indexAccessor);
 
         // Output vertex buffer
-        const positionBounds = this.computeBoundsVec3(fragmesh.vertices); // Compute bounds manually, just in case
-        const positionBufferView = this.createBufferView(Buffer.from(fragmesh.vertices.buffer));
+        const vertices = geometry.getVertices();
+        const positionBounds = this.computeBoundsVec3(vertices); // Compute bounds manually, just in case
+        const positionBufferView = this.createBufferView(Buffer.from(vertices.buffer));
         const positionBufferViewID = this.addBufferView(positionBufferView);
         const positionAccessor = this.createAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max/*[fragmesh.min.x, fragmesh.min.y, fragmesh.min.z], [fragmesh.max.x, fragmesh.max.y, fragmesh.max.z]*/);
         const positionAccessorID = this.addAccessor(positionAccessor);
 
         // Output normals buffer
         let normalAccessorID: number | undefined = undefined;
-        if (fragmesh.normals) {
-            const normalBufferView = this.createBufferView(Buffer.from(fragmesh.normals.buffer));
+        const normals = geometry.getNormals();
+        if (normals) {
+            const normalBufferView = this.createBufferView(Buffer.from(normals.buffer));
             const normalBufferViewID = this.addBufferView(normalBufferView);
             const normalAccessor = this.createAccessor(normalBufferViewID, 5126, normalBufferView.byteLength / 4 / 3, 'VEC3');
             normalAccessorID = this.addAccessor(normalAccessor);
@@ -385,8 +393,9 @@ export class Writer {
 
         // Output UV buffers
         let uvAccessorID: number | undefined = undefined;
-        if (fragmesh.uvmaps && fragmesh.uvmaps.length > 0 && outputUvs) {
-            const uvBufferView = this.createBufferView(Buffer.from(fragmesh.uvmaps[0].uvs.buffer));
+        if (geometry.getUvChannelCount() > 0 && outputUvs) {
+            const uvs = geometry.getUvs(0);
+            const uvBufferView = this.createBufferView(Buffer.from(uvs.buffer));
             const uvBufferViewID = this.addBufferView(uvBufferView);
             const uvAccessor = this.createAccessor(uvBufferViewID, 5126, uvBufferView.byteLength / 4 / 2, 'VEC2');
             uvAccessorID = this.addAccessor(uvAccessor);
@@ -409,7 +418,7 @@ export class Writer {
         return mesh;
     }
 
-    protected createLineGeometry(fragmesh: ILines, svf: ISvfContent): gltf.Mesh {
+    protected createLineGeometry(geometry: IntermediateSchema.ILineGeometry, imf: IntermediateSchema.IScene): gltf.Mesh {
         let mesh: gltf.Mesh = {
             primitives: []
         };
@@ -419,22 +428,25 @@ export class Writer {
         }
 
         // Output index buffer
-        const indexBufferView = this.createBufferView(Buffer.from(fragmesh.indices.buffer));
+        const indices = geometry.getIndices();
+        const indexBufferView = this.createBufferView(Buffer.from(indices.buffer));
         const indexBufferViewID = this.addBufferView(indexBufferView);
         const indexAccessor = this.createAccessor(indexBufferViewID, 5123, indexBufferView.byteLength / 2, 'SCALAR');
         const indexAccessorID = this.addAccessor(indexAccessor);
 
         // Output vertex buffer
-        const positionBounds = this.computeBoundsVec3(fragmesh.vertices);
-        const positionBufferView = this.createBufferView(Buffer.from(fragmesh.vertices.buffer));
+        const vertices = geometry.getVertices();
+        const positionBounds = this.computeBoundsVec3(vertices);
+        const positionBufferView = this.createBufferView(Buffer.from(vertices.buffer));
         const positionBufferViewID = this.addBufferView(positionBufferView);
         const positionAccessor = this.createAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max);
         const positionAccessorID = this.addAccessor(positionAccessor);
 
         // Output color buffer
         let colorAccessorID: number | undefined = undefined;
-        if (fragmesh.colors) {
-            const colorBufferView = this.createBufferView(Buffer.from(fragmesh.colors.buffer));
+        const colors = geometry.getColors();
+        if (colors) {
+            const colorBufferView = this.createBufferView(Buffer.from(colors.buffer));
             const colorBufferViewID = this.addBufferView(colorBufferView);
             const colorAccessor = this.createAccessor(colorBufferViewID, 5126, colorBufferView.byteLength / 4 / 3, 'VEC3');
             colorAccessorID = this.addAccessor(colorAccessor);
@@ -455,7 +467,7 @@ export class Writer {
         return mesh;
     }
 
-    protected createPointGeometry(fragmesh: IPoints, svf: ISvfContent): gltf.Mesh {
+    protected createPointGeometry(geometry: IntermediateSchema.IPointGeometry, imf: IntermediateSchema.IScene): gltf.Mesh {
         let mesh: gltf.Mesh = {
             primitives: []
         };
@@ -465,16 +477,18 @@ export class Writer {
         }
 
         // Output vertex buffer
-        const positionBounds = this.computeBoundsVec3(fragmesh.vertices);
-        const positionBufferView = this.createBufferView(Buffer.from(fragmesh.vertices.buffer));
+        const vertices = geometry.getVertices();
+        const positionBounds = this.computeBoundsVec3(vertices);
+        const positionBufferView = this.createBufferView(Buffer.from(vertices.buffer));
         const positionBufferViewID = this.addBufferView(positionBufferView);
         const positionAccessor = this.createAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max);
         const positionAccessorID = this.addAccessor(positionAccessor);
 
         // Output color buffer
         let colorAccessorID: number | undefined = undefined;
-        if (fragmesh.colors) {
-            const colorBufferView = this.createBufferView(Buffer.from(fragmesh.colors.buffer));
+        const colors = geometry.getColors();
+        if (colors) {
+            const colorBufferView = this.createBufferView(Buffer.from(colors.buffer));
             const colorBufferViewID = this.addBufferView(colorBufferView);
             const colorAccessor = this.createAccessor(colorBufferViewID, 5126, colorBufferView.byteLength / 4 / 3, 'VEC3');
             colorAccessorID = this.addAccessor(colorAccessor);
@@ -596,15 +610,16 @@ export class Writer {
         return accessor;
     }
 
-    protected createMaterial(mat: IMaterial | null, svf: ISvfContent): gltf.MaterialPbrMetallicRoughness {
+    protected createMaterial(mat: IntermediateSchema.Material | null, imf: IntermediateSchema.IScene): gltf.MaterialPbrMetallicRoughness {
         if (!mat) {
             return DefaultMaterial;
         }
 
+        const diffuse = mat.diffuse;
         let material: gltf.MaterialPbrMetallicRoughness = {
             pbrMetallicRoughness: {
-                baseColorFactor: mat.diffuse,
-                metallicFactor: mat.metal ? 1.0 : 0.0,
+                baseColorFactor: [diffuse.x, diffuse.y, diffuse.z, 1.0],
+                metallicFactor: mat.metallic,
                 // roughnessFactor: (mat.glossiness || 0) / 255.0
             }
         };
@@ -617,7 +632,7 @@ export class Writer {
             const manifestTextures = this.manifest.textures as gltf.Texture[];
             if (mat.maps.diffuse) {
                 const textureID = manifestTextures.length;
-                manifestTextures.push(this.createTexture(mat.maps.diffuse, svf));
+                manifestTextures.push(this.createTexture(mat.maps.diffuse, imf));
                 material.pbrMetallicRoughness.baseColorTexture = {
                     index: textureID,
                     texCoord: 0
@@ -627,16 +642,37 @@ export class Writer {
         return material;
     }
 
-    protected createTexture(map: IMaterialMap, svf: ISvfContent): gltf.Texture {
+    protected createTexture(uri: string, imf: IntermediateSchema.IScene): gltf.Texture {
         const manifestImages = this.manifest.images as gltf.Image[];
-        let imageID = manifestImages.findIndex(image => image.uri === map.uri);
+        let imageID = manifestImages.findIndex(image => image.uri === uri);
         if (imageID === -1) {
             imageID = manifestImages.length;
-            const normalizedUri = map.uri.toLowerCase().split(/[\/\\]/).join(path.sep);
+            const normalizedUri = uri.toLowerCase().split(/[\/\\]/).join(path.sep);
             manifestImages.push({ uri: normalizedUri });
             const filePath = path.join(this.baseDir, normalizedUri);
             fse.ensureDirSync(path.dirname(filePath));
-            fse.writeFileSync(filePath, svf.images[normalizedUri]);
+            let imageData = imf.getImage(normalizedUri);
+            if (!imageData) {
+                // Default to a placeholder image based on the extension
+                switch (normalizedUri.substr(normalizedUri.lastIndexOf('.'))) {
+                    case '.jpg':
+                    case '.jpeg':
+                        imageData = ImagePlaceholder.JPG;
+                        break;
+                    case '.png':
+                        imageData = ImagePlaceholder.PNG;
+                        break;
+                    case '.bmp':
+                        imageData = ImagePlaceholder.BMP;
+                        break;
+                    case '.gif':
+                        imageData = ImagePlaceholder.GIF;
+                        break;
+                    default:
+                        throw new Error(`Unsupported image format for ${normalizedUri}`);
+                }
+            }
+            fse.writeFileSync(filePath, imageData);
         }
         return { source: imageID };
     }
@@ -661,29 +697,12 @@ export class Writer {
         return hash.digest('hex');
     }
 
-    protected computeMaterialHash(material: IMaterial | null): string {
+    protected computeMaterialHash(material: IntermediateSchema.IPhysicalMaterial | null): string {
         if (!material) {
             return 'null';
         }
         const hash = crypto.createHash('md5');
-        let tmp = new Float32Array(4);
-        tmp.set(material.ambient || [0, 0, 0, 0]);
-        hash.update(tmp);
-        tmp.set(material.diffuse || [0, 0, 0, 0]);
-        hash.update(tmp);
-        tmp.set(material.specular || [0, 0, 0, 0]);
-        hash.update(tmp);
-        tmp.set(material.emissive || [0, 0, 0, 0]);
-        hash.update(tmp);
-        tmp.set([material.glossiness || 0, material.reflectivity || 0, material.opacity || 0, material.metal ? 1 : 0]);
-        if (material.maps) {
-            const { diffuse, specular, normal, bump, alpha } = material.maps;
-            hash.update(diffuse ? diffuse.uri : '');
-            hash.update(specular ? specular.uri : '');
-            hash.update(normal ? normal.uri : '');
-            hash.update(bump ? bump.uri : '');
-            hash.update(alpha ? alpha.uri : '');
-        }
+        hash.update(JSON.stringify(material)); // TODO
         return hash.digest('hex');
     }
 

@@ -1,6 +1,6 @@
 {
   "name": "forge-convert-utils",
-  "version": "2.0.1",
+  "version": "3.0.0",
   "description": "Tools for converting Autodesk Forge file formats.",
   "main": "lib/index.js",
   "bin": {
@@ -33,7 +33,7 @@
     "@types/adm-zip": "^0.4.32",
     "@types/fs-extra": "^8.0.0",
     "typedoc": "^0.15.0",
-    "typescript": "^3.6.3"
+    "typescript": "^3.7.0"
   },
   "dependencies": {
     "adm-zip": "^0.4.13",

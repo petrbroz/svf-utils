@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2020-01-07
+
+- Changed
+  - Updated to TypeScript version 3.7
+  - **[BREAKING CHANGE]** loaders/writers now load/write a centralized _intermediate file format_
+- Fixed
+  - Extended fix from version 2.0.1: 1x1 black pixel images now used also when materials reference non-existent texture URIs
+
 ## [2.0.1] - 2019-12-20
 
 - Fixed

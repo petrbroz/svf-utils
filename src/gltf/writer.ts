@@ -615,9 +615,10 @@ export class Writer {
             return DefaultMaterial;
         }
 
+        const diffuse = mat.diffuse;
         let material: gltf.MaterialPbrMetallicRoughness = {
             pbrMetallicRoughness: {
-                baseColorFactor: mat.diffuse,
+                baseColorFactor: [diffuse.x, diffuse.y, diffuse.z, 1.0],
                 metallicFactor: mat.metallic,
                 // roughnessFactor: (mat.glossiness || 0) / 255.0
             }

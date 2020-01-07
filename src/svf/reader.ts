@@ -11,6 +11,7 @@ import { parseGeometries } from './geometries';
 import { parseMaterials } from './materials';
 import { parseMeshes } from './meshes';
 import * as schema from './schema';
+import * as IntermediateSchema from '../imf/schema';
 
 /**
  * Entire content of SVF and its assets loaded in memory.
@@ -23,6 +24,128 @@ export interface ISvfContent {
     materials: (schema.IMaterial | null)[];
     properties: PropDbReader;
     images: { [uri: string]: Buffer };
+}
+
+export class Scene implements IntermediateSchema.IScene {
+    constructor(protected svf: ISvfContent) {}
+
+    getMetadata(): { [key: string]: string; } {
+        return this.svf.metadata.metadata;
+    }
+
+    getNodeCount(): number {
+        return this.svf.fragments.length;
+    }
+
+    getNode(id: number): IntermediateSchema.Node {
+        const frag = this.svf.fragments[id];
+        const node: IntermediateSchema.IObjectNode = {
+            kind: IntermediateSchema.NodeKind.Object,
+            dbid: frag.dbID,
+            geometry: frag.geometryID,
+            material: frag.materialID
+        };
+        if (frag.transform) {
+            if ('matrix' in frag.transform) {
+                const { matrix, t } = frag.transform;
+                node.transform = {
+                    kind: IntermediateSchema.TransformKind.Matrix,
+                    elements: [
+                        matrix[0], matrix[3], matrix[6], 0,
+                        matrix[1], matrix[4], matrix[7], 0,
+                        matrix[2], matrix[5], matrix[8], 0,
+                        t ? t.x : 0, t ? t.y : 0, t ? t.z : 0, 1
+                    ]
+                };
+            } else {
+                node.transform = { kind: IntermediateSchema.TransformKind.Decomposed };
+                if ('q' in frag.transform) {
+                    node.transform.rotation = frag.transform.q;
+                }
+                if ('s' in frag.transform) {
+                    node.transform.scale = frag.transform.s;
+                }
+                if ('t' in frag.transform) {
+                    node.transform.translation = frag.transform.t;
+                }
+            }
+        }
+        return node;
+    }
+
+    getGeometryCount(): number {
+        return this.svf.geometries.length;
+    }
+
+    getGeometry(id: number): IntermediateSchema.Geometry {
+        const meta = this.svf.geometries[id];
+        const mesh = this.svf.meshpacks[meta.packID][meta.entityID];
+        if (mesh) {
+            if ('isLines' in mesh) {
+                const geom: IntermediateSchema.ILineGeometry = {
+                    kind: IntermediateSchema.GeometryKind.Lines,
+                    getIndices: () => mesh.indices,
+                    getVertices: () => mesh.vertices,
+                    getColors: () => mesh.colors
+                };
+                return geom;
+            } else if ('isPoints' in mesh) {
+                const geom: IntermediateSchema.IPointGeometry = {
+                    kind: IntermediateSchema.GeometryKind.Points,
+                    getVertices: () => mesh.vertices,
+                    getColors: () => mesh.colors
+                };
+                return geom;
+            } else {
+                const geom: IntermediateSchema.IMeshGeometry = {
+                    kind: IntermediateSchema.GeometryKind.Mesh,
+                    getIndices: () => mesh.indices,
+                    getVertices: () => mesh.vertices,
+                    getNormals: () => mesh.normals,
+                    getUvChannelCount: () => mesh.uvcount,
+                    getUvs: (channel: number) => mesh.uvmaps[channel].uvs
+                };
+                return geom;
+            }
+        }
+        return { kind: IntermediateSchema.GeometryKind.Empty };
+    }
+
+    getMaterialCount(): number {
+        return this.svf.materials.length;
+    }
+
+    getMaterial(id: number): IntermediateSchema.Material {
+        const _mat = this.svf.materials[id];
+        const mat: IntermediateSchema.IPhysicalMaterial = {
+            kind: IntermediateSchema.MaterialKind.Physical,
+            diffuse: { x: 0, y: 0, z: 0 },
+            metallic: _mat?.metal ? 1.0 : 0.0,
+            opacity: _mat?.opacity ?? 1.0
+        };
+        if (_mat?.diffuse) {
+            mat.diffuse.x = _mat.diffuse[0];
+            mat.diffuse.y = _mat.diffuse[1];
+            mat.diffuse.z = _mat.diffuse[2];
+        }
+        return mat;
+    }
+
+    getCameraCount(): number {
+        return 0;
+    }
+
+    getCamera(id: number): IntermediateSchema.Camera {
+        throw new Error("Method not implemented.");
+    }
+
+    getLightCount(): number {
+        return 0;
+    }
+
+    getLight(id: number): IntermediateSchema.ISpotLight {
+        throw new Error("Method not implemented.");
+    }
 }
 
 /**
@@ -118,7 +241,7 @@ export class Reader {
      * using methods like {@link readFragments}, {@link enumerateGeometries}, etc.
      * @param {IReaderOptions} [options] Additional reading options.
      */
-    async read(options?: IReaderOptions): Promise<ISvfContent> {
+    async read(options?: IReaderOptions): Promise<IntermediateSchema.IScene> {
         let output: any = {
             metadata: await this.getMetadata(),
             fragments: [],
@@ -184,7 +307,7 @@ export class Reader {
             })(img));
         }
         await Promise.all(tasks);
-        return output as ISvfContent;
+        return new Scene(output);
     }
 
     protected findAsset(query: { type?: schema.AssetType, uri?: string }): schema.ISvfManifestAsset | undefined {

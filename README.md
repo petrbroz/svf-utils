@@ -109,8 +109,8 @@ async function run(urn, outputDir) {
     const writer = new GltfWriter(writerOptions);
     for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
         const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
-        const imf = await reader.read(readerOptions);
-        await writer.write(imf, path.join(outputDir, derivative.guid));
+        const scene = await reader.read(readerOptions);
+        await writer.write(scene, path.join(outputDir, derivative.guid));
     }
 }
 

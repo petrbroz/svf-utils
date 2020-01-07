@@ -18,17 +18,17 @@ if (FORGE_ACCESS_TOKEN) {
 async function convertRemote(urn, guid, outputFolder, options) {
     console.log(`Converting urn ${urn}, guid ${guid}`);
     const reader = await SvfReader.FromDerivativeService(urn, guid, auth);
-    const svf = await reader.read({ log: console.log });
+    const scene = await reader.read({ log: console.log });
     const writer = new GltfWriter(options);
-    await writer.write(svf, path.join(outputFolder, guid));
+    await writer.write(scene, path.join(outputFolder, guid));
 }
 
 async function convertLocal(svfPath, outputFolder, options) {
     console.log(`Converting local file ${svfPath}`);
     const reader = await SvfReader.FromFileSystem(svfPath);
-    const svf = await reader.read({ log: console.log });
+    const scene = await reader.read({ log: console.log });
     const writer = new GltfWriter(options);
-    await writer.write(svf, path.join(outputFolder));
+    await writer.write(scene, path.join(outputFolder));
 }
 
 program

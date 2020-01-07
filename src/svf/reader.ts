@@ -175,8 +175,8 @@ export interface IReaderOptions {
  * @example
  * const auth = { client_id: 'forge client id', client_secret: 'forge client secreet' };
  * const reader = await Reader.FromDerivativeService('model urn', 'viewable guid', auth);
- * const imf = await reader.read(); // Read entire scene into an intermediate, in-memory representation
- * console.log(imf);
+ * const scene = await reader.read(); // Read entire scene into an intermediate, in-memory representation
+ * console.log(scene);
  *
  * @example
  * const reader = await Reader.FromFileSystem('path/to/svf');

@@ -29,9 +29,9 @@ async function run (urn, outputDir) {
         const writer1 = new GltfWriter(Object.assign({}, defaultOptions, { deduplicate: true, skipUnusedUvs: true }));
         for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
             const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
-            const imf = await reader.read({ log: console.log });
-            await writer0.write(imf, path.join(outputDir, derivative.guid, 'gltf-raw'));
-            await writer1.write(imf, path.join(outputDir, derivative.guid, 'gltf-dedup'));
+            const scene = await reader.read({ log: console.log });
+            await writer0.write(scene, path.join(outputDir, derivative.guid, 'gltf-raw'));
+            await writer1.write(scene, path.join(outputDir, derivative.guid, 'gltf-dedup'));
         }
     } catch(err) {
         console.error(err);

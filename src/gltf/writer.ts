@@ -29,8 +29,7 @@ export interface IWriterOptions {
 }
 
 function hasTextures(material: IntermediateSchema.Material | null): boolean {
-    //return !!material && !!material.maps && (!!material.maps.diffuse || !!material.maps.specular);
-    return false; // TODO
+    return !!(material?.maps?.diffuse);
 }
 
 interface IWriterStats {

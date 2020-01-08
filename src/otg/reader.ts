@@ -199,6 +199,12 @@ export interface IReaderOptions {
     log?: (msg: string) => void;
 }
 
+/**
+ * Experimental reader of the OTG file format (successor to SVF, with focus on geometry deduplication).
+ * Missing features:
+ *   - parsing geometry normals (encoded in 2 shorts)
+ *   - reading material textures
+ */
 export class Reader {
     protected log: (msg: string) => void;
 

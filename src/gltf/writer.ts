@@ -402,6 +402,7 @@ export class Writer {
         }
 
         mesh.primitives.push({
+            mode: 4,
             attributes: {
                 POSITION: positionAccessorID,
             },

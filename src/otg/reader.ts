@@ -55,7 +55,7 @@ export class Scene implements IMF.IScene {
         return this.otg.materialHashes.length;
     }
 
-    private _parseFloat32Array(geometry: OTG.IGeometry, attributeType: OTG.AttributeType): Float32Array | undefined {
+    private _parseVertexAttributes(geometry: OTG.IGeometry, attributeType: OTG.AttributeType): Float32Array | undefined {
         const attr = geometry.attributes.find(attr => attr.attributeType === attributeType);
         if (attr) {
             if (attr.componentType !== OTG.ComponentType.FLOAT) {
@@ -78,10 +78,10 @@ export class Scene implements IMF.IScene {
         }
     }
 
-    private _parseUint16Array(geometry: OTG.IGeometry, attributeType: OTG.AttributeType): Uint16Array | undefined {
-        const attr = geometry.attributes.find(attr => attr.attributeType === attributeType);
+    private _parseIndices(geometry: OTG.IGeometry): Uint16Array | undefined {
+        const attr = geometry.attributes.find(attr => attr.attributeType === OTG.AttributeType.Index);
         if (attr) {
-            console.assert(attr.componentType === OTG.ComponentType.USHORT || attr.componentType === OTG.ComponentType.USHORT_NORM);
+            console.assert(attr.componentType === OTG.ComponentType.USHORT);
             const srcBuffer = geometry.buffers[attr.bufferId];
             const srcByteStride = attr.itemStride || attr.itemSize * 2;
             const srcByteOffset = attr.itemOffset;
@@ -92,7 +92,16 @@ export class Scene implements IMF.IScene {
                 const srcOffset = i * srcByteStride + srcByteOffset;
                 srcBuffer.copy(dstBuffer, i * dstByteStride, srcOffset, srcOffset + dstByteStride);
             }
-            return new Uint16Array(dstBuffer.buffer);
+            const indices = new Uint16Array(dstBuffer.buffer);
+            // Decode delta-encoded indices
+            indices[1] += indices[0];
+            indices[2] += indices[0];
+            for (let i = 3, len = indices.length; i < len; i += 3) {
+                indices[i] += indices[i - 3];
+                indices[i + 1] += indices[i];
+                indices[i + 2] += indices[i];
+            }
+            return indices;
         } else {
             return undefined;
         }
@@ -107,24 +116,24 @@ export class Scene implements IMF.IScene {
                 case OTG.GeometryType.Lines:
                     geom = {
                         kind: IMF.GeometryKind.Lines,
-                        getIndices: () => this._parseUint16Array(mesh, OTG.AttributeType.Index),
-                        getVertices: () => this._parseFloat32Array(mesh, OTG.AttributeType.Position),
-                        getColors: () => this._parseFloat32Array(mesh, OTG.AttributeType.Color)
+                        getIndices: () => this._parseIndices(mesh),
+                        getVertices: () => this._parseVertexAttributes(mesh, OTG.AttributeType.Position),
+                        getColors: () => this._parseVertexAttributes(mesh, OTG.AttributeType.Color)
                     } as IMF.ILineGeometry;
                     return geom;
                 case OTG.GeometryType.Points:
                     geom = {
                         kind: IMF.GeometryKind.Points,
-                        getVertices: () => this._parseFloat32Array(mesh, OTG.AttributeType.Position),
-                        getColors: () => this._parseFloat32Array(mesh, OTG.AttributeType.Color)
+                        getVertices: () => this._parseVertexAttributes(mesh, OTG.AttributeType.Position),
+                        getColors: () => this._parseVertexAttributes(mesh, OTG.AttributeType.Color)
                     } as IMF.IPointGeometry;
                     return geom;
                 case OTG.GeometryType.Triangles:
                     geom = {
                         kind: IMF.GeometryKind.Mesh,
-                        getIndices: () => this._parseUint16Array(mesh, OTG.AttributeType.Index),
-                        getVertices: () => this._parseFloat32Array(mesh, OTG.AttributeType.Position),
-                        getNormals: () => this._parseFloat32Array(mesh, OTG.AttributeType.Normal),
+                        getIndices: () => this._parseIndices(mesh),
+                        getVertices: () => this._parseVertexAttributes(mesh, OTG.AttributeType.Position),
+                        getNormals: () => this._parseVertexAttributes(mesh, OTG.AttributeType.Normal),
                         getUvChannelCount: () => 0,
                         getUvs: (channel: number) => new Float32Array() // TODO
                     } as IMF.IMeshGeometry;

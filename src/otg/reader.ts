@@ -6,7 +6,7 @@ import { parseFragments } from './fragments';
 import { parseGeometry } from './geometries';
 import { parseMaterial } from './materials';
 import * as OTG from './schema';
-import * as IMF from '../imf/schema';
+import * as IMF from '../common/intermediate-format';
 
 interface IOtgView {
     id: string;
@@ -20,8 +20,8 @@ interface IOtgView {
 export class Scene implements IMF.IScene {
     constructor(protected otg: IOtgView) {}
 
-    getMetadata(): { [key: string]: string; } {
-        return {}; // TODO
+    getMetadata(): IMF.IMetadata {
+        return {};
     }
 
     getNodeCount(): number {
@@ -92,19 +92,36 @@ export class Scene implements IMF.IScene {
                 const srcOffset = i * srcByteStride + srcByteOffset;
                 srcBuffer.copy(dstBuffer, i * dstByteStride, srcOffset, srcOffset + dstByteStride);
             }
-            const indices = new Uint16Array(dstBuffer.buffer);
-            // Decode delta-encoded indices
-            indices[1] += indices[0];
-            indices[2] += indices[0];
-            for (let i = 3, len = indices.length; i < len; i += 3) {
-                indices[i] += indices[i - 3];
-                indices[i + 1] += indices[i];
-                indices[i + 2] += indices[i];
-            }
-            return indices;
+            return new Uint16Array(dstBuffer.buffer);
         } else {
             return undefined;
         }
+    }
+
+    private _decodeTriangleIndices(indices: Uint16Array | undefined): Uint16Array | undefined {
+        if (!indices) {
+            return undefined;
+        }
+        indices[1] += indices[0];
+        indices[2] += indices[0];
+        for (let i = 3, len = indices.length; i < len; i += 3) {
+            indices[i] += indices[i - 3];
+            indices[i + 1] += indices[i];
+            indices[i + 2] += indices[i];
+        }
+        return indices;
+    }
+
+    private _decodeLineIndices(indices: Uint16Array | undefined): Uint16Array | undefined {
+        if (!indices) {
+            return undefined;
+        }
+        indices[1] += indices[0];
+        for (let i = 2, len = indices.length; i < len; i += 2) {
+            indices[i] += indices[i - 2];
+            indices[i + 1] += indices[i];
+        }
+        return indices;
     }
 
     getGeometry(id: number): IMF.Geometry {
@@ -116,7 +133,7 @@ export class Scene implements IMF.IScene {
                 case OTG.GeometryType.Lines:
                     geom = {
                         kind: IMF.GeometryKind.Lines,
-                        getIndices: () => this._parseIndices(mesh),
+                        getIndices: () => this._decodeLineIndices(this._parseIndices(mesh)),
                         getVertices: () => this._parseVertexAttributes(mesh, OTG.AttributeType.Position),
                         getColors: () => this._parseVertexAttributes(mesh, OTG.AttributeType.Color)
                     } as IMF.ILineGeometry;
@@ -131,11 +148,11 @@ export class Scene implements IMF.IScene {
                 case OTG.GeometryType.Triangles:
                     geom = {
                         kind: IMF.GeometryKind.Mesh,
-                        getIndices: () => this._parseIndices(mesh),
+                        getIndices: () => this._decodeTriangleIndices(this._parseIndices(mesh)),
                         getVertices: () => this._parseVertexAttributes(mesh, OTG.AttributeType.Position),
                         getNormals: () => this._parseVertexAttributes(mesh, OTG.AttributeType.Normal),
                         getUvChannelCount: () => 0,
-                        getUvs: (channel: number) => new Float32Array() // TODO
+                        getUvs: (channel: number) => new Float32Array()
                     } as IMF.IMeshGeometry;
                     return geom;
                 case OTG.GeometryType.WideLines:
@@ -171,24 +188,8 @@ export class Scene implements IMF.IScene {
         return mat;
     }
 
-    getCameraCount(): number {
-        return 0;
-    }
-
-    getCamera(id: number): IMF.Camera {
-        throw new Error("Method not implemented.");
-    }
-
-    getLightCount(): number {
-        return 0;
-    }
-
-    getLight(id: number): IMF.ISpotLight {
-        throw new Error("Method not implemented.");
-    }
-
     getImage(uri: string): Buffer | undefined {
-        return undefined; // TODO
+        return undefined;
     }
 }
 
@@ -202,8 +203,11 @@ export interface IReaderOptions {
 /**
  * Experimental reader of the OTG file format (successor to SVF, with focus on geometry deduplication).
  * Missing features:
- *   - parsing geometry normals (encoded in 2 shorts)
+ *   - reading metadata
  *   - reading material textures
+ *   - parsing geometry normals (encoded in 2 shorts)
+ *   - parsing geometry UVs
+ *   - parsing line/point geometry
  */
 export class Reader {
     protected log: (msg: string) => void;

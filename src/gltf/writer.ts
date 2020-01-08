@@ -5,7 +5,7 @@ import * as fse from 'fs-extra';
 import * as gltf from './schema';
 import { isUndefined, isNullOrUndefined } from 'util';
 import { ImagePlaceholder } from '../common/image-placeholders';
-import * as IntermediateSchema from '../imf/schema';
+import * as IMF from '../common/intermediate-format';
 
 const MaxBufferSize = 5 << 20;
 const DefaultMaterial: gltf.MaterialPbrMetallicRoughness = {
@@ -28,7 +28,7 @@ export interface IWriterOptions {
     filter?: (dbid: number) => boolean;
 }
 
-function hasTextures(material: IntermediateSchema.Material | null): boolean {
+function hasTextures(material: IMF.Material | null): boolean {
     return !!(material?.maps?.diffuse);
 }
 
@@ -88,10 +88,10 @@ export class Writer {
     /**
      * Outputs scene into glTF or glb.
      * @async
-     * @param {IntermediateSchema.IScene} imf Complete scene in intermediate, in-memory format.
+     * @param {IMF.IScene} imf Complete scene in intermediate, in-memory format.
      * @param {string} outputDir Path to output folder.
      */
-    async write(imf: IntermediateSchema.IScene, outputDir: string) {
+    async write(imf: IMF.IScene, outputDir: string) {
         this.reset(outputDir);
         const scene = this.createScene(imf);
         const scenes = this.manifest.scenes as gltf.Scene[];
@@ -149,10 +149,10 @@ export class Writer {
         };
     }
 
-    protected async postprocess(imf: IntermediateSchema.IScene, gltfPath: string) {
+    protected async postprocess(imf: IMF.IScene, gltfPath: string) {
     }
 
-    protected createScene(imf: IntermediateSchema.IScene): gltf.Scene {
+    protected createScene(imf: IMF.IScene): gltf.Scene {
         fse.ensureDirSync(this.baseDir);
 
         let scene: gltf.Scene = {
@@ -233,7 +233,7 @@ export class Writer {
         for (let i = 0, len = imf.getNodeCount(); i < len; i++) {
             const fragment = imf.getNode(i);
             // Currently we only support flat lists of objects, no hierarchies
-            if (fragment.kind !== IntermediateSchema.NodeKind.Object) {
+            if (fragment.kind !== IMF.NodeKind.Object) {
                 continue;
             }
             if (!filter(fragment.dbid)) {
@@ -289,17 +289,17 @@ export class Writer {
         return scene;
     }
 
-    protected createNode(fragment: IntermediateSchema.IObjectNode, imf: IntermediateSchema.IScene, outputUvs: boolean): gltf.Node {
+    protected createNode(fragment: IMF.IObjectNode, imf: IMF.IScene, outputUvs: boolean): gltf.Node {
         let node: gltf.Node = {
             name: fragment.dbid.toString()
         };
 
         if (fragment.transform) {
             switch (fragment.transform.kind) {
-                case IntermediateSchema.TransformKind.Matrix:
+                case IMF.TransformKind.Matrix:
                     node.matrix = fragment.transform.elements;
                     break;
-                case IntermediateSchema.TransformKind.Decomposed:
+                case IMF.TransformKind.Decomposed:
                     if (fragment.transform.scale) {
                         const s = fragment.transform.scale;
                         node.scale = [s.x, s.y, s.z];
@@ -319,16 +319,16 @@ export class Writer {
         const geometry = imf.getGeometry(fragment.geometry);
         let mesh: gltf.Mesh | undefined = undefined;
         switch (geometry.kind) {
-            case IntermediateSchema.GeometryKind.Mesh:
+            case IMF.GeometryKind.Mesh:
                 mesh = this.createMeshGeometry(geometry, imf, outputUvs);
                 break;
-            case IntermediateSchema.GeometryKind.Lines:
+            case IMF.GeometryKind.Lines:
                 mesh = this.createLineGeometry(geometry, imf);
                 break;
-            case IntermediateSchema.GeometryKind.Points:
+            case IMF.GeometryKind.Points:
                 mesh = this.createPointGeometry(geometry, imf);
                 break;
-            case IntermediateSchema.GeometryKind.Empty:
+            case IMF.GeometryKind.Empty:
                 console.warn('Could not find mesh for fragment', fragment);
                 break;
         }
@@ -357,7 +357,7 @@ export class Writer {
         }
     }
 
-    protected createMeshGeometry(geometry: IntermediateSchema.IMeshGeometry, imf: IntermediateSchema.IScene, outputUvs: boolean): gltf.Mesh {
+    protected createMeshGeometry(geometry: IMF.IMeshGeometry, imf: IMF.IScene, outputUvs: boolean): gltf.Mesh {
         let mesh: gltf.Mesh = {
             primitives: []
         };
@@ -419,7 +419,7 @@ export class Writer {
         return mesh;
     }
 
-    protected createLineGeometry(geometry: IntermediateSchema.ILineGeometry, imf: IntermediateSchema.IScene): gltf.Mesh {
+    protected createLineGeometry(geometry: IMF.ILineGeometry, imf: IMF.IScene): gltf.Mesh {
         let mesh: gltf.Mesh = {
             primitives: []
         };
@@ -468,7 +468,7 @@ export class Writer {
         return mesh;
     }
 
-    protected createPointGeometry(geometry: IntermediateSchema.IPointGeometry, imf: IntermediateSchema.IScene): gltf.Mesh {
+    protected createPointGeometry(geometry: IMF.IPointGeometry, imf: IMF.IScene): gltf.Mesh {
         let mesh: gltf.Mesh = {
             primitives: []
         };
@@ -611,7 +611,7 @@ export class Writer {
         return accessor;
     }
 
-    protected createMaterial(mat: IntermediateSchema.Material | null, imf: IntermediateSchema.IScene): gltf.MaterialPbrMetallicRoughness {
+    protected createMaterial(mat: IMF.Material | null, imf: IMF.IScene): gltf.MaterialPbrMetallicRoughness {
         if (!mat) {
             return DefaultMaterial;
         }
@@ -643,7 +643,7 @@ export class Writer {
         return material;
     }
 
-    protected createTexture(uri: string, imf: IntermediateSchema.IScene): gltf.Texture {
+    protected createTexture(uri: string, imf: IMF.IScene): gltf.Texture {
         const manifestImages = this.manifest.images as gltf.Image[];
         let imageID = manifestImages.findIndex(image => image.uri === uri);
         if (imageID === -1) {
@@ -698,7 +698,7 @@ export class Writer {
         return hash.digest('hex');
     }
 
-    protected computeMaterialHash(material: IntermediateSchema.IPhysicalMaterial | null): string {
+    protected computeMaterialHash(material: IMF.IPhysicalMaterial | null): string {
         if (!material) {
             return 'null';
         }

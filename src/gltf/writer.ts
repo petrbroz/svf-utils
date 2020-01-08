@@ -329,7 +329,7 @@ export class Writer {
                 mesh = this.createPointGeometry(geometry, imf);
                 break;
             case IntermediateSchema.GeometryKind.Empty:
-                console.warn('Could not find mesh for fragment', fragment, 'geometry', geometry);
+                console.warn('Could not find mesh for fragment', fragment);
                 break;
         }
         if (mesh) {

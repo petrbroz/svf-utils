@@ -78,6 +78,51 @@ export class Scene implements IMF.IScene {
         }
     }
 
+    private _parseNormals(geometry: OTG.IGeometry): Float32Array | undefined {
+        const attr = geometry.attributes.find(attr => attr.attributeType === OTG.AttributeType.Normal);
+        if (attr) {
+            if (attr.componentType !== OTG.ComponentType.SHORT_NORM && attr.componentType !== OTG.ComponentType.USHORT_NORM) {
+                console.warn('Currently vertex buffers with other than float components are not supported.');
+                return undefined;
+            }
+            const srcBuffer = geometry.buffers[attr.bufferId];
+            const srcByteStride = attr.itemStride || attr.itemSize * 2;
+            const srcByteOffset = attr.itemOffset;
+            const count = srcBuffer.byteLength / srcByteStride;
+            const dstBuffer = Buffer.alloc(count * attr.itemSize * 2);
+            const dstByteStride = attr.itemSize * 2;
+            for (let i = 0; i < count; i++) {
+                const srcOffset = i * srcByteStride + srcByteOffset;
+                srcBuffer.copy(dstBuffer, i * dstByteStride, srcOffset, srcOffset + dstByteStride);
+            }
+            const packedNormals = attr.componentType === OTG.ComponentType.USHORT_NORM
+                ? new Uint16Array(dstBuffer.buffer)
+                : new Int16Array(dstBuffer.buffer);
+            let normals = new Float32Array(count * 3);
+            for (let i = 0; i < count; i++) {
+                let packedX = packedNormals[i * 2];
+                let packedY = packedNormals[i * 2 + 1];
+                if (attr.componentType === OTG.ComponentType.USHORT_NORM) {
+                    packedX = packedX / 32768.0 - 1.0;
+                    packedY = packedY / 32768.0 - 1.0;
+                } else {
+                    packedX = packedX / 32768.0;
+                    packedY = packedY / 32768.0;
+                }
+                const sinTheta = Math.sin(packedX * Math.PI);
+                const cosTheta = Math.cos(packedX * Math.PI);
+                const sinPhi = Math.sqrt(1.0 - packedY * packedY);
+                const cosPhi = packedY;
+                normals[i * 3] = cosTheta * sinPhi;
+                normals[i * 3 + 1] = sinTheta * sinPhi;
+                normals[i * 3 + 2] = cosPhi;
+            }
+            return normals;
+        } else {
+            return undefined;
+        }
+    }
+
     private _parseIndices(geometry: OTG.IGeometry): Uint16Array | undefined {
         const attr = geometry.attributes.find(attr => attr.attributeType === OTG.AttributeType.Index);
         if (attr) {
@@ -150,7 +195,7 @@ export class Scene implements IMF.IScene {
                         kind: IMF.GeometryKind.Mesh,
                         getIndices: () => this._decodeTriangleIndices(this._parseIndices(mesh)),
                         getVertices: () => this._parseVertexAttributes(mesh, OTG.AttributeType.Position),
-                        getNormals: () => this._parseVertexAttributes(mesh, OTG.AttributeType.Normal),
+                        getNormals: () => this._parseNormals(mesh),
                         getUvChannelCount: () => 0,
                         getUvs: (channel: number) => new Float32Array()
                     } as IMF.IMeshGeometry;
@@ -205,7 +250,6 @@ export interface IReaderOptions {
  * Missing features:
  *   - reading metadata
  *   - reading material textures
- *   - parsing geometry normals (encoded in 2 shorts)
  *   - parsing geometry UVs
  *   - parsing line/point geometry
  */

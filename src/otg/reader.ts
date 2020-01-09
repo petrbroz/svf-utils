@@ -78,6 +78,28 @@ export class Scene implements IMF.IScene {
         }
     }
 
+    private _parseTexCoords(geometry: OTG.IGeometry): Float32Array | undefined {
+        const attr = geometry.attributes.find(attr => attr.attributeType === OTG.AttributeType.TextureUV);
+        if (attr) {
+            if (attr.componentType !== OTG.ComponentType.FLOAT) {
+                console.warn('Currently we can only parse tex coords using floats.');
+                return undefined;
+            }
+            const srcBuffer = geometry.buffers[attr.bufferId];
+            const srcByteStride = attr.itemStride || attr.itemSize * 4;
+            const srcByteOffset = attr.itemOffset;
+            const count = srcBuffer.byteLength / srcByteStride;
+            const dstBuffer = Buffer.alloc(count * attr.itemSize * 4);
+            const dstByteStride = attr.itemSize * 4;
+            for (let i = 0; i < count; i++) {
+                const srcOffset = i * srcByteStride + srcByteOffset;
+                srcBuffer.copy(dstBuffer, i * dstByteStride, srcOffset, srcOffset + dstByteStride);
+            }
+            return new Float32Array(dstBuffer);
+        }
+        return undefined;
+    }
+
     private _parseNormals(geometry: OTG.IGeometry): Float32Array | undefined {
         const attr = geometry.attributes.find(attr => attr.attributeType === OTG.AttributeType.Normal);
         if (attr) {
@@ -196,8 +218,8 @@ export class Scene implements IMF.IScene {
                         getIndices: () => this._decodeTriangleIndices(this._parseIndices(mesh)),
                         getVertices: () => this._parseVertexAttributes(mesh, OTG.AttributeType.Position),
                         getNormals: () => this._parseNormals(mesh),
-                        getUvChannelCount: () => 0,
-                        getUvs: (channel: number) => new Float32Array()
+                        getUvChannelCount: () => mesh.attributes.filter(attr => attr.attributeType === OTG.AttributeType.TextureUV).length,
+                        getUvs: (channel: number) => channel === 0 ? this._parseTexCoords(mesh) : undefined
                     } as IMF.IMeshGeometry;
                     return geom;
                 case OTG.GeometryType.WideLines:
@@ -250,7 +272,6 @@ export interface IReaderOptions {
  * Missing features:
  *   - reading metadata
  *   - reading material textures
- *   - parsing geometry UVs
  *   - parsing line/point geometry
  */
 export class Reader {

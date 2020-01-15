@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added
   - **[experimental]** OTG parser
+- Fixed
+  - Flipped V component of texture coords ([#18](https://github.com/petrbroz/forge-convert-utils/issues/18), kudos to [@dykarohora](https://github.com/dykarohora)!)
 
 ## [3.0.0] - 2020-01-07
 

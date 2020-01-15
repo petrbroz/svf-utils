@@ -121,8 +121,9 @@ function parseMeshRAW(pfr: PackFileReader): IMesh {
         uvmap.name = pfr.getString(pfr.getInt32());
         uvmap.file = pfr.getString(pfr.getInt32());
         uvmap.uvs = new Float32Array(vcount * 2);
-        for (let j = 0; j < vcount * 2; j++) {
-            uvmap.uvs[j] = pfr.getFloat32();
+        for (let j = 0; j < vcount; j++) {
+            uvmap.uvs[j * 2] = pfr.getFloat32();
+            uvmap.uvs[j * 2 + 1] = 1.0 - pfr.getFloat32();
         }
         uvmaps.push(uvmap);
     }

@@ -7,18 +7,18 @@ export type CameraID = number;
 export type LightID = number;
 
 export interface IScene {
-    getMetadata(): { [key: string]: any };
+    getMetadata(): IMetadata;
     getNodeCount(): number;
     getNode(id: NodeID): Node;
     getGeometryCount(): number;
     getGeometry(id: GeometryID): Geometry;
     getMaterialCount(): number;
     getMaterial(id: MaterialID): Material;
-    getCameraCount(): number;
-    getCamera(id: CameraID): Camera;
-    getLightCount(): number;
-    getLight(id: LightID): Light;
     getImage(uri: string): Buffer | undefined;
+}
+
+export interface IMetadata {
+    [key: string]: any;
 }
 
 export interface IVec3 {
@@ -139,28 +139,3 @@ export interface IPhysicalMaterial {
 }
 
 export type Material = IPhysicalMaterial;
-
-export enum CameraKind {
-    Perspective,
-    Orthogonal
-}
-
-export interface IPerspectiveCamera {
-    kind: CameraKind.Perspective;
-}
-
-export interface IOrthographicCamera {
-    kind: CameraKind.Orthogonal;
-}
-
-export type Camera = IPerspectiveCamera | IOrthographicCamera;
-
-export enum LightKind {
-    Spot
-}
-
-export interface ISpotLight {
-    kind: LightKind.Spot;
-}
-
-export type Light = ISpotLight;

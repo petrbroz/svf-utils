@@ -10,26 +10,26 @@ import { parseFragments } from './fragments';
 import { parseGeometries } from './geometries';
 import { parseMaterials } from './materials';
 import { parseMeshes } from './meshes';
-import * as schema from './schema';
-import * as IntermediateSchema from '../imf/schema';
+import * as SVF from './schema';
+import * as IMF from '../common/intermediate-format';
 
 /**
  * Entire content of SVF and its assets loaded in memory.
  */
 export interface ISvfContent {
-    metadata: schema.ISvfMetadata;
-    fragments: schema.IFragment[];
-    geometries: schema.IGeometryMetadata[];
-    meshpacks: (schema.IMesh | schema.ILines | schema.IPoints | null)[][];
-    materials: (schema.IMaterial | null)[];
+    metadata: SVF.ISvfMetadata;
+    fragments: SVF.IFragment[];
+    geometries: SVF.IGeometryMetadata[];
+    meshpacks: (SVF.IMesh | SVF.ILines | SVF.IPoints | null)[][];
+    materials: (SVF.IMaterial | null)[];
     properties: PropDbReader;
     images: { [uri: string]: Buffer };
 }
 
-export class Scene implements IntermediateSchema.IScene {
+export class Scene implements IMF.IScene {
     constructor(protected svf: ISvfContent) {}
 
-    getMetadata(): { [key: string]: string; } {
+    getMetadata(): IMF.IMetadata {
         return this.svf.metadata.metadata;
     }
 
@@ -37,10 +37,10 @@ export class Scene implements IntermediateSchema.IScene {
         return this.svf.fragments.length;
     }
 
-    getNode(id: number): IntermediateSchema.Node {
+    getNode(id: number): IMF.Node {
         const frag = this.svf.fragments[id];
-        const node: IntermediateSchema.IObjectNode = {
-            kind: IntermediateSchema.NodeKind.Object,
+        const node: IMF.IObjectNode = {
+            kind: IMF.NodeKind.Object,
             dbid: frag.dbID,
             geometry: frag.geometryID,
             material: frag.materialID
@@ -49,7 +49,7 @@ export class Scene implements IntermediateSchema.IScene {
             if ('matrix' in frag.transform) {
                 const { matrix, t } = frag.transform;
                 node.transform = {
-                    kind: IntermediateSchema.TransformKind.Matrix,
+                    kind: IMF.TransformKind.Matrix,
                     elements: [
                         matrix[0], matrix[3], matrix[6], 0,
                         matrix[1], matrix[4], matrix[7], 0,
@@ -58,7 +58,7 @@ export class Scene implements IntermediateSchema.IScene {
                     ]
                 };
             } else {
-                node.transform = { kind: IntermediateSchema.TransformKind.Decomposed };
+                node.transform = { kind: IMF.TransformKind.Decomposed };
                 if ('q' in frag.transform) {
                     node.transform.rotation = frag.transform.q;
                 }
@@ -77,28 +77,28 @@ export class Scene implements IntermediateSchema.IScene {
         return this.svf.geometries.length;
     }
 
-    getGeometry(id: number): IntermediateSchema.Geometry {
+    getGeometry(id: number): IMF.Geometry {
         const meta = this.svf.geometries[id];
         const mesh = this.svf.meshpacks[meta.packID][meta.entityID];
         if (mesh) {
             if ('isLines' in mesh) {
-                const geom: IntermediateSchema.ILineGeometry = {
-                    kind: IntermediateSchema.GeometryKind.Lines,
+                const geom: IMF.ILineGeometry = {
+                    kind: IMF.GeometryKind.Lines,
                     getIndices: () => mesh.indices,
                     getVertices: () => mesh.vertices,
                     getColors: () => mesh.colors
                 };
                 return geom;
             } else if ('isPoints' in mesh) {
-                const geom: IntermediateSchema.IPointGeometry = {
-                    kind: IntermediateSchema.GeometryKind.Points,
+                const geom: IMF.IPointGeometry = {
+                    kind: IMF.GeometryKind.Points,
                     getVertices: () => mesh.vertices,
                     getColors: () => mesh.colors
                 };
                 return geom;
             } else {
-                const geom: IntermediateSchema.IMeshGeometry = {
-                    kind: IntermediateSchema.GeometryKind.Mesh,
+                const geom: IMF.IMeshGeometry = {
+                    kind: IMF.GeometryKind.Mesh,
                     getIndices: () => mesh.indices,
                     getVertices: () => mesh.vertices,
                     getNormals: () => mesh.normals,
@@ -108,17 +108,17 @@ export class Scene implements IntermediateSchema.IScene {
                 return geom;
             }
         }
-        return { kind: IntermediateSchema.GeometryKind.Empty };
+        return { kind: IMF.GeometryKind.Empty };
     }
 
     getMaterialCount(): number {
         return this.svf.materials.length;
     }
 
-    getMaterial(id: number): IntermediateSchema.Material {
+    getMaterial(id: number): IMF.Material {
         const _mat = this.svf.materials[id];
-        const mat: IntermediateSchema.IPhysicalMaterial = {
-            kind: IntermediateSchema.MaterialKind.Physical,
+        const mat: IMF.IPhysicalMaterial = {
+            kind: IMF.MaterialKind.Physical,
             diffuse: { x: 0, y: 0, z: 0 },
             metallic: _mat?.metal ? 1.0 : 0.0,
             opacity: _mat?.opacity ?? 1.0,
@@ -133,22 +133,6 @@ export class Scene implements IntermediateSchema.IScene {
             mat.maps.diffuse = _mat.maps.diffuse.uri
         }
         return mat;
-    }
-
-    getCameraCount(): number {
-        return 0;
-    }
-
-    getCamera(id: number): IntermediateSchema.Camera {
-        throw new Error("Method not implemented.");
-    }
-
-    getLightCount(): number {
-        return 0;
-    }
-
-    getLight(id: number): IntermediateSchema.ISpotLight {
-        throw new Error("Method not implemented.");
     }
 
     getImage(uri: string): Buffer | undefined {
@@ -229,12 +213,12 @@ export class Reader {
         return new Reader(svf, resolve);
     }
 
-    protected svf: schema.ISvfRoot;
+    protected svf: SVF.ISvfRoot;
 
     protected constructor(svf: Buffer, protected resolve: (uri: string) => Promise<Buffer>) {
         const zip = new Zip(svf);
-        const manifest = JSON.parse(zip.getEntry('manifest.json').getData().toString()) as schema.ISvfManifest;
-        const metadata = JSON.parse(zip.getEntry('metadata.json').getData().toString()) as schema.ISvfMetadata;
+        const manifest = JSON.parse(zip.getEntry('manifest.json').getData().toString()) as SVF.ISvfManifest;
+        const metadata = JSON.parse(zip.getEntry('metadata.json').getData().toString()) as SVF.ISvfMetadata;
         const embedded: { [key: string]: Buffer } = {};
         zip.getEntries().filter(entry => entry.name !== 'manifest.json' && entry.name !== 'metadata.json').forEach((entry) => {
             embedded[entry.name] = entry.getData();
@@ -249,9 +233,9 @@ export class Reader {
      * using methods like {@link readFragments}, {@link enumerateGeometries}, etc.
      * @async
      * @param {IReaderOptions} [options] Additional reading options.
-     * @returns {Promise<IntermediateSchema.IScene>} Intermediate, in-memory representation of the loaded scene.
+     * @returns {Promise<IMF.IScene>} Intermediate, in-memory representation of the loaded scene.
      */
-    async read(options?: IReaderOptions): Promise<IntermediateSchema.IScene> {
+    async read(options?: IReaderOptions): Promise<IMF.IScene> {
         let output: any = {
             metadata: await this.getMetadata(),
             fragments: [],
@@ -320,7 +304,7 @@ export class Reader {
         return new Scene(output);
     }
 
-    protected findAsset(query: { type?: schema.AssetType, uri?: string }): schema.ISvfManifestAsset | undefined {
+    protected findAsset(query: { type?: SVF.AssetType, uri?: string }): SVF.ISvfManifestAsset | undefined {
         return this.svf.manifest.assets.find(asset => {
             return (isNullOrUndefined(query.type) || asset.type === query.type)
                 && (isNullOrUndefined(query.uri) || asset.URI === query.uri);
@@ -340,18 +324,18 @@ export class Reader {
     /**
      * Retrieves parsed SVF metadata.
      * @async
-     * @returns {Promise<schema.ISvfMetadata>} SVF metadata.
+     * @returns {Promise<SVF.ISvfMetadata>} SVF metadata.
      */
-    async getMetadata(): Promise<schema.ISvfMetadata> {
+    async getMetadata(): Promise<SVF.ISvfMetadata> {
         return this.svf.metadata;
     }
 
     /**
      * Retrieves parsed SVF manifest.
      * @async
-     * @returns {Promise<schema.ISvfManifest>} SVF manifest.
+     * @returns {Promise<SVF.ISvfManifest>} SVF manifest.
      */
-    async getManifest(): Promise<schema.ISvfManifest> {
+    async getManifest(): Promise<SVF.ISvfManifest> {
         return this.svf.manifest;
     }
 
@@ -359,10 +343,10 @@ export class Reader {
      * Retrieves, parses, and iterates over all SVF fragments.
      * @async
      * @generator
-     * @returns {AsyncIterable<schema.IFragment>} Async iterator over parsed fragments.
+     * @returns {AsyncIterable<SVF.IFragment>} Async iterator over parsed fragments.
      */
-    async *enumerateFragments(): AsyncIterable<schema.IFragment> {
-        const fragmentAsset = this.findAsset({ type: schema.AssetType.FragmentList });
+    async *enumerateFragments(): AsyncIterable<SVF.IFragment> {
+        const fragmentAsset = this.findAsset({ type: SVF.AssetType.FragmentList });
         if (!fragmentAsset) {
             throw new Error(`Fragment list not found.`);
         }
@@ -377,8 +361,8 @@ export class Reader {
      * @async
      * @returns {Promise<IFragment[]>} List of parsed fragments.
      */
-    async readFragments(): Promise<schema.IFragment[]> {
-        const fragmentAsset = this.findAsset({ type: schema.AssetType.FragmentList });
+    async readFragments(): Promise<SVF.IFragment[]> {
+        const fragmentAsset = this.findAsset({ type: SVF.AssetType.FragmentList });
         if (!fragmentAsset) {
             throw new Error(`Fragment list not found.`);
         }
@@ -390,10 +374,10 @@ export class Reader {
      * Retrieves, parses, and iterates over all SVF geometry metadata.
      * @async
      * @generator
-     * @returns {AsyncIterable<schema.IGeometryMetadata>} Async iterator over parsed geometry metadata.
+     * @returns {AsyncIterable<SVF.IGeometryMetadata>} Async iterator over parsed geometry metadata.
      */
-    async *enumerateGeometries(): AsyncIterable<schema.IGeometryMetadata> {
-        const geometryAsset = this.findAsset({ type: schema.AssetType.GeometryMetadataList });
+    async *enumerateGeometries(): AsyncIterable<SVF.IGeometryMetadata> {
+        const geometryAsset = this.findAsset({ type: SVF.AssetType.GeometryMetadataList });
         if (!geometryAsset) {
             throw new Error(`Geometry metadata not found.`);
         }
@@ -407,10 +391,10 @@ export class Reader {
     /**
      * Retrieves, parses, and collects all SVF geometry metadata.
      * @async
-     * @returns {Promise<schema.IGeometryMetadata[]>} List of parsed geometry metadata.
+     * @returns {Promise<SVF.IGeometryMetadata[]>} List of parsed geometry metadata.
      */
-    async readGeometries(): Promise<schema.IGeometryMetadata[]> {
-        const geometryAsset = this.findAsset({ type: schema.AssetType.GeometryMetadataList });
+    async readGeometries(): Promise<SVF.IGeometryMetadata[]> {
+        const geometryAsset = this.findAsset({ type: SVF.AssetType.GeometryMetadataList });
         if (!geometryAsset) {
             throw new Error(`Geometry metadata not found.`);
         }
@@ -424,7 +408,7 @@ export class Reader {
     getMeshPackCount(): number {
         let count = 0;
         this.svf.manifest.assets.forEach(asset => {
-            if (asset.type === schema.AssetType.PackFile && asset.URI.match(/^\d+\.pf$/)) {
+            if (asset.type === SVF.AssetType.PackFile && asset.URI.match(/^\d+\.pf$/)) {
                 count++;
             }
         });
@@ -435,11 +419,11 @@ export class Reader {
      * Retrieves, parses, and iterates over all meshes, lines, or points in a specific SVF meshpack.
      * @async
      * @generator
-     * @returns {AsyncIterable<schema.IMesh | schema.ILines | schema.IPoints | null>} Async iterator over parsed meshes,
+     * @returns {AsyncIterable<SVF.IMesh | SVF.ILines | SVF.IPoints | null>} Async iterator over parsed meshes,
      * lines, or points (or null values for unsupported mesh types).
      */
-    async *enumerateMeshPack(packNumber: number): AsyncIterable<schema.IMesh | schema.ILines | schema.IPoints | null> {
-        const meshPackAsset = this.findAsset({ type: schema.AssetType.PackFile, uri: `${packNumber}.pf` });
+    async *enumerateMeshPack(packNumber: number): AsyncIterable<SVF.IMesh | SVF.ILines | SVF.IPoints | null> {
+        const meshPackAsset = this.findAsset({ type: SVF.AssetType.PackFile, uri: `${packNumber}.pf` });
         if (!meshPackAsset) {
             throw new Error(`Mesh packfile ${packNumber}.pf not found.`);
         }
@@ -453,11 +437,11 @@ export class Reader {
      * Retrieves, parses, and collects all meshes, lines, or points in a specific SVF meshpack.
      * @async
      * @param {number} packNumber Index of mesh pack file.
-     * @returns {Promise<(schema.IMesh | schema.ILines | schema.IPoints | null)[]>} List of parsed meshes,
+     * @returns {Promise<(SVF.IMesh | SVF.ILines | SVF.IPoints | null)[]>} List of parsed meshes,
      * lines, or points (or null values for unsupported mesh types).
      */
-    async readMeshPack(packNumber: number): Promise<(schema.IMesh | schema.ILines | schema.IPoints | null)[]> {
-        const meshPackAsset = this.findAsset({ type: schema.AssetType.PackFile, uri: `${packNumber}.pf` });
+    async readMeshPack(packNumber: number): Promise<(SVF.IMesh | SVF.ILines | SVF.IPoints | null)[]> {
+        const meshPackAsset = this.findAsset({ type: SVF.AssetType.PackFile, uri: `${packNumber}.pf` });
         if (!meshPackAsset) {
             throw new Error(`Mesh packfile ${packNumber}.pf not found.`);
         }
@@ -469,11 +453,11 @@ export class Reader {
      * Retrieves, parses, and iterates over all SVF materials.
      * @async
      * @generator
-     * @returns {AsyncIterable<schema.IMaterial | null>} Async iterator over parsed materials
+     * @returns {AsyncIterable<SVF.IMaterial | null>} Async iterator over parsed materials
      * (or null values for unsupported material types).
      */
-    async *enumerateMaterials(): AsyncIterable<schema.IMaterial | null> {
-        const materialsAsset = this.findAsset({ type: schema.AssetType.ProteinMaterials, uri: `Materials.json.gz` });
+    async *enumerateMaterials(): AsyncIterable<SVF.IMaterial | null> {
+        const materialsAsset = this.findAsset({ type: SVF.AssetType.ProteinMaterials, uri: `Materials.json.gz` });
         if (!materialsAsset) {
             throw new Error(`Materials not found.`);
         }
@@ -486,10 +470,10 @@ export class Reader {
     /**
      * Retrieves, parses, and collects all SVF materials.
      * @async
-     * @returns {Promise<(schema.IMaterial | null)[]>} List of parsed materials (or null values for unsupported material types).
+     * @returns {Promise<(SVF.IMaterial | null)[]>} List of parsed materials (or null values for unsupported material types).
      */
-    async readMaterials(): Promise<(schema.IMaterial | null)[]> {
-        const materialsAsset = this.findAsset({ type: schema.AssetType.ProteinMaterials, uri: `Materials.json.gz` });
+    async readMaterials(): Promise<(SVF.IMaterial | null)[]> {
+        const materialsAsset = this.findAsset({ type: SVF.AssetType.ProteinMaterials, uri: `Materials.json.gz` });
         if (!materialsAsset) {
             throw new Error(`Materials not found.`);
         }
@@ -504,7 +488,7 @@ export class Reader {
      */
     listImages(): string[] {
         return this.svf.manifest.assets
-            .filter(asset => asset.type === schema.AssetType.Image)
+            .filter(asset => asset.type === SVF.AssetType.Image)
             .map(asset => asset.URI);
     }
 
@@ -514,11 +498,11 @@ export class Reader {
      * @returns {Promise<PropDbReader>} Property database reader.
      */
     async getPropertyDb(): Promise<PropDbReader> {
-        const idsAsset = this.findAsset({ type: schema.AssetType.PropertyIDs });
-        const offsetsAsset = this.findAsset({ type: schema.AssetType.PropertyOffsets });
-        const avsAsset = this.findAsset({ type: schema.AssetType.PropertyAVs });
-        const attrsAsset = this.findAsset({ type: schema.AssetType.PropertyAttributes });
-        const valsAsset = this.findAsset({ type: schema.AssetType.PropertyValues });
+        const idsAsset = this.findAsset({ type: SVF.AssetType.PropertyIDs });
+        const offsetsAsset = this.findAsset({ type: SVF.AssetType.PropertyOffsets });
+        const avsAsset = this.findAsset({ type: SVF.AssetType.PropertyAVs });
+        const attrsAsset = this.findAsset({ type: SVF.AssetType.PropertyAttributes });
+        const valsAsset = this.findAsset({ type: SVF.AssetType.PropertyValues });
         if (!idsAsset || !offsetsAsset || !avsAsset || !attrsAsset || !valsAsset) {
             throw new Error('Could not parse property database. Some of the database assets are missing.');
         }

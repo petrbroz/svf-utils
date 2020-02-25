@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.1] - 2020-02-25
+
 - Fixed
   - Alpha blending only enabled when opacity is less than 1.0 ([#21](https://github.com/petrbroz/forge-convert-utils/issues/21))
 

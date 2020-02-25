@@ -23,6 +23,7 @@ Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file f
 - run the command with a Model Derivative URN (and optionally viewable GUID)
     - to access Forge you must also specify credentials (`FORGE_CLIENT_ID` and `FORGE_CLIENT_SECRET`)
     or an authentication token (`FORGE_ACCESS_TOKEN`) as env. variables
+    - this will also download the property database in sqlite format
 - optionally, use any combination of the following command line args:
   - `--output-folder <folder>` to change output folder (by default '.')
   - `--output-type glb` to output _glb_ file instead of _gltf_
@@ -94,8 +95,8 @@ const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
 async function run(urn, outputDir) {
     const auth = { client_id: FORGE_CLIENT_ID, client_secret: FORGE_CLIENT_SECRET };
     const modelDerivativeClient = new ModelDerivativeClient(auth);
-    const helper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
-    const derivatives = helper.search({ type: 'resource', role: 'graphics' });
+    const manifestHelper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
+    const derivatives = manifestHelper.search({ type: 'resource', role: 'graphics' });
     const readerOptions = {
         log: console.log
     };
@@ -132,8 +133,8 @@ const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
 async function run (urn) {
     const auth = { client_id: FORGE_CLIENT_ID, client_secret: FORGE_CLIENT_SECRET };
     const modelDerivativeClient = new ModelDerivativeClient(auth);
-    const helper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
-    const derivatives = helper.search({ type: 'resource', role: 'graphics' });
+    const manifestHelper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
+    const derivatives = manifestHelper.search({ type: 'resource', role: 'graphics' });
     for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
         const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
         for await (const fragment of reader.enumerateFragments()) {
@@ -156,6 +157,43 @@ for (const mesh of parseMeshes(buffer)) {
 ```
 
 > For additional examples, see the [test](./test) subfolder.
+
+
+
+### Metadata
+
+When converting models from [Model Derivative service](https://forge.autodesk.com/en/docs/model-derivative/v2),
+you can retrieve the model's properties and metadata in form of a sqlite database. The command line tool downloads
+this database automatically as _properties.sqlite_ file directly in your output folder. If you're using this library
+in your own Node.js code, you can find the database in the manifest by looking for an asset with type "resource",
+and role "Autodesk.CloudPlatform.PropertyDatabase":
+
+```js
+    ...
+    const pdbDerivatives = manifestHelper.search({ type: 'resource', role: 'Autodesk.CloudPlatform.PropertyDatabase' });
+    if (pdbDerivatives.length > 0) {
+        const pdb = await modelDerivativeClient.getDerivative(urn, pdbDerivatives[0].urn);
+        fs.writeFileSync(path.join(outputDir, 'properties.sqlite'), pdb);
+    }
+    ...
+```
+
+The structure of the sqlite database, and the way to extract model properties from it is explained in
+https://github.com/wallabyway/propertyServer/blob/master/pipeline.md. Here's a simple diagram showing
+the individual tables in the database, and the relationships between them:
+
+![Property Database Diagram](https://user-images.githubusercontent.com/440241/42006177-35a1070e-7a2d-11e8-8c9e-48a0afeea00f.png)
+
+And here's an example query listing all objects with "Material" property containing the "Concrete" word:
+
+```sql
+SELECT _objects_id.id AS dbId, _objects_id.external_id AS externalId, _objects_attr.name AS propName, _objects_val.value AS propValue
+FROM _objects_eav
+    INNER JOIN _objects_id ON _objects_eav.entity_id = _objects_id.id
+    INNER JOIN _objects_attr ON _objects_eav.attribute_id = _objects_attr.id
+    INNER JOIN _objects_val ON _objects_eav.value_id = _objects_val.id
+WHERE propName = "Material" AND propValue LIKE "%Concrete%"
+```
 
 ## Development
 
@@ -220,7 +258,7 @@ In _.vscode/launch.json_:
 
 ### Intermediate Format
 
-The project provides a collection of interfaces for an [intermediate 3D format](./src/common/imf-schema.ts)
+The project provides a collection of interfaces for an [intermediate 3D format](./src/common/intermediate-format.ts)
 that is meant to be used by all loaders and writers. When implementing a new loader, make sure that
 its output implements the intermediate format's `IScene` interface. Similarly, this interface should
 also be expected as the input to all new writers.

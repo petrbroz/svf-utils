@@ -624,7 +624,7 @@ export class Writer {
                 // roughnessFactor: (mat.glossiness || 0) / 255.0
             }
         };
-        if (!isUndefined(mat.opacity) && material.pbrMetallicRoughness.baseColorFactor) {
+        if (!isUndefined(mat.opacity) && mat.opacity < 1.0 && material.pbrMetallicRoughness.baseColorFactor) {
             material.alphaMode = 'BLEND';
             material.pbrMetallicRoughness.baseColorFactor[3] = mat.opacity;
         }

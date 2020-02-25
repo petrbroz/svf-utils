@@ -7,6 +7,7 @@
  */
 
 const path = require('path');
+const fs = require('fs');
 const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
 const { SvfReader, GltfWriter } = require('..');
 
@@ -27,11 +28,18 @@ async function run (urn, outputDir) {
         const derivatives = helper.search({ type: 'resource', role: 'graphics' });
         const writer0 = new GltfWriter(Object.assign({}, defaultOptions));
         const writer1 = new GltfWriter(Object.assign({}, defaultOptions, { deduplicate: true, skipUnusedUvs: true }));
+        // Convert individual 3D viewables into glTFs
         for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
             const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
             const scene = await reader.read({ log: console.log });
             await writer0.write(scene, path.join(outputDir, derivative.guid, 'gltf-raw'));
             await writer1.write(scene, path.join(outputDir, derivative.guid, 'gltf-dedup'));
+        }
+        // Also download property database in sqlite form
+        const pdbDerivatives = helper.search({ type: 'resource', role: 'Autodesk.CloudPlatform.PropertyDatabase' });
+        if (pdbDerivatives.length > 0) {
+            const pdb = await modelDerivativeClient.getDerivative(urn, pdbDerivatives[0].urn);
+            fs.writeFileSync(path.join(outputDir, 'properties.sqlite'), pdb);
         }
     } catch(err) {
         console.error(err);

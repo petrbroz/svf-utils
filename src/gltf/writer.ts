@@ -339,7 +339,7 @@ export class Writer {
                 console.warn('Could not find mesh for fragment', fragment);
                 break;
         }
-        if (mesh) {
+        if (mesh && mesh.primitives.length > 0) {
             for (const primitive of mesh.primitives) {
                 primitive.material = fragment.material;
             }

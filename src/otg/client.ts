@@ -6,7 +6,8 @@ const RootPath = 'modeldata';
 const ReadTokenScopes = ['bucket:read', 'data:read'];
 const WriteTokenScopes = ['data:write'];
 
-interface IView {
+export interface IView {
+    urn: string;
     id: string;
     role: string;
     mime: string;

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.2] - 2020-03-12
+
+- Fixed
+  - When converting to gltf, empty `textures` or `images` are removed to prevent validation errors (thanks [@AlexPiro](https://github.com/AlexPiro)!)
+- Added
+  - Dev utility for validating gltf manifests (to be used in CI/CD)
+
 ## [3.1.1] - 2020-02-25
 
 - Fixed

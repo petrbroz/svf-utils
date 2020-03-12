@@ -108,6 +108,13 @@ export class Writer {
         }
 
         await Promise.all(this.pendingTasks);
+
+        // Remove empty attributes textures or images to avoid errors in glTF validation
+        if (this.manifest.textures && this.manifest.textures.length === 0)
+            delete this.manifest.textures;
+        if (this.manifest.images && this.manifest.images.length === 0)
+            delete this.manifest.images;
+
         const gltfPath = path.join(this.baseDir, 'output.gltf');
         fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
         this.options.log(`Closing gltf output: done`);

@@ -1,5 +1,22 @@
 /*
  * Example: downloading OTG assets for all viewables in a Model Derivative URN.
+ * The script will generate the following folder structure under the output folder:
+ * - <output folder>
+ *   - <urn folder>
+ *     - <guid folder>
+ *     - <guid folder>
+ *   - <urn folder>
+ *     - <guid folder>
+ *     - <guid folder>
+ *   - <"g" folder with all shared geometries>
+ *     - <hash file with geometry content>
+ *     - <hash file with geometry content>
+ *   - <"m" folder with all shared materials>
+ *     - <hash file with material json>
+ *     - <hash file with material json>
+ *   - <"t" folder with all shared textures>
+ *     - <hash file with texture image>
+ *     - <hash file with texture image>
  * Usage:
  *     export FORGE_CLIENT_ID=<your client id>
  *     export FORGE_CLIENT_SECRET=<your client secret>
@@ -22,7 +39,8 @@ async function run(urn, outputDir = '.') {
     const derivativeManifest = await otgClient.getManifest(urn);
     const otgViewable = derivativeManifest.children.find(child => child.otg_manifest);
     if (otgViewable) {
-        const guidDir = path.join(outputDir, otgViewable.guid);
+        const urnDir = path.join(outputDir, urn);
+        const guidDir = path.join(urnDir, otgViewable.guid);
         fse.ensureDirSync(guidDir);
         const helper = new ManifestHelper(otgViewable.otg_manifest);
         for (const view of helper.listViews()) {
@@ -92,13 +110,11 @@ async function downloadMaterials(otgClient, urn, privateModelAssets, viewDataPat
                 const texture = group.materials[connection];
                 if (texture && texture.properties.uris && 'unifiedbitmap_Bitmap' in texture.properties.uris) {
                     const uri = texture.properties.uris['unifiedbitmap_Bitmap'].values[0];
-                    // TODO: download textures
-                    //const textureUrn = otgViewHelper.getTextureUrn(uri);
-                    //const textureData = await sharedClient.getAsset(urn, textureUrn);
-                    //const texturePath = path.join(path.dirname(viewDataPath), uri);
-                    //fse.ensureDirSync(path.dirname(texturePath));
-                    //fse.writeFileSync(texturePath, textureData);
-                    console.log('Texture URI', uri);
+                    const textureUrn = otgViewHelper.getTextureUrn(uri);
+                    const textureData = await sharedClient.getAsset(urn, textureUrn);
+                    const texturePath = path.join(outputDir, 't', uri);
+                    fse.ensureDirSync(path.dirname(texturePath));
+                    fse.writeFileSync(texturePath, textureData);
                 }
             }
         }

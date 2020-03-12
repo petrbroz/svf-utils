@@ -152,6 +152,11 @@ glob@^7.0.0:
     once "^1.3.0"
     path-is-absolute "^1.0.0"
 
+gltf-validator@^2.0.0-dev.3.2:
+  version "2.0.0-dev.3.2"
+  resolved "https://registry.yarnpkg.com/gltf-validator/-/gltf-validator-2.0.0-dev.3.2.tgz#37fe4ccd8011be7e0bebd5fe4afa88c6b9e080eb"
+  integrity sha512-gdG28HR+nDF00b8XkUl/Vxua4Cndc7v1nK4RO3G7JBAm7TiEnCQWETMYRgJR+0BfBt3dWWKsnJXGC+WjaILVmQ==
+
 graceful-fs@^4.1.6, graceful-fs@^4.2.0:
   version "4.2.3"
   resolved "https://registry.yarnpkg.com/graceful-fs/-/graceful-fs-4.2.3.tgz#4a12ff1b60376ef09862c2093edd908328be8423"

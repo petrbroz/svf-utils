@@ -7,6 +7,7 @@ import { SvfReader } from '..';
 export interface IDownloadOptions {
     outputDir?: string;
     log?: (message: string) => void;
+    failOnMissingAssets?: boolean;
 }
 
 export interface IDownloadTask {
@@ -18,6 +19,7 @@ interface IDownloadContext {
     log: (message: string) => void;
     outputDir: string;
     cancelled: boolean;
+    failOnMissingAssets: boolean;
 }
 
 export class Downloader {
@@ -31,7 +33,8 @@ export class Downloader {
         const context: IDownloadContext = {
             log: options?.log || ((message: string) => {}),
             outputDir: options?.outputDir || '.',
-            cancelled: false
+            cancelled: false,
+            failOnMissingAssets: !!options?.failOnMissingAssets
         };
         return {
             ready: this._download(urn, context),
@@ -62,11 +65,19 @@ export class Downloader {
                 }
                 if (!asset.URI.startsWith('embed:')) {
                     context.log(`Downloading asset ${asset.URI}`);
-                    const assetData = await reader.getAsset(asset.URI);
-                    const assetPath = path.join(guidDir, asset.URI);
-                    const assetFolder = path.dirname(assetPath);
-                    fse.ensureDirSync(assetFolder);
-                    fse.writeFileSync(assetPath, assetData);
+                    try {
+                        const assetData = await reader.getAsset(asset.URI);
+                        const assetPath = path.join(guidDir, asset.URI);
+                        const assetFolder = path.dirname(assetPath);
+                        fse.ensureDirSync(assetFolder);
+                        fse.writeFileSync(assetPath, assetData);
+                    } catch (err) {
+                        if (context.failOnMissingAssets) {
+                            throw err;
+                        } else {
+                            context.log(`Could not download asset ${asset.URI}`);
+                        }
+                    }
                 }
             }
         }

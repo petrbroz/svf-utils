@@ -7,6 +7,7 @@ import { IAuthOptions } from 'forge-server-utils/dist/common';
 export interface IDownloadOptions {
     outputDir?: string;
     log?: (message: string) => void;
+    failOnMissingAssets?: boolean;
 }
 
 export interface IDownloadTask {
@@ -18,6 +19,7 @@ interface IDownloadContext {
     log: (message: string) => void;
     outputDir: string;
     cancelled: boolean;
+    failOnMissingAssets: boolean;
 }
 
 export class Downloader {
@@ -31,7 +33,8 @@ export class Downloader {
         const context: IDownloadContext = {
             log: options?.log || ((message: string) => {}),
             outputDir: options?.outputDir || '.',
-            cancelled: false
+            cancelled: false,
+            failOnMissingAssets: !!options?.failOnMissingAssets
         };
         return {
             ready: this._download(urn, context),
@@ -62,8 +65,16 @@ export class Downloader {
                     return;
                 }
                 context.log(`Downloading asset ${asset.URI}`);
-                const assetData = await this.modelDerivativeClient.getDerivative(urn, baseUrn + '/' + asset.URI);
-                fse.writeFileSync(path.join(guidDir, asset.URI), assetData);
+                try {
+                    const assetData = await this.modelDerivativeClient.getDerivative(urn, baseUrn + '/' + asset.URI);
+                    fse.writeFileSync(path.join(guidDir, asset.URI), assetData);
+                } catch (err) {
+                    if (context.failOnMissingAssets) {
+                        throw err;
+                    } else {
+                        context.log(`Could not download asset ${asset.URI}`);
+                    }
+                }
             }
         }
     }

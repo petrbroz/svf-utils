@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.0] - 2020-03-13
+
+- Added
+  - F2D downloader
+- Changed
+  - SVF/OTG/F2D downloaders can now accept existing auth tokens
+  - SVF/OTG/F2D downloaders can now be configured to ignore missing assets
+
 ## [3.2.0] - 2020-03-13
 
 - Added

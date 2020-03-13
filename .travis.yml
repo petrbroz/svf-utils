@@ -5,6 +5,7 @@ node_js:
 script:
 - yarn run build
 - yarn run docs
+- ./test/remote-svf-to-gltf.sh $FORGE_MODEL_URN ./tmp/test/remote-svf-to-gltf
 
 deploy:
   provider: npm

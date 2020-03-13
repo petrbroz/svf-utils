@@ -11,7 +11,8 @@ const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
 
 async function run(urn, outputDir = '.') {
     const downloader = new SvfDownloader(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET);
-    await downloader.download(urn, outputDir);
+    const download = downloader.download(urn, { outputDir, log: console.log });
+    await download.ready;
 }
 
 run(process.argv[2], process.argv[3]);

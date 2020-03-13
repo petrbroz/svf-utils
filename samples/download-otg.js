@@ -27,7 +27,7 @@ const { OtgDownloader } = require('..');
 const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
 
 async function run(urn, outputDir = '.') {
-    const downloader = new OtgDownloader(FORGE_CLIENT_ID, FORGE_CLIENT_SECRET);
+    const downloader = new OtgDownloader({ client_id: FORGE_CLIENT_ID, client_secret: FORGE_CLIENT_SECRET });
     const download = downloader.download(urn, { outputDir, log: console.log });
     await download.ready;
 }

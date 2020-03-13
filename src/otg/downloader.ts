@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as fse from 'fs-extra';
 import { AuthenticationClient, ModelDerivativeClient } from 'forge-server-utils';
+import { IAuthOptions } from 'forge-server-utils/dist/common';
 import { Client, SharedClient, ManifestHelper, ViewHelper, IView } from './client';
 import { parseHashes } from './hashes';
 
@@ -30,13 +31,9 @@ interface IModelAssets {
 }
 
 export class Downloader {
-    protected auth: { client_id: string; client_secret: string; };
-    protected authClient: AuthenticationClient;
     protected modelDerivativeClient: ModelDerivativeClient;
 
-    constructor(client_id: string, client_secret: string) {
-        this.auth = { client_id, client_secret };
-        this.authClient = new AuthenticationClient(this.auth.client_id, this.auth.client_secret);
+    constructor(protected auth: IAuthOptions) {
         this.modelDerivativeClient = new ModelDerivativeClient(this.auth);
     }
 
@@ -58,9 +55,17 @@ export class Downloader {
     }
 
     private async _download(urn: string, context: IDownloadContext): Promise<void> {
-        const token = await this.authClient.authenticate(['viewables:read', 'data:read']);
-        context.otgClient = new Client({ token: token.access_token });
-        context.sharedClient = new SharedClient({ token: token.access_token });
+        let token = '';
+        if ('token' in this.auth) {
+            token = this.auth.token;
+        } else {
+            const authClient = new AuthenticationClient(this.auth.client_id, this.auth.client_secret);
+            const result = await authClient.authenticate(['viewables:read', 'data:read']);
+            token = result.access_token;
+        }
+
+        context.otgClient = new Client({ token });
+        context.sharedClient = new SharedClient({ token });
         context.log(`Downloading derivative ${urn}`);
         const derivativeManifest = await context.otgClient.getManifest(urn);
         const otgViewable = derivativeManifest.children.find((child: any) => child.otg_manifest);

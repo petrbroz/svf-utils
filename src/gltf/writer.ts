@@ -86,7 +86,7 @@ export class Writer {
     }
 
     /**
-     * Outputs scene into glTF or glb.
+     * Outputs scene into glTF.
      * @async
      * @param {IMF.IScene} imf Complete scene in intermediate, in-memory format.
      * @param {string} outputDir Path to output folder.

@@ -7,6 +7,8 @@
 ![platforms](https://img.shields.io/badge/platform-windows%20%7C%20osx%20%7C%20linux-lightgray.svg)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](http://opensource.org/licenses/MIT)
 
+![Forge & glTF logos](./logo.png)
+
 Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file format into
 [glTF 2.0](https://github.com/KhronosGroup/glTF/tree/master/specification/2.0).
 
@@ -26,7 +28,6 @@ Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file f
     - this will also download the property database in sqlite format
 - optionally, use any combination of the following command line args:
   - `--output-folder <folder>` to change output folder (by default '.')
-  - `--output-type glb` to output _glb_ file instead of _gltf_
   - `--deduplicate` to try and remove duplicate geometries
   - `--skip-unused-uvs` to skip texture UVs that are not used by any material
   - `--compress` to compress meshes using Draco
@@ -158,8 +159,6 @@ for (const mesh of parseMeshes(buffer)) {
 
 > For additional examples, see the [test](./test) subfolder.
 
-
-
 ### Metadata
 
 When converting models from [Model Derivative service](https://forge.autodesk.com/en/docs/model-derivative/v2),
@@ -194,6 +193,14 @@ FROM _objects_eav
     INNER JOIN _objects_val ON _objects_eav.value_id = _objects_val.id
 WHERE propName = "Material" AND propValue LIKE "%Concrete%"
 ```
+
+### GLB, Draco, and other post-processing
+
+Following the Unix philosophy, we removed post-processing dependencies from this project,
+and instead leave it to developers to "pipe" the output of this library to other tools
+such as https://github.com/CesiumGS/gltf-pipeline or https://github.com/zeux/meshoptimizer.
+See [./samples/local-svf-to-gltf.sh](./samples/local-svf-to-gltf.sh) or
+[./samples/remote-svf-to-gltf.sh](./samples/remote-svf-to-gltf.sh) for examples.
 
 ## Development
 

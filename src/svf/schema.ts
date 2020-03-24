@@ -138,6 +138,7 @@ export interface IMesh {
     indices: Uint16Array;
     vertices: Float32Array;
     normals?: Float32Array;
+    colors?: Float32Array;
     min: IVector3;
     max: IVector3;
 }

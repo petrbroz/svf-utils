@@ -102,6 +102,7 @@ export class Scene implements IMF.IScene {
                     getIndices: () => mesh.indices,
                     getVertices: () => mesh.vertices,
                     getNormals: () => mesh.normals,
+                    getColors: () => mesh.colors,
                     getUvChannelCount: () => mesh.uvcount,
                     getUvs: (channel: number) => mesh.uvmaps[channel].uvs
                 };

@@ -54,7 +54,7 @@ function parseMeshRAW(pfr: PackFileReader): IMesh {
     const vcount = pfr.getInt32(); // Num of vertices
     const tcount = pfr.getInt32(); // Num of triangles
     const uvcount = pfr.getInt32(); // Num of UV maps
-    const attrs = pfr.getInt32(); // Number of attributes per vertex
+    const attrs = pfr.getInt32(); // Number of custom attributes per vertex
     const flags = pfr.getInt32(); // Additional flags (e.g., whether normals are present)
     const comment = pfr.getString(pfr.getInt32());
 
@@ -128,9 +128,33 @@ function parseMeshRAW(pfr: PackFileReader): IMesh {
         uvmaps.push(uvmap);
     }
 
+    // Parse custom attributes (currently we only support "Color" attrs)
+    let colors: Float32Array | null = null;
+    if (attrs > 0) {
+        name = pfr.getString(4);
+        console.assert(name === 'ATTR');
+        for (let i = 0; i < attrs; i++) {
+            const attrName = pfr.getString(pfr.getInt32());
+            if (attrName === 'Color') {
+                colors = new Float32Array(vcount * 4);
+                for (let j = 0; j < vcount; j++) {
+                    colors[j * 4] = pfr.getFloat32();
+                    colors[j * 4 + 1] = pfr.getFloat32();
+                    colors[j * 4 + 2] = pfr.getFloat32();
+                    colors[j * 4 + 3] = pfr.getFloat32();
+                }
+            } else {
+                pfr.seek(pfr.offset + vcount * 4);
+            }
+        }
+    }
+
     const mesh: IMesh = { vcount, tcount, uvcount, attrs, flags, comment, uvmaps, indices, vertices, min, max };
     if (normals) {
         mesh.normals = normals;
+    }
+    if (colors) {
+        mesh.colors = colors;
     }
     return mesh;
 }

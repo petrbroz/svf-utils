@@ -398,6 +398,16 @@ export class Writer {
             normalAccessorID = this.addAccessor(normalAccessor);
         }
 
+        // Output color buffer
+        let colorAccessorID: number | undefined = undefined;
+        const colors = geometry.getColors();
+        if (colors) {
+            const colorBufferView = this.createBufferView(Buffer.from(colors.buffer));
+            const colorBufferViewID = this.addBufferView(colorBufferView);
+            const colorAccessor = this.createAccessor(colorBufferViewID, 5126, colorBufferView.byteLength / 4 / 4, 'VEC4');
+            colorAccessorID = this.addAccessor(colorAccessor);
+        }
+
         // Output UV buffers
         let uvAccessorID: number | undefined = undefined;
         if (geometry.getUvChannelCount() > 0 && outputUvs) {
@@ -418,6 +428,9 @@ export class Writer {
 
         if (!isUndefined(normalAccessorID)) {
             mesh.primitives[0].attributes.NORMAL = normalAccessorID;
+        }
+        if (!isUndefined(colorAccessorID)) {
+            mesh.primitives[0].attributes.COLOR_0 = colorAccessorID;
         }
         if (!isUndefined(uvAccessorID)) {
             mesh.primitives[0].attributes.TEXCOORD_0 = uvAccessorID;

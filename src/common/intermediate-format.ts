@@ -101,6 +101,7 @@ export interface IMeshGeometry {
     getIndices(): Uint16Array;
     getVertices(): Float32Array;
     getNormals(): Float32Array | undefined;
+    getColors(): Float32Array | undefined;
     getUvChannelCount(): number;
     getUvs(channel: number): Float32Array;
 }

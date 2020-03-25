@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added
+  - SVF downloader can now be initialized with custom host URL and region
+
 ## [3.4.0] - 2020-03-24
 
 - Added

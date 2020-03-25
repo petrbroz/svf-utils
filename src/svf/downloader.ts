@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as fse from 'fs-extra';
 import { ModelDerivativeClient, ManifestHelper, IDerivativeResourceChild } from 'forge-server-utils';
-import { IAuthOptions } from 'forge-server-utils/dist/common';
+import { IAuthOptions, Region } from 'forge-server-utils/dist/common';
 import { SvfReader } from '..';
 
 export interface IDownloadOptions {
@@ -25,8 +25,8 @@ interface IDownloadContext {
 export class Downloader {
     protected modelDerivativeClient: ModelDerivativeClient;
 
-    constructor(protected auth: IAuthOptions) {
-        this.modelDerivativeClient = new ModelDerivativeClient(this.auth);
+    constructor(protected auth: IAuthOptions, host?: string, region?: Region) {
+        this.modelDerivativeClient = new ModelDerivativeClient(this.auth, host, region);
     }
 
     download(urn: string, options?: IDownloadOptions): IDownloadTask {

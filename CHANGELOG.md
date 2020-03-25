@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added
   - SVF downloader can now be initialized with custom host URL and region
   - SVF parser can now be initialized with custom host URL and region
+- Removed
+  - Docs generator (due to audit warnings and lack of updates); will continue generating the docs manually.
 
 ## [3.4.0] - 2020-03-24
 

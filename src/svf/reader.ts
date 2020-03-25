@@ -4,7 +4,7 @@ import Zip from 'adm-zip';
 import { isNullOrUndefined } from 'util';
 
 import { ModelDerivativeClient, ManifestHelper, IDerivativeResourceChild } from 'forge-server-utils';
-import { IAuthOptions } from 'forge-server-utils/dist/common';
+import { IAuthOptions, Region } from 'forge-server-utils/dist/common';
 import { PropDbReader } from '../common/propdb-reader';
 import { parseFragments } from './fragments';
 import { parseGeometries } from './geometries';
@@ -194,11 +194,13 @@ export class Reader {
      * @param {string} guid Forge viewable GUID. The viewable(s) can be found in the manifest
      * with type: 'resource', role: 'graphics', and mime: 'application/autodesk-svf'.
      * @param {IAuthOptions} auth Credentials or access token for accessing the Model Derivative service.
+     * @param {string} host Optional host URL to be used by all Forge calls.
+     * @param {Region} region Optional region to be used by all Forge calls.
      * @returns {Promise<Reader>} Reader for the provided SVF.
      */
-    static async FromDerivativeService(urn: string, guid: string, auth: IAuthOptions): Promise<Reader> {
+    static async FromDerivativeService(urn: string, guid: string, auth: IAuthOptions, host?: string, region?: Region): Promise<Reader> {
         urn = urn.replace(/=/g, '');
-        const modelDerivativeClient = new ModelDerivativeClient(auth);
+        const modelDerivativeClient = new ModelDerivativeClient(auth, host, region);
         const helper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
         const resources = helper.search({ type: 'resource', role: 'graphics', guid });
         if (resources.length === 0) {

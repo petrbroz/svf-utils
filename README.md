@@ -207,7 +207,6 @@ See [./samples/local-svf-to-gltf.sh](./samples/local-svf-to-gltf.sh) or
 - clone the repository
 - install dependencies: `yarn install`
 - build the library (transpile TypeScript): `yarn run build`
-- optionally, generate code docs: `yarn run docs`
 - run samples in the _test_ subfolder, for example: `FORGE_CLIENT_ID=<your client id> FORGE_CLIENT_SECRET=<your client secret> node test/remote-svf-to-gltf.js <model urn> <path to output folder>`
 
 If you're using [Visual Studio Code](https://code.visualstudio.com), you can use the following "task" and "launch" configurations:

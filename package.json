@@ -1,6 +1,6 @@
 {
   "name": "forge-convert-utils",
-  "version": "3.4.0",
+  "version": "3.4.1",
   "description": "Tools for converting Autodesk Forge file formats.",
   "main": "lib/index.js",
   "bin": {
@@ -10,8 +10,7 @@
     "node": ">=10.15.0"
   },
   "scripts": {
-    "build": "tsc",
-    "docs": "typedoc --out lib/docs src"
+    "build": "tsc"
   },
   "author": "Petr Broz <petr.broz@autodesk.com>",
   "license": "MIT",
@@ -33,7 +32,6 @@
     "@types/adm-zip": "^0.4.32",
     "@types/fs-extra": "^8.0.0",
     "gltf-validator": "^2.0.0-dev.3.2",
-    "typedoc": "^0.15.0",
     "typescript": "^3.7.0"
   },
   "dependencies": {

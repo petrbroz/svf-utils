@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.4.5] - 2020-03-26
+
+- Fixed
+  - SVF parser property db config from 3.4.4
+
 ## [3.4.4] - 2020-03-26
 
 - Added

@@ -267,7 +267,7 @@ export class Reader {
             output.materials = await this.readMaterials();
             log(`Reading materials: done`);
         })());
-        if (!(options?.skipPropertyDb)) {
+        if (!(options && options.skipPropertyDb)) {
             tasks.push((async () => {
                 log(`Reading property database...`);
                 output.properties = await this.getPropertyDb();

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.4.4] - 2020-03-26
+
+- Added
+  - SVF parser can now be configured to skip property DB
+
 ## [3.4.3] - 2020-03-25
 
 - Fixed

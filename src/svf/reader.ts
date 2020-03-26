@@ -146,6 +146,7 @@ export class Scene implements IMF.IScene {
  */
 export interface IReaderOptions {
     log?: (msg: string) => void;
+    skipPropertyDb?: boolean;
 }
 
 /**
@@ -266,11 +267,13 @@ export class Reader {
             output.materials = await this.readMaterials();
             log(`Reading materials: done`);
         })());
-        tasks.push((async () => {
-            log(`Reading property database...`);
-            output.properties = await this.getPropertyDb();
-            log(`Reading property database: done`);
-        })());
+        if (!(options?.skipPropertyDb)) {
+            tasks.push((async () => {
+                log(`Reading property database...`);
+                output.properties = await this.getPropertyDb();
+                log(`Reading property database: done`);
+            })());
+        }
         for (let i = 0, len = this.getMeshPackCount(); i < len; i++) {
             tasks.push((async (id: number) => {
                 log(`Reading meshpack #${id}...`);

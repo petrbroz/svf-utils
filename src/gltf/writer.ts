@@ -641,7 +641,7 @@ export class Writer {
             pbrMetallicRoughness: {
                 baseColorFactor: [diffuse.x, diffuse.y, diffuse.z, 1.0],
                 metallicFactor: mat.metallic,
-                // roughnessFactor: (mat.glossiness || 0) / 255.0
+                roughnessFactor: mat.roughness
             }
         };
         if (!isUndefined(mat.opacity) && mat.opacity < 1.0 && material.pbrMetallicRoughness.baseColorFactor) {

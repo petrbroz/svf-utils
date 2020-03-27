@@ -133,6 +133,7 @@ export interface IPhysicalMaterial {
     kind: MaterialKind.Physical;
     diffuse: IVec3;
     metallic: number;
+    roughness: number;
     opacity: number;
     maps?: {
         diffuse?: string;

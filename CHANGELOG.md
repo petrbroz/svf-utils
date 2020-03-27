@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added
+  - Mapping SVF/OTG glossiness to glTF roughness (need to confirm that the mapping is correct)
+
 ## [3.4.5] - 2020-03-26
 
 - Fixed

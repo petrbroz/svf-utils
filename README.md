@@ -159,6 +159,13 @@ for (const mesh of parseMeshes(buffer)) {
 
 > For additional examples, see the [test](./test) subfolder.
 
+### Customization
+
+You can customize the translation by sub-classing the reader and/or the writer class. For example:
+
+- The _samples/custom-gltf-attribute.js_ script adds the dbID of each SVF node as a new attribute in its mesh
+- The _samples/filter-by-area.js_ script only outputs geometries that are completely contained within a specified area
+
 ### Metadata
 
 When converting models from [Model Derivative service](https://forge.autodesk.com/en/docs/model-derivative/v2),

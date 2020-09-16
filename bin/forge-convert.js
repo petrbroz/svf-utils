@@ -40,7 +40,7 @@ program
     .option('-il, --ignore-lines', 'ignore line geometry', false)
     .option('-ip, --ignore-points', 'ignore point geometry', false)
     .option('--center', 'move model to origin', false)
-    .arguments('<URN or path/to/svf> [GUID]')
+    .arguments('<URN-or-local-path> [GUID]')
     .action(async function (id, guid) {
         const options = {
             deduplicate: program.deduplicate,

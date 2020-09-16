@@ -30,7 +30,6 @@ Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file f
   - `--output-folder <folder>` to change output folder (by default '.')
   - `--deduplicate` to try and remove duplicate geometries
   - `--skip-unused-uvs` to skip texture UVs that are not used by any material
-  - `--compress` to compress meshes using Draco
   - `--ignore-meshes` to exclude mesh geometry from the output
   - `--ignore-lines` to exclude line geometry from the output
   - `--ignore-points` to exclude point geometry from the output

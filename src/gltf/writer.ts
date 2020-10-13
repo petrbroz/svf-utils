@@ -185,34 +185,38 @@ export class Writer {
                     up[0] * front[1] - up[1] * front[0]
                 ];
 
-                let scale = 1.0;
-                switch (distanceUnit) {
-                    case 'centimeter':
-                    case 'cm':
-                        scale = 0.01;
-                        break;
-                    case 'millimeter':
-                    case 'mm':
-                        scale = 0.001;
-                        break;
-                    case 'foot':
-                    case 'ft':
-                        scale = 0.3048;
-                        break;
-                    case 'inch':
-                    case 'in':
-                        scale = 0.0254;
-                        break;
-                    default:    // "meter" / "m"
-                        scale = 1.0;
+                if (left[0] * left[0] + left[1] * left[1] + left[2] * left[2] > 0.0) {
+                    let scale = 1.0;
+                    switch (distanceUnit) {
+                        case 'centimeter':
+                        case 'cm':
+                            scale = 0.01;
+                            break;
+                        case 'millimeter':
+                        case 'mm':
+                            scale = 0.001;
+                            break;
+                        case 'foot':
+                        case 'ft':
+                            scale = 0.3048;
+                            break;
+                        case 'inch':
+                        case 'in':
+                            scale = 0.0254;
+                            break;
+                        default:    // "meter" / "m"
+                            scale = 1.0;
+                    }
+    
+                    rootNode.matrix = [
+                        left[0] * scale, up[0] * scale, front[0] * scale, 0,
+                        left[1] * scale, up[1] * scale, front[1] * scale, 0,
+                        left[2] * scale, up[2] * scale, front[2] * scale, 0,
+                        0, 0, 0, 1
+                    ];
+                } else {
+                    console.warn('Could not compute world matrix, leaving it as identity...');
                 }
-
-                rootNode.matrix = [
-                    left[0] * scale, up[0] * scale, front[0] * scale, 0,
-                    left[1] * scale, up[1] * scale, front[1] * scale, 0,
-                    left[2] * scale, up[2] * scale, front[2] * scale, 0,
-                    0, 0, 0, 1
-                ];
             }
         }
         // Setup translation to origin when enabled

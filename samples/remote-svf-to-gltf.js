@@ -38,8 +38,8 @@ async function run (urn, outputDir) {
         // Also download property database in sqlite form
         const pdbDerivatives = helper.search({ type: 'resource', role: 'Autodesk.CloudPlatform.PropertyDatabase' });
         if (pdbDerivatives.length > 0) {
-            const pdb = await modelDerivativeClient.getDerivative(urn, pdbDerivatives[0].urn);
-            fs.writeFileSync(path.join(outputDir, 'properties.sqlite'), pdb);
+            const databaseStream = modelDerivativeClient.getDerivativeChunked(urn, pdbDerivatives[0].urn, 1 << 20);
+            databaseStream.pipe(fs.createWriteStream(path.join(outputDir, 'properties.sqlite')));
         }
     } catch(err) {
         console.error(err);

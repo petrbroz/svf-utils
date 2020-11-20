@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added
+  - New version of forge-server-utils
+  - Support for chunked download of Model Derivative assets
+
 ## [3.5.0] - 2020-03-30
 
 - Added

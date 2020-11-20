@@ -81,8 +81,8 @@ program
                 // Store the property database within the <urn> subfolder (it is shared by all viewables)
                 const pdbDerivatives = helper.search({ type: 'resource', role: 'Autodesk.CloudPlatform.PropertyDatabase' });
                 if (pdbDerivatives.length > 0) {
-                    const pdb = await client.getDerivative(urn, pdbDerivatives[0].urn);
-                    fse.writeFileSync(path.join(folder, 'properties.sqlite'), pdb);
+                    const databaseStream = client.getDerivativeChunked(urn, pdbDerivatives[0].urn, 1 << 20);
+                    databaseStream.pipe(fse.createWriteStream(path.join(folder, 'properties.sqlite')));
                 }
             }
         } catch (err) {

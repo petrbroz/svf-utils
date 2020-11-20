@@ -30,7 +30,6 @@ Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file f
   - `--output-folder <folder>` to change output folder (by default '.')
   - `--deduplicate` to try and remove duplicate geometries
   - `--skip-unused-uvs` to skip texture UVs that are not used by any material
-  - `--compress` to compress meshes using Draco
   - `--ignore-meshes` to exclude mesh geometry from the output
   - `--ignore-lines` to exclude line geometry from the output
   - `--ignore-points` to exclude point geometry from the output
@@ -159,6 +158,13 @@ for (const mesh of parseMeshes(buffer)) {
 
 > For additional examples, see the [test](./test) subfolder.
 
+### Customization
+
+You can customize the translation by sub-classing the reader and/or the writer class. For example:
+
+- The _samples/custom-gltf-attribute.js_ script adds the dbID of each SVF node as a new attribute in its mesh
+- The _samples/filter-by-area.js_ script only outputs geometries that are completely contained within a specified area
+
 ### Metadata
 
 When converting models from [Model Derivative service](https://forge.autodesk.com/en/docs/model-derivative/v2),
@@ -171,8 +177,8 @@ and role "Autodesk.CloudPlatform.PropertyDatabase":
     ...
     const pdbDerivatives = manifestHelper.search({ type: 'resource', role: 'Autodesk.CloudPlatform.PropertyDatabase' });
     if (pdbDerivatives.length > 0) {
-        const pdb = await modelDerivativeClient.getDerivative(urn, pdbDerivatives[0].urn);
-        fs.writeFileSync(path.join(outputDir, 'properties.sqlite'), pdb);
+        const databaseStream = modelDerivativeClient.getDerivativeChunked(urn, pdbDerivatives[0].urn, 1 << 20);
+        databaseStream.pipe(fs.createWriteStream('./properties.sdb'));
     }
     ...
 ```

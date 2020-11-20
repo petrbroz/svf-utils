@@ -57,7 +57,7 @@ export class Downloader {
             fse.ensureDirSync(guidDir);
             const baseUrn = derivative.urn.substr(0, derivative.urn.lastIndexOf('/'));
             const manifestGzip = await this.modelDerivativeClient.getDerivative(urn, baseUrn + '/manifest.json.gz');
-            fse.writeFileSync(path.join(guidDir, 'manifest.json.gz'), manifestGzip);
+            fse.writeFileSync(path.join(guidDir, 'manifest.json.gz'), new Uint8Array(manifestGzip));
             const manifestGunzip = zlib.gunzipSync(manifestGzip);
             const manifest = JSON.parse(manifestGunzip.toString());
             for (const asset of manifest.assets) {
@@ -67,7 +67,7 @@ export class Downloader {
                 context.log(`Downloading asset ${asset.URI}`);
                 try {
                     const assetData = await this.modelDerivativeClient.getDerivative(urn, baseUrn + '/' + asset.URI);
-                    fse.writeFileSync(path.join(guidDir, asset.URI), assetData);
+                    fse.writeFileSync(path.join(guidDir, asset.URI), new Uint8Array(assetData));
                 } catch (err) {
                     if (context.failOnMissingAssets) {
                         throw err;

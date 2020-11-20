@@ -40,7 +40,7 @@ program
     .option('-il, --ignore-lines', 'ignore line geometry', false)
     .option('-ip, --ignore-points', 'ignore point geometry', false)
     .option('--center', 'move model to origin', false)
-    .arguments('<URN or path/to/svf> [GUID]')
+    .arguments('<URN-or-local-path> [GUID]')
     .action(async function (id, guid) {
         const options = {
             deduplicate: program.deduplicate,
@@ -81,8 +81,8 @@ program
                 // Store the property database within the <urn> subfolder (it is shared by all viewables)
                 const pdbDerivatives = helper.search({ type: 'resource', role: 'Autodesk.CloudPlatform.PropertyDatabase' });
                 if (pdbDerivatives.length > 0) {
-                    const pdb = await client.getDerivative(urn, pdbDerivatives[0].urn);
-                    fse.writeFileSync(path.join(folder, 'properties.sqlite'), pdb);
+                    const databaseStream = client.getDerivativeChunked(urn, pdbDerivatives[0].urn, 1 << 20);
+                    databaseStream.pipe(fse.createWriteStream(path.join(folder, 'properties.sqlite')));
                 }
             }
         } catch (err) {

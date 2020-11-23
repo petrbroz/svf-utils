@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed
+  - Downloading of SVF assets with special characters (kudos [thejakobn](https://github.com/thejakobn))
+
 ## [3.5.1] - 2020-11-20
 
 - Added

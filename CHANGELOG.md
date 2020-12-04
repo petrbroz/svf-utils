@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed
   - Downloading of SVF assets with special characters (kudos [thejakobn](https://github.com/thejakobn))
+  - Bug when parsing props with undefined category
 
 ## [3.5.1] - 2020-11-20
 

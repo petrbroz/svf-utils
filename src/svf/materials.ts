@@ -139,9 +139,19 @@ function parseTextureProperty(material: SvfInternal.IMaterial, group: SvfInterna
         const texture = group.materials[connection];
         if (texture && texture.properties.uris && 'unifiedbitmap_Bitmap' in texture.properties.uris) {
             const uri = texture.properties.uris['unifiedbitmap_Bitmap'].values[0];
+            const texture_UScale = texture.properties.scalars?.texture_UScale?.values[0] as number;
+            const texture_VScale = texture.properties.scalars?.texture_VScale?.values[0] as number;
+            console.log('uri and scale', {
+                uri: uri,
+                u: texture_UScale,
+                v: texture_VScale
+            })
             if (uri) {
-                // TODO: parse texture transforms
-                return { uri };
+                // TODO: parse texture transforms except for scale
+                return { uri, scale: {
+                    texture_UScale,
+                    texture_VScale
+                } };
             }
         }
     }

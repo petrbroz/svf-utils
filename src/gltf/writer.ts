@@ -130,6 +130,9 @@ export class Writer {
                 generator: 'forge-convert-utils',
                 copyright: '2019 (c) Autodesk'
             },
+            extensionsUsed: [
+                "KHR_texture_transform"
+            ],
             buffers: [],
             bufferViews: [],
             accessors: [],
@@ -636,6 +639,7 @@ export class Writer {
     }
 
     protected createMaterial(mat: IMF.Material | null, imf: IMF.IScene): gltf.MaterialPbrMetallicRoughness {
+        console.log('writing material', mat)
         if (!mat) {
             return DefaultMaterial;
         }
@@ -660,7 +664,12 @@ export class Writer {
                 manifestTextures.push(this.createTexture(mat.maps.diffuse, imf));
                 material.pbrMetallicRoughness.baseColorTexture = {
                     index: textureID,
-                    texCoord: 0
+                    texCoord: 0,
+                    extensions: {
+                        "KHR_texture_transform": {
+                            scale: [mat.scale?.x, mat.scale?.y]
+                        }
+                    }
                 };
             }
         }

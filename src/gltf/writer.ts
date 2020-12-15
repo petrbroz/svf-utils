@@ -639,7 +639,7 @@ export class Writer {
     }
 
     protected createMaterial(mat: IMF.Material | null, imf: IMF.IScene): gltf.MaterialPbrMetallicRoughness {
-        console.log('writing material', mat)
+        // console.log('writing material', mat)
         if (!mat) {
             return DefaultMaterial;
         }

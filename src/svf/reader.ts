@@ -124,7 +124,7 @@ export class Scene implements IMF.IScene {
             metallic: _mat?.metal ? 1.0 : 0.0,
             opacity: _mat?.opacity ?? 1.0,
             roughness: _mat?.glossiness ? (1.0 - _mat.glossiness / 255.0) : 1.0, // TODO: how to map glossiness to roughness properly?
-            scale: {x: _mat?.maps?.diffuse?.scale.texture_UScale as number, y: _mat?.maps?.diffuse?.scale.texture_VScale as number}
+            scale: {x: _mat?.maps?.diffuse?.scale.texture_UScale ?? 1.0 , y: _mat?.maps?.diffuse?.scale.texture_VScale ?? 1.0}
         };
         if (_mat?.diffuse) {
             mat.diffuse.x = _mat.diffuse[0];

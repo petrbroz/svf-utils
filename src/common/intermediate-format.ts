@@ -21,6 +21,11 @@ export interface IMetadata {
     [key: string]: any;
 }
 
+export interface IVec2 {
+    x: number;
+    y: number;
+}
+
 export interface IVec3 {
     x: number;
     y: number;
@@ -138,6 +143,7 @@ export interface IPhysicalMaterial {
     maps?: {
         diffuse?: string;
     };
+    scale?: IVec2;
 }
 
 export type Material = IPhysicalMaterial;

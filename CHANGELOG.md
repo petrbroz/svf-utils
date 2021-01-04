@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.2] - 2021-01-04
+
+- Fixed
+  - Downloading of SVF assets with special characters (kudos [thejakobn](https://github.com/thejakobn))
+  - Parsing textures with custom scale (kudos [thejakobn](https://github.com/thejakobn))
+  - Bug when parsing props with undefined category
+
 ## [3.5.1] - 2020-11-20
 
 - Added

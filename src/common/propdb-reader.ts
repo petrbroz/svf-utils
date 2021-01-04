@@ -57,7 +57,7 @@ export class PropDbReader {
     getProperties(id: number): { [name: string]: any } {
         let props: { [name: string]: any } = {};
         for (const prop of this.enumerateProperties(id)) {
-            if (prop.category.match(/^__\w+__$/)) {
+            if (prop.category && prop.category.match(/^__\w+__$/)) {
                 // Skip internal attributes
             } else {
                 props[prop.name] = prop.value;

@@ -122,6 +122,10 @@ export interface IMaterial {
 
 export interface IMaterialMap {
     uri: string;
+    scale: {
+        texture_UScale: number ,
+        texture_VScale: number
+    }
 }
 
 /**

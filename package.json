@@ -10,7 +10,8 @@
     "node": ">=10.15.0"
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "docs": "typedoc --out docs src"
   },
   "author": "Petr Broz <petr.broz@autodesk.com>",
   "license": "MIT",
@@ -32,6 +33,7 @@
     "@types/adm-zip": "^0.4.32",
     "@types/fs-extra": "^8.0.0",
     "gltf-validator": "^2.0.0-dev.3.2",
+    "typedoc": "^0.20.13",
     "typescript": "^3.7.0"
   },
   "dependencies": {

@@ -2,6 +2,7 @@
 node_modules/
 test/
 tmp/
+docs/
 *.log
 .DS_Store
 Thumbs.db

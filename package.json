@@ -37,7 +37,7 @@
   "dependencies": {
     "adm-zip": "^0.4.13",
     "commander": "^3.0.2",
-    "forge-server-utils": "^8.2.0",
+    "forge-server-utils": "^8.2.2",
     "fs-extra": "^8.1.0"
   }
 }

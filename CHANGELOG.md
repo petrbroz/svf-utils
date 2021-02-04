@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Re-introduced code docs generator
 - Fixed
   - Updated dependencies
+- Changed
+  - CI/CD now in Github Actions
 
 ## [3.5.2] - 2021-01-04
 

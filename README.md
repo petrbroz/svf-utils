@@ -1,6 +1,6 @@
 # forge-convert-utils
 
-[![build status](https://travis-ci.com/petrbroz/forge-convert-utils.svg?branch=master)](https://travis-ci.com/petrbroz/forge-convert-utils)
+![Publish to NPM](https://github.com/petrbroz/forge-convert-utils/workflows/Publish%20to%20NPM/badge.svg)
 [![npm version](https://badge.fury.io/js/forge-convert-utils.svg)](https://badge.fury.io/js/forge-convert-utils)
 ![node](https://img.shields.io/node/v/forge-convert-utils.svg)
 ![npm downloads](https://img.shields.io/npm/dw/forge-convert-utils.svg)

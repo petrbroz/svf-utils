@@ -55,7 +55,7 @@ export class Downloader {
             context.log(`Downloading viewable ${guid}`);
             const guidDir = path.join(urnDir, guid);
             fse.ensureDirSync(guidDir);
-            const svf = await this.modelDerivativeClient.getDerivative(urn, derivative.urn);
+            const svf = await this.modelDerivativeClient.getDerivative(urn, encodeURI(derivative.urn));
             fse.writeFileSync(path.join(guidDir, 'output.svf'), new Uint8Array(svf));
             const reader = await SvfReader.FromDerivativeService(urn, guid, this.auth);
             const manifest = await reader.getManifest();

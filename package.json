@@ -1,6 +1,10 @@
 {
   "name": "forge-convert-utils",
+<<<<<<< HEAD
   "version": "4.0.4",
+=======
+  "version": "3.6.1",
+>>>>>>> c3d2628 (Bumped version to 3.6.1 & updated changelog.)
   "description": "Tools for converting Autodesk Forge file formats.",
   "main": "lib/index.js",
   "bin": {

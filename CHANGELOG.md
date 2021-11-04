@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.6.2] - 2021-11-04
+
 - Fixed
   - Failing TypeScript build due to changes in `adm-zip` dependency
 

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed
+  - Updated dependencies
+  - Added URL-encoding when downloading SVF viewables
+
 ## [3.6.0] - 2021-02-04
 
 - Added

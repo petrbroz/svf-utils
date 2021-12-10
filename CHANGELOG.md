@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Fixed
+  - Conversion of SVF 3x3 matrix + translation into glTF 4x4 matrix
+
 ## [3.6.2] - 2021-11-04
 
 - Fixed

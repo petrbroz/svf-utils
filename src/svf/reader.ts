@@ -51,9 +51,9 @@ export class Scene implements IMF.IScene {
                 node.transform = {
                     kind: IMF.TransformKind.Matrix,
                     elements: [
-                        matrix[0], matrix[3], matrix[6], 0,
-                        matrix[1], matrix[4], matrix[7], 0,
-                        matrix[2], matrix[5], matrix[8], 0,
+                        matrix[0], matrix[1], matrix[2], 0,
+                        matrix[3], matrix[4], matrix[5], 0,
+                        matrix[6], matrix[7], matrix[8], 0,
                         t ? t.x : 0, t ? t.y : 0, t ? t.z : 0, 1
                     ]
                 };

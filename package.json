@@ -31,15 +31,15 @@
   "homepage": "https://github.com/petrbroz/forge-convert-utils#readme",
   "devDependencies": {
     "@types/adm-zip": "^0.4.32",
-    "@types/fs-extra": "^8.0.0",
+    "@types/fs-extra": "^9.0.13",
     "gltf-validator": "^2.0.0-dev.3.2",
-    "typedoc": "^0.20.13",
-    "typescript": "^3.7.0"
+    "typedoc": "^0.22.11",
+    "typescript": "^4.5.5"
   },
   "dependencies": {
-    "adm-zip": "^0.4.13",
+    "adm-zip": "^0.5.9",
     "commander": "^3.0.2",
-    "forge-server-utils": "^8.3.4",
-    "fs-extra": "^8.1.0"
+    "forge-server-utils": "^8.3.5",
+    "fs-extra": "^10.0.0"
   }
 }

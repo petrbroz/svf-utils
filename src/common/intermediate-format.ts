@@ -39,6 +39,11 @@ export interface IQuaternion {
     w: number;
 }
 
+export interface IBounds {
+    min: IVec3;
+    max: IVec3;
+}
+
 export enum TransformKind {
     Matrix,
     Decomposed
@@ -78,6 +83,7 @@ export interface IObjectNode {
     transform?: Transform;
     geometry: GeometryID;
     material: MaterialID;
+    bbox?: IBounds;
 }
 
 export interface ICameraNode {

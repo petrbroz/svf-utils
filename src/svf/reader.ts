@@ -45,6 +45,20 @@ export class Scene implements IMF.IScene {
             geometry: frag.geometryID,
             material: frag.materialID
         };
+        if (frag.bbox) {
+            node.bbox = {
+                min: {
+                    x: frag.bbox[0],
+                    y: frag.bbox[1],
+                    z: frag.bbox[2]
+                },
+                max: {
+                    x: frag.bbox[3],
+                    y: frag.bbox[4],
+                    z: frag.bbox[5]
+                }
+            };
+        }
         if (frag.transform) {
             if ('matrix' in frag.transform) {
                 const { matrix, t } = frag.transform;

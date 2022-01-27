@@ -6,6 +6,7 @@ import * as gltf from './schema';
 import { isUndefined, isNullOrUndefined } from 'util';
 import { ImagePlaceholder } from '../common/image-placeholders';
 import * as IMF from '../common/intermediate-format';
+import { Box3, Vec3 } from '../common/math';
 
 const MaxBufferSize = 5 << 20;
 const DefaultMaterial: gltf.MaterialPbrMetallicRoughness = {
@@ -222,25 +223,8 @@ export class Writer {
                 }
             }
         }
-        // Setup translation to origin when enabled
-        if (metadata['world bounding box'] && this.options.center) {
-            const boundsMin = metadata['world bounding box'].minXYZ;
-            const boundsMax = metadata['world bounding box'].maxXYZ;
-            if (boundsMin && boundsMax) {
-                let translation = [
-                    -0.5 * (boundsMin[0] + boundsMax[0]),
-                    -0.5 * (boundsMin[1] + boundsMax[1]),
-                    -0.5 * (boundsMin[2] + boundsMax[2])
-                ];
-                xformNode.matrix = [
-                    1, 0, 0, 0,
-                    0, 1, 0, 0,
-                    0, 0, 1, 0,
-                    translation[0], translation[1], translation[2], 1
-                ];
-            }
-        }
 
+        let totalBounds = new Box3();
         const nodeIndices = (xformNode.children as number[]);
         this.options.log(`Writing scene nodes...`);
         const { filter } = this.options;
@@ -260,6 +244,42 @@ export class Writer {
             // Only output nodes that have a mesh
             if (!isUndefined(node.mesh)) {
                 nodeIndices.push(manifestNodes.push(node) - 1);
+                // Add node's bounds to global bounds
+                if (fragment.bbox) {
+                    const { min, max } = fragment.bbox;
+                    const nodeBounds = new Box3(new Vec3(min.x, min.y, min.z), new Vec3(max.x, max.y, max.z));
+                    totalBounds.addBox(nodeBounds);
+                }
+            }
+        }
+
+        // Setup translation to origin when enabled
+        if (this.options.center) {
+            // Use calculated bounds if available, otherwise fall back to bounds defined in metadata
+            if (!totalBounds.empty) {
+                const center = totalBounds.getCenter();
+                xformNode.matrix = [
+                    1, 0, 0, 0,
+                    0, 1, 0, 0,
+                    0, 0, 1, 0,
+                    -center.x, -center.y, -center.z, 1
+                ];
+            } else if (metadata['world bounding box']) {
+                const boundsMin = metadata['world bounding box'].minXYZ;
+                const boundsMax = metadata['world bounding box'].maxXYZ;
+                if (boundsMin && boundsMax) {
+                    const translation = [
+                        0.5 * (boundsMin[0] + boundsMax[0]),
+                        0.5 * (boundsMin[1] + boundsMax[1]),
+                        0.5 * (boundsMin[2] + boundsMax[2])
+                    ];
+                    xformNode.matrix = [
+                        1, 0, 0, 0,
+                        0, 1, 0, 0,
+                        0, 0, 1, 0,
+                        -translation[0], -translation[1], -translation[2], 1
+                    ];
+                }
             }
         }
 

@@ -142,6 +142,7 @@ export class Writer {
             scenes: [],
             textures: [],
             images: [],
+            animations: [],
             scene: 0
         };
         this.bufferStream = null;
@@ -297,6 +298,12 @@ export class Writer {
                 const mat = this.createMaterial(material, imf);
                 manifestMaterials.push(mat);
             }
+        }
+
+        this.options.log(`Writing animations...`);
+        const manifestAnimations = this.manifest.animations as gltf.Animation[];
+        for (const animation of imf.getAnimations()) {
+            manifestAnimations.push(this.createAnimation(animation, imf));
         }
 
         this.options.log(`Writing scene: done`);
@@ -534,6 +541,57 @@ export class Writer {
         }
 
         return mesh;
+    }
+
+    protected createAnimation(animation: IMF.Animation, imf: IMF.IScene): gltf.Animation {
+        let result: gltf.Animation = {
+            samplers: [],
+            channels: []
+        };
+
+        const targetNodeID = this.manifest.nodes?.findIndex(node => node.name == animation.target) || -1;
+        if (targetNodeID === -1) {
+            return result;
+        }
+
+        const timestamps = new Float32Array(animation.timestamps.length);
+        for (let i = 0; i < animation.timestamps.length; i++) {
+            timestamps[i] = animation.timestamps[i] / animation.duration;
+        }
+        const timestampsBufferView = this.createBufferView(Buffer.from(timestamps.buffer));
+        const timestampsBufferViewID = this.addBufferView(timestampsBufferView);
+        const timestampsAccessor = this.createAccessor(timestampsBufferViewID, 5126, timestampsBufferView.byteLength / 4, 'SCALAR', [0.0], [1.0]);
+        const timestampsAccessorID = this.addAccessor(timestampsAccessor);
+
+        if (animation.translations) {
+            const targetNodeTranslation = this.manifest?.nodes?.[targetNodeID]?.translation || [0, 0, 0];
+            const translations = new Float32Array(animation.translations.length * 3);
+            for (let i = 0; i < animation.translations.length; i++) {
+                translations[i * 3] = targetNodeTranslation[0] + animation.translations[i].x;
+                translations[i * 3 + 1] = targetNodeTranslation[1] + animation.translations[i].y;
+                translations[i * 3 + 2] = targetNodeTranslation[2] + animation.translations[i].z;
+            }
+            const translationsBufferView = this.createBufferView(Buffer.from(translations.buffer));
+            const translationsBufferViewID = this.addBufferView(translationsBufferView);
+            const translationsAccessor = this.createAccessor(translationsBufferViewID, 5126, translationsBufferView.byteLength / 4 / 3, 'VEC3');
+            const translationsAccessorID = this.addAccessor(translationsAccessor);
+
+            const translationSamplerID = result.samplers.length;
+            result.samplers.push({
+                input: timestampsAccessorID,
+                output: translationsAccessorID,
+                interpolation: 'LINEAR'
+            });
+            result.channels.push({
+                sampler: translationSamplerID,
+                target: {
+                    node: targetNodeID,
+                    path: 'translation'
+                }
+            });
+        }
+
+        return result;
     }
 
     protected addBufferView(bufferView: gltf.BufferView): number {

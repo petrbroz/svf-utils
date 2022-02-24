@@ -15,6 +15,7 @@ export interface IScene {
     getMaterialCount(): number;
     getMaterial(id: MaterialID): Material;
     getImage(uri: string): Buffer | undefined;
+    getAnimations(): Animation[];
 }
 
 export interface IMetadata {
@@ -147,3 +148,20 @@ export interface IPhysicalMaterial {
 }
 
 export type Material = IPhysicalMaterial;
+
+export enum AnimationInterpolation {
+    Linear
+}
+
+export interface IMeshAnimation {
+    type: 'mesh';
+    target: NodeID;
+    interpolation: AnimationInterpolation;
+    duration: number;
+    timestamps: number[];
+    translations?: IVec3[];
+    rotations?: IQuaternion[];
+    scales?: IVec3[];
+}
+
+export type Animation = IMeshAnimation;

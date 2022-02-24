@@ -11,7 +11,8 @@ export enum AssetType {
     PackFile = 'Autodesk.CloudPlatform.PackFile',
     FragmentList = 'Autodesk.CloudPlatform.FragmentList',
     GeometryMetadataList = 'Autodesk.CloudPlatform.GeometryMetadataList',
-    InstanceTree = 'Autodesk.CloudPlatform.InstanceTree'
+    InstanceTree = 'Autodesk.CloudPlatform.InstanceTree',
+    Animations = 'Autodesk.CloudPlatform.Animations'
 }
 
 /**
@@ -196,3 +197,52 @@ export interface IQuaternion {
 export type Matrix3x3 = number[];
 
 export type Transform = { t: IVector3 } | { t: IVector3, s: IVector3, q: IQuaternion } | { matrix: Matrix3x3, t: IVector3 };
+
+/* Animations */
+
+export interface IAnimations {
+    name: string;
+    version: string;
+    duration: number;
+    animations: Animation[];
+}
+
+export type Animation = IMeshAnimation | ICameraAnimation;
+
+export interface IMeshAnimation {
+    type: 'mesh';
+    name: string;
+    id: number;
+    hierarchy: IMeshAnimationNode[];
+}
+
+export interface ICameraAnimation {
+    type: 'camera';
+    name: string;
+    id: number;
+    hierarchy: ICameraAnimationNode[];
+}
+
+export interface IMeshAnimationNode {
+    parent: number;
+    keys: IMeshAnimationKey[];
+}
+
+export interface IMeshAnimationKey {
+    time: number;
+    pos: number[];
+    rot: number[];
+}
+
+export interface ICameraAnimationNode {
+    parent: number;
+    keys: ICameraAnimationKey[];
+}
+
+export interface ICameraAnimationKey {
+    time: number;
+    pos: number[];
+    up: number[];
+    target: number[];
+    fov: number;
+}

@@ -10,6 +10,7 @@ import { parseFragments } from './fragments';
 import { parseGeometries } from './geometries';
 import { parseMaterials } from './materials';
 import { parseMeshes } from './meshes';
+import { parseAnimations } from './animations';
 import * as SVF from './schema';
 import * as IMF from '../common/intermediate-format';
 
@@ -24,6 +25,7 @@ export interface ISvfContent {
     materials: (SVF.IMaterial | null)[];
     properties: PropDbReader;
     images: { [uri: string]: Buffer };
+    animations?: SVF.IAnimations;
 }
 
 export class Scene implements IMF.IScene {
@@ -140,6 +142,41 @@ export class Scene implements IMF.IScene {
 
     getImage(uri: string): Buffer | undefined {
         return this.svf.images[uri];
+    }
+
+    getAnimations(): IMF.Animation[] {
+        let animations: IMF.Animation[] = [];
+        if (this.svf.animations) {
+            for (const svfAnimation of this.svf.animations.animations) {
+                if (svfAnimation.hierarchy.length > 1) {
+                    console.warn('Hierarchical animations are not supported');
+                    continue;
+                }
+                switch (svfAnimation.type) {
+                    case 'mesh':
+                        const meshAnimationKeys = svfAnimation.hierarchy[0].keys;
+                        let meshAnimation: IMF.IMeshAnimation = {
+                            type: 'mesh',
+                            target: svfAnimation.id,
+                            interpolation: IMF.AnimationInterpolation.Linear,
+                            duration: this.svf.animations.duration,
+                            timestamps: meshAnimationKeys.map(key => key.time)
+                        };
+                        if (meshAnimationKeys.every(key => key.pos)) {
+                            meshAnimation.translations = meshAnimationKeys.map(key => ({ x: key.pos[0], y: key.pos[1], z: key.pos[2] }));
+                        }
+                        if (meshAnimationKeys.every(key => key.rot)) {
+                            meshAnimation.rotations = meshAnimationKeys.map(key => ({ x: key.rot[0], y: key.rot[1], z: key.rot[2], w: key.rot[3] }));
+                        }
+                        animations.push(meshAnimation);
+                        break;
+                    default:
+                        console.warn(`Animations of type ${svfAnimation.type} are not supported.`);
+                        break;
+                }
+            }
+        }
+        return animations;
     }
 }
 
@@ -258,7 +295,8 @@ export class Reader {
             meshpacks: [],
             materials: [],
             properties: null,
-            images: {}
+            images: {},
+            animations: null
         };
         let tasks: Promise<void>[] = [];
         const log = (options && options.log) || function (msg: string) {};
@@ -272,6 +310,11 @@ export class Reader {
             log(`Reading geometries...`);
             output.geometries = await this.readGeometries();
             log(`Reading geometries: done`);
+        })());
+        tasks.push((async () => {
+            log(`Reading animations...`);
+            output.animations = await this.readAnimations();
+            log(`Reading animations: done`);
         })());
         tasks.push((async () => {
             log(`Reading materials...`);
@@ -531,5 +574,20 @@ export class Reader {
             this.getAsset(valsAsset.URI)
         ]);
         return new PropDbReader(buffers[0], buffers[1], buffers[2], buffers[3], buffers[4]);
+    }
+
+    /**
+     * Retrieves and parses SVF animations.
+     * @async
+     * @returns {Promise<SVF.IAnimations>} Parsed animations.
+     */
+    async readAnimations(): Promise<SVF.IAnimations | null> {
+        const animationsAsset = this.findAsset({ type: SVF.AssetType.Animations });
+        if (animationsAsset) {
+            const buffer = await this.getAsset(animationsAsset.URI);
+            return parseAnimations(buffer);
+        } else {
+            return null;
+        }
     }
 }

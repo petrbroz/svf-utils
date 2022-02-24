@@ -259,6 +259,11 @@ export class Scene implements IMF.IScene {
     getImage(uri: string): Buffer | undefined {
         return undefined;
     }
+
+    getAnimations(): IMF.Animation[] {
+        console.warn('OTG animations are not supported.');
+        return [];
+    }
 }
 
 /**

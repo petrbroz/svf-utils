@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added
+  - Support for custom serialization of the glTF manifest
+
 ## [4.0.1] - 2022-03-24
 
 - Fixed

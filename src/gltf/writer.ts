@@ -116,7 +116,7 @@ export class Writer {
             delete this.manifest.images;
 
         const gltfPath = path.join(this.baseDir, 'output.gltf');
-        fse.writeFileSync(gltfPath, JSON.stringify(this.manifest, null, 4));
+        this.serializeManifest(this.manifest, gltfPath);
         this.options.log(`Closing gltf output: done`);
         this.options.log(`Stats: ${JSON.stringify(this.stats)}`);
         await this.postprocess(imf, gltfPath);
@@ -159,7 +159,10 @@ export class Writer {
         };
     }
 
-    protected async postprocess(imf: IMF.IScene, gltfPath: string) {
+    protected async postprocess(imf: IMF.IScene, gltfPath: string) {}
+
+    protected serializeManifest(manifest: gltf.GlTf, outputPath: string) {
+        fse.writeFileSync(outputPath, JSON.stringify(manifest, null, 4));
     }
 
     protected createScene(imf: IMF.IScene): gltf.Scene {

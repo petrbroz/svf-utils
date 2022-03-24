@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.1] - 2022-03-24
+
+- Fixed
+  - Deduplication of geometries now using maps instead of arrays, bringing dramatic speed improvements (kudos to [VFedyk](https://github.com/VFedyk)!)
+
 ## [4.0.0] - 2022-03-24
 
 - Removed

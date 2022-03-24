@@ -50,9 +50,9 @@ export class Writer {
     protected bufferStream: fse.WriteStream | null;
     protected bufferSize: number;
     protected bufferViewCache = new Map<string, gltf.BufferView>(); // Cache of existing buffer views, indexed by hash of the binary data they point to
-    protected meshHashes: string[] = []; // List of hashes of existing gltf.Mesh objects, used for deduplication
-    protected bufferViewHashes: string[] = []; // List of hashes of existing gltf.BufferView objects, used for deduplication
-    protected accessorHashes: string[] = []; // List of hashes of existing gltf.Accessor objects, used for deduplication
+    protected meshHashes = new Map<string, number>(); // List of hashes of existing gltf.Mesh objects, used for deduplication
+    protected bufferViewHashes = new Map<string, number>(); // List of hashes of existing gltf.BufferView objects, used for deduplication
+    protected accessorHashes = new Map<string, number>(); // List of hashes of existing gltf.Accessor objects, used for deduplication
     protected pendingTasks: Promise<void>[] = [];
     protected stats: IWriterStats = {
         materialsDeduplicated: 0,
@@ -147,9 +147,9 @@ export class Writer {
         this.bufferStream = null;
         this.bufferSize = 0;
         this.bufferViewCache.clear();
-        this.meshHashes = [];
-        this.bufferViewHashes = [];
-        this.accessorHashes = [];
+        this.meshHashes = new Map<string, number>();
+        this.bufferViewHashes = new Map<string, number>();
+        this.accessorHashes = new Map<string, number>();
         this.pendingTasks = [];
         this.stats = {
             materialsDeduplicated: 0,
@@ -358,14 +358,14 @@ export class Writer {
     protected addMesh(mesh: gltf.Mesh): number {
         const meshes = this.manifest.meshes as gltf.Mesh[];
         const hash = this.computeMeshHash(mesh);
-        const match = this.options.deduplicate ? this.meshHashes.indexOf(hash) : -1;
-        if (match !== -1) {
+        const match = this.options.deduplicate ? this.meshHashes.get(hash) : undefined;
+        if (match !== undefined) {
             this.options.log(`Skipping a duplicate mesh (${hash})`);
             this.stats.meshesDeduplicated++;
             return match;
         } else {
             if (this.options.deduplicate) {
-                this.meshHashes.push(hash);
+                this.meshHashes.set(hash, this.meshHashes.size);
             }
             return meshes.push(mesh) - 1;
         }
@@ -539,14 +539,14 @@ export class Writer {
     protected addBufferView(bufferView: gltf.BufferView): number {
         const bufferViews = this.manifest.bufferViews as gltf.BufferView[];
         const hash = this.computeBufferViewHash(bufferView);
-        const match = this.options.deduplicate ? this.bufferViewHashes.indexOf(hash) : -1;
-        if (match !== -1) {
+        const match = this.options.deduplicate ? this.bufferViewHashes.get(hash) : undefined;
+        if (match !== undefined) {
             this.options.log(`Skipping a duplicate buffer view (${hash})`);
             this.stats.bufferViewsDeduplicated++;
             return match;
         } else {
             if (this.options.deduplicate) {
-                this.bufferViewHashes.push(hash);
+                this.bufferViewHashes.set(hash, this.bufferViewHashes.size);
             }
             return bufferViews.push(bufferView) - 1;
         }
@@ -607,14 +607,14 @@ export class Writer {
     protected addAccessor(accessor: gltf.Accessor): number {
         const accessors = this.manifest.accessors as gltf.Accessor[];
         const hash = this.computeAccessorHash(accessor);
-        const match = this.options.deduplicate ? this.accessorHashes.indexOf(hash) : -1;
-        if (match !== -1) {
+        const match = this.options.deduplicate ? this.accessorHashes.get(hash) : undefined;
+        if (match !== undefined) {
             this.options.log(`Skipping a duplicate accessor (${hash})`);
             this.stats.accessorsDeduplicated++;
             return match;
         } else {
             if (this.options.deduplicate) {
-                this.accessorHashes.push(hash);
+                this.accessorHashes.set(hash, this.accessorHashes.size);
             }
             return accessors.push(accessor) - 1;
         }

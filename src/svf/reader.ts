@@ -123,7 +123,7 @@ export class Scene implements IMF.IScene {
             diffuse: { x: 0, y: 0, z: 0 },
             metallic: _mat?.metal ? 1.0 : 0.0,
             opacity: _mat?.opacity ?? 1.0,
-            roughness: _mat?.glossiness ? (1.0 - _mat.glossiness / 255.0) : 1.0, // TODO: how to map glossiness to roughness properly?
+            roughness: _mat?.glossiness ? ( 20.0/ _mat.glossiness ) : 1.0, // TODO: how to map glossiness to roughness properly?
             scale: {x: _mat?.maps?.diffuse?.scale.texture_UScale ?? 1.0 , y: _mat?.maps?.diffuse?.scale.texture_VScale ?? 1.0}
         };
         if (_mat?.diffuse) {
@@ -131,6 +131,12 @@ export class Scene implements IMF.IScene {
             mat.diffuse.y = _mat.diffuse[1];
             mat.diffuse.z = _mat.diffuse[2];
         }
+        if (_mat?.metal && _mat.specular && _mat.glossiness) {
+            mat.diffuse.x = _mat.specular[0];
+            mat.diffuse.y = _mat.specular[1];
+            mat.diffuse.z = _mat.specular[2];
+            mat.roughness = 60/_mat.glossiness;
+        }   
         if (_mat?.maps?.diffuse) {
             mat.maps = mat.maps || {};
             mat.maps.diffuse = _mat.maps.diffuse.uri

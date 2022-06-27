@@ -323,7 +323,7 @@ export class Writer {
                     }
                     if (fragment.transform.rotation) {
                         const r = fragment.transform.rotation;
-                        node.rotation = [r.x, r.y, r.z, r.w];
+                        node.rotation = this.normalizeQuaternion(r);
                     }
                     if (fragment.transform.translation) {
                         const t = fragment.transform.translation;
@@ -752,5 +752,17 @@ export class Writer {
             min[2] = Math.min(min[2], array[i + 2]); max[2] = Math.max(max[2], array[i + 2]);
         }
         return { min, max };
+    }
+
+    protected normalizeQuaternion(quaternion: IMF.IQuaternion): number[] {
+        const x = quaternion.x;
+        const y = quaternion.y;
+        const z = quaternion.z;
+        const w = quaternion.w;
+        const len = Math.sqrt(x * x + y * y + z * z + w * w);
+        if (len === 0) {
+            return [0, 0, 0, 1];
+        }
+        return [x / len, y / len, z / len, w / len];
     }
 }

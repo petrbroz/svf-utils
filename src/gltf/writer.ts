@@ -759,10 +759,11 @@ export class Writer {
         const y = quaternion.y;
         const z = quaternion.z;
         const w = quaternion.w;
-        const len = Math.sqrt(x * x + y * y + z * z + w * w);
-        if (len === 0) {
-            return [0, 0, 0, 1];
+    
+        let len = x * x + y * y + z * z + w * w;
+        if (len > 0) {
+          len = 1 / Math.sqrt(len);
         }
-        return [x / len, y / len, z / len, w / len];
+         return   [x * len,  y * len, z * len, w * len]
     }
 }

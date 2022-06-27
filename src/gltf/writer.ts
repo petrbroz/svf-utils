@@ -459,7 +459,7 @@ export class Writer {
         }
 
         // Output index buffer
-        const indices = geometry.getIndices();
+        const {indices, drawMode} = this.computeIndicesForPolylines(geometry);
         const indexBufferView = this.createBufferView(Buffer.from(indices.buffer));
         const indexBufferViewID = this.addBufferView(indexBufferView);
         const indexAccessor = this.createAccessor(indexBufferViewID, 5123, indexBufferView.byteLength / 2, 'SCALAR');
@@ -484,7 +484,7 @@ export class Writer {
         }
 
         mesh.primitives.push({
-            mode: 1, // LINES
+            mode: drawMode,
             attributes: {
                 POSITION: positionAccessorID
             },
@@ -765,5 +765,42 @@ export class Writer {
           len = 1 / Math.sqrt(len);
         }
          return   [x * len,  y * len, z * len, w * len]
+    }
+
+    // Not pretty but it works
+    // this function factors in line bounds() to ensure we draw polylines correctly
+    protected computeIndicesForPolylines(geometry: IMF.ILineGeometry): {indices:Uint16Array, drawMode: number }{
+        const bounds = geometry.getBounds();
+        // all bounds seem to have an end value that is non applicable
+        // so even 1 line will have 2 bounds
+        if(bounds.length <= 2) {
+            return {
+                indices: geometry.getIndices(),
+                drawMode: 3 // LINE_STRIP
+            }
+        } 
+        // current bounds only contain the start of the line
+        // we're adding the end too, makes later processing easier to read
+        const startEndBounds = Array.from(bounds).reduce((prev, curr) => {
+            prev.push(curr - 1, curr);
+            return prev;
+        }, [] as number[])
+        const indicesWithBounds: number[] = [];
+        const oldIndices = geometry.getIndices()
+        for(let i = 0; i < oldIndices.length; i++) {
+            const indice = oldIndices[i];
+            // if indice is start/finish we don't need to double it
+            if(startEndBounds.includes(indice)) {
+                indicesWithBounds.push(indice)
+            } else {
+                indicesWithBounds.push(indice, indice)
+            }
+        }
+        // Output index buffer
+        return {
+            indices: Uint16Array.from(indicesWithBounds),
+            drawMode: 1 // LINES
+        }
+
     }
 }

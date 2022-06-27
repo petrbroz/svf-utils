@@ -116,6 +116,7 @@ export interface ILineGeometry {
     getIndices(): Uint16Array;
     getVertices(): Float32Array;
     getColors(): Float32Array | undefined;
+    getBounds(): Uint16Array;
 }
 
 export interface IPointGeometry {

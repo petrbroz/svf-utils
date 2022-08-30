@@ -1,9 +1,0 @@
-.vscode/
-node_modules/
-test/
-tmp/
-*.log
-.DS_Store
-Thumbs.db
-.gitignore
-.travis.yml

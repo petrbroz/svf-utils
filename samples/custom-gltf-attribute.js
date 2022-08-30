@@ -1,5 +1,6 @@
 /*
- * Example: converting an SVF from Model Derivative service into glTF with a custom mesh attribute.
+ * Example: converting an SVF from Model Derivative service into glTF,
+ * embedding object IDs into the COLOR_0 mesh channel.
  * Usage:
  *     export FORGE_CLIENT_ID=<your client id>
  *     export FORGE_CLIENT_SECRET=<your client secret>
@@ -34,16 +35,17 @@ class CustomGltfWriter extends GltfWriter {
             const vertexCount = geometry.getVertices().length / 3;
             const customBuffer = Buffer.alloc(vertexCount * 4);
             for (let i = 0; i < customBuffer.length; i += 4) {
-                customBuffer[i] = (this._currentDbId >> 24) & 0xff;
-                customBuffer[i + 1] = (this._currentDbId >> 16) & 0xff;
-                customBuffer[i + 2] = (this._currentDbId >> 8) & 0xff;
-                customBuffer[i + 3] = this._currentDbId & 0xff;
+                customBuffer[i] = this._currentDbId & 0xff;
+                customBuffer[i + 1] = (this._currentDbId >> 8) & 0xff;
+                customBuffer[i + 2] = (this._currentDbId >> 16) & 0xff;
+                customBuffer[i + 3] = (this._currentDbId >> 24) & 0xff;
             }
             const customBufferView = this.createBufferView(customBuffer);
             const customBufferViewID = this.addBufferView(customBufferView);
             const customAccessor = this.createAccessor(customBufferViewID, 5121 /* UNSIGNED_BYTE */, customBufferView.byteLength / 4, 'VEC4');
+            customAccessor.normalized = true;
             const customAccessorID = this.addAccessor(customAccessor);
-            prim.attributes['_CUSTOM_INDEX'] = customAccessorID;
+            prim.attributes['COLOR_0'] = customAccessorID;
         }
 
         return mesh;
@@ -53,14 +55,14 @@ class CustomGltfWriter extends GltfWriter {
         return mesh.primitives.map(p => {
             return `${p.mode || ''}/${p.material || ''}/${p.indices}`
                 + `/${p.attributes['POSITION'] || ''}/${p.attributes['NORMAL'] || ''}/${p.attributes['TEXCOORD_0'] || ''}`
-                + `/${p.attributes['COLOR_0'] || ''}/${p.attributes['_CUSTOM_INDEX'] || ''}`;
+                + `/${p.attributes['COLOR_0'] || ''}`;
         }).join('/');
     }
 }
 
 const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
 
-async function run (urn, outputDir) {
+async function run(urn, outputDir) {
     const DefaultOptions = {
         deduplicate: false,
         skipUnusedUvs: false,
@@ -79,7 +81,7 @@ async function run (urn, outputDir) {
             const scene = await reader.read({ log: console.log });
             await writer.write(scene, path.join(outputDir, derivative.guid));
         }
-    } catch(err) {
+    } catch (err) {
         console.error(err);
         process.exit(1);
     }

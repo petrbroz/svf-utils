@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added
   - Support for custom serialization of the glTF manifest
+- Fixed
+  - Parsing of properties for the very last object (kudos to [johannesheesterman](https://github.com/johannesheesterman)!)
 
 ## [4.0.1] - 2022-03-24
 

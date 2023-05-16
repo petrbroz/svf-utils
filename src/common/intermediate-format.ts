@@ -1,8 +1,8 @@
 // Intermediate 3D format schema
 
 export type NodeID = number;
-export type GeometryID = number;
-export type MaterialID = number;
+export type GeometryID = number | string;
+export type MaterialID = number ;
 export type CameraID = number;
 export type LightID = number;
 

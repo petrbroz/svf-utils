@@ -291,11 +291,13 @@ export class Reader {
                 log(`Reading property database: done`);
             })());
         }
+        const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
         for (let i = 0, len = this.getMeshPackCount(); i < len; i++) {
             tasks.push((async (id: number) => {
-                log(`Reading meshpack #${id}...`);
+                await sleep(id * 1000);
+                log(`Reading meshpack #${id} of ${len - 1}...`);
                 output.meshpacks[id] = await this.readMeshPack(id);
-                log(`Reading meshpack #${id}: done`);
+                log(`Reading meshpack #${id} of ${len - 1}: done`);
             })(i));
         }
         for (const img of this.listImages()) {

@@ -510,7 +510,7 @@ export class Writer {
         // Output vertex buffer
         const vertices = geometry.getVertices();
         const positionBounds = this.computeBoundsVec3(vertices);
-        const positionBufferView = this.createBufferView(Buffer.from(vertices.buffer));
+        const positionBufferView = this.createBufferView(Buffer.from(vertices.buffer, vertices.byteOffset, vertices.byteLength));
         const positionBufferViewID = this.addBufferView(positionBufferView);
         const positionAccessor = this.createAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max);
         const positionAccessorID = this.addAccessor(positionAccessor);
@@ -519,7 +519,7 @@ export class Writer {
         let colorAccessorID: number | undefined = undefined;
         const colors = geometry.getColors();
         if (colors) {
-            const colorBufferView = this.createBufferView(Buffer.from(colors.buffer));
+            const colorBufferView = this.createBufferView(Buffer.from(colors.buffer, colors.byteOffset, colors.byteLength));
             const colorBufferViewID = this.addBufferView(colorBufferView);
             const colorAccessor = this.createAccessor(colorBufferViewID, 5126, colorBufferView.byteLength / 4 / 3, 'VEC3');
             colorAccessorID = this.addAccessor(colorAccessor);

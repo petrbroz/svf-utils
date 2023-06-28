@@ -213,7 +213,7 @@ export class Writer {
                         default:    // "meter" / "m"
                             scale = 1.0;
                     }
-    
+
                     rootNode.matrix = [
                         left[0] * scale, up[0] * scale, front[0] * scale, 0,
                         left[1] * scale, up[1] * scale, front[1] * scale, 0,
@@ -385,7 +385,7 @@ export class Writer {
 
         // Output index buffer
         const indices = geometry.getIndices();
-        const indexBufferView = this.createBufferView(Buffer.from(indices.buffer));
+        const indexBufferView = this.createBufferView(Buffer.from(indices.buffer, indices.byteOffset, indices.byteLength));
         const indexBufferViewID = this.addBufferView(indexBufferView);
         const indexAccessor = this.createAccessor(indexBufferViewID, 5123, indexBufferView.byteLength / 2, 'SCALAR');
         const indexAccessorID = this.addAccessor(indexAccessor);
@@ -393,7 +393,7 @@ export class Writer {
         // Output vertex buffer
         const vertices = geometry.getVertices();
         const positionBounds = this.computeBoundsVec3(vertices); // Compute bounds manually, just in case
-        const positionBufferView = this.createBufferView(Buffer.from(vertices.buffer));
+        const positionBufferView = this.createBufferView(Buffer.from(vertices.buffer, vertices.byteOffset, vertices.byteLength));
         const positionBufferViewID = this.addBufferView(positionBufferView);
         const positionAccessor = this.createAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max/*[fragmesh.min.x, fragmesh.min.y, fragmesh.min.z], [fragmesh.max.x, fragmesh.max.y, fragmesh.max.z]*/);
         const positionAccessorID = this.addAccessor(positionAccessor);
@@ -402,7 +402,7 @@ export class Writer {
         let normalAccessorID: number | undefined = undefined;
         const normals = geometry.getNormals();
         if (normals) {
-            const normalBufferView = this.createBufferView(Buffer.from(normals.buffer));
+            const normalBufferView = this.createBufferView(Buffer.from(normals.buffer, normals.byteOffset, normals.byteLength));
             const normalBufferViewID = this.addBufferView(normalBufferView);
             const normalAccessor = this.createAccessor(normalBufferViewID, 5126, normalBufferView.byteLength / 4 / 3, 'VEC3');
             normalAccessorID = this.addAccessor(normalAccessor);
@@ -412,7 +412,7 @@ export class Writer {
         let colorAccessorID: number | undefined = undefined;
         const colors = geometry.getColors();
         if (colors) {
-            const colorBufferView = this.createBufferView(Buffer.from(colors.buffer));
+            const colorBufferView = this.createBufferView(Buffer.from(colors.buffer, colors.byteOffset, colors.byteLength));
             const colorBufferViewID = this.addBufferView(colorBufferView);
             const colorAccessor = this.createAccessor(colorBufferViewID, 5126, colorBufferView.byteLength / 4 / 4, 'VEC4');
             colorAccessorID = this.addAccessor(colorAccessor);
@@ -422,7 +422,7 @@ export class Writer {
         let uvAccessorID: number | undefined = undefined;
         if (geometry.getUvChannelCount() > 0 && outputUvs) {
             const uvs = geometry.getUvs(0);
-            const uvBufferView = this.createBufferView(Buffer.from(uvs.buffer));
+            const uvBufferView = this.createBufferView(Buffer.from(uvs.buffer, uvs.byteOffset, uvs.byteLength));
             const uvBufferViewID = this.addBufferView(uvBufferView);
             const uvAccessor = this.createAccessor(uvBufferViewID, 5126, uvBufferView.byteLength / 4 / 2, 'VEC2');
             uvAccessorID = this.addAccessor(uvAccessor);
@@ -460,7 +460,7 @@ export class Writer {
 
         // Output index buffer
         const indices = geometry.getIndices();
-        const indexBufferView = this.createBufferView(Buffer.from(indices.buffer));
+        const indexBufferView = this.createBufferView(Buffer.from(indices.buffer, indices.byteOffset, indices.byteLength));
         const indexBufferViewID = this.addBufferView(indexBufferView);
         const indexAccessor = this.createAccessor(indexBufferViewID, 5123, indexBufferView.byteLength / 2, 'SCALAR');
         const indexAccessorID = this.addAccessor(indexAccessor);
@@ -468,7 +468,7 @@ export class Writer {
         // Output vertex buffer
         const vertices = geometry.getVertices();
         const positionBounds = this.computeBoundsVec3(vertices);
-        const positionBufferView = this.createBufferView(Buffer.from(vertices.buffer));
+        const positionBufferView = this.createBufferView(Buffer.from(vertices.buffer, vertices.byteOffset, vertices.byteLength));
         const positionBufferViewID = this.addBufferView(positionBufferView);
         const positionAccessor = this.createAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max);
         const positionAccessorID = this.addAccessor(positionAccessor);
@@ -477,7 +477,7 @@ export class Writer {
         let colorAccessorID: number | undefined = undefined;
         const colors = geometry.getColors();
         if (colors) {
-            const colorBufferView = this.createBufferView(Buffer.from(colors.buffer));
+            const colorBufferView = this.createBufferView(Buffer.from(colors.buffer, colors.byteOffset, colors.byteLength));
             const colorBufferViewID = this.addBufferView(colorBufferView);
             const colorAccessor = this.createAccessor(colorBufferViewID, 5126, colorBufferView.byteLength / 4 / 3, 'VEC3');
             colorAccessorID = this.addAccessor(colorAccessor);
@@ -510,7 +510,7 @@ export class Writer {
         // Output vertex buffer
         const vertices = geometry.getVertices();
         const positionBounds = this.computeBoundsVec3(vertices);
-        const positionBufferView = this.createBufferView(Buffer.from(vertices.buffer));
+        const positionBufferView = this.createBufferView(Buffer.from(vertices.buffer, vertices.byteOffset, vertices.byteLength));
         const positionBufferViewID = this.addBufferView(positionBufferView);
         const positionAccessor = this.createAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max);
         const positionAccessorID = this.addAccessor(positionAccessor);
@@ -519,7 +519,7 @@ export class Writer {
         let colorAccessorID: number | undefined = undefined;
         const colors = geometry.getColors();
         if (colors) {
-            const colorBufferView = this.createBufferView(Buffer.from(colors.buffer));
+            const colorBufferView = this.createBufferView(Buffer.from(colors.buffer, colors.byteOffset, colors.byteLength));
             const colorBufferViewID = this.addBufferView(colorBufferView);
             const colorAccessor = this.createAccessor(colorBufferViewID, 5126, colorBufferView.byteLength / 4 / 3, 'VEC3');
             colorAccessorID = this.addAccessor(colorAccessor);

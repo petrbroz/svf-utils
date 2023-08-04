@@ -256,8 +256,13 @@ export class Writer {
             if (!filter(fragment.dbid)) {
                 continue;
             }
-            //fix for wrong material index in svf2 ? need to fix this in the reader instead
-            const material = imf.getMaterial(fragment.material-1);
+
+            const material = imf.getMaterial(fragment.material);
+
+            if(material === undefined)
+            {
+                continue;
+            }
             // Only output UVs if there are any textures or if the user specifically asked not to skip unused UVs
             const outputUvs = hasTextures(material) || !this.options.skipUnusedUvs;
             const node = this.createNode(fragment, imf, outputUvs);
@@ -273,6 +278,7 @@ export class Writer {
             const newMaterialIndices = new Uint16Array(imf.getMaterialCount());
             for (let i = 0, len = imf.getMaterialCount(); i < len; i++) {
                 const material = imf.getMaterial(i);
+
                 const hash = this.computeMaterialHash(material);
                 const match = hashes.indexOf(hash);
                 if (match === -1) {
@@ -298,6 +304,10 @@ export class Writer {
         } else {
             for (let i = 0, len = imf.getMaterialCount(); i < len; i++) {
                 const material = imf.getMaterial(i);
+                if(material === undefined)
+                {
+                    continue;
+                }
                 const mat = this.createMaterial(material, imf);
                 manifestMaterials.push(mat);
             }
@@ -352,7 +362,8 @@ export class Writer {
         }
         if (mesh && mesh.primitives.length > 0) {
             for (const primitive of mesh.primitives) {
-                primitive.material = typeof fragment.material === 'number' ? fragment.material-1 : parseInt(fragment.material)-1;
+                // primitive.material = typeof fragment.material === 'number' ? fragment.material : parseInt(fragment.material);
+                primitive.material = fragment.material;
             }
             node.mesh = this.addMesh(mesh);
         }
@@ -387,6 +398,7 @@ export class Writer {
         // Output index buffer
         const indices = geometry.getIndices();
         const indexBufferView = this.createBufferView(Buffer.from(indices.buffer), 34963);
+        if(indexBufferView.byteLength % 2 !== 0) console.log('Error with indices buffer');
         const indexBufferViewID = this.addBufferView(indexBufferView);
         const indexAccessor = this.createAccessor(indexBufferViewID, 5123, indexBufferView.byteLength / 2, 'SCALAR');
         const indexAccessorID = this.addAccessor(indexAccessor);
@@ -395,6 +407,7 @@ export class Writer {
         const vertices = geometry.getVertices();
         const positionBounds = this.computeBoundsVec3(vertices); // Compute bounds manually, just in case
         const positionBufferView = this.createBufferView(Buffer.from(vertices.buffer), 34962);
+        if(positionBufferView.byteLength % 12 !== 0) console.log('Error with vertices buffer');
         const positionBufferViewID = this.addBufferView(positionBufferView);
         const positionAccessor = this.createAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max/*[fragmesh.min.x, fragmesh.min.y, fragmesh.min.z], [fragmesh.max.x, fragmesh.max.y, fragmesh.max.z]*/);
         const positionAccessorID = this.addAccessor(positionAccessor);
@@ -511,7 +524,7 @@ export class Writer {
         // Output vertex buffer
         const vertices = geometry.getVertices();
         const positionBounds = this.computeBoundsVec3(vertices);
-        const positionBufferView = this.createBufferView(Buffer.from(vertices.buffer));
+        const positionBufferView = this.createBufferView(Buffer.from(vertices));
         const positionBufferViewID = this.addBufferView(positionBufferView);
         const positionAccessor = this.createAccessor(positionBufferViewID, 5126, positionBufferView.byteLength / 4 / 3, 'VEC3', positionBounds.min, positionBounds.max);
         const positionAccessorID = this.addAccessor(positionAccessor);
@@ -749,9 +762,9 @@ export class Writer {
         const min = [array[0], array[1], array[2]];
         const max = [array[0], array[1], array[2]];
         for (let i = 0; i < array.length; i += 3) {
-            min[0] = Math.min(min[0], array[i]); max[0] = Math.max(max[0], array[i]);
-            min[1] = Math.min(min[1], array[i + 1]); max[1] = Math.max(max[1], array[i + 1]);
-            min[2] = Math.min(min[2], array[i + 2]); max[2] = Math.max(max[2], array[i + 2]);
+            min[0] = Math.min(min[0], array[i]) || 0; max[0] = Math.max(max[0], array[i]) || 0;
+            min[2] = Math.min(min[2], array[i + 2]) || 0; max[2] = Math.max(max[2], array[i + 2]) || 0;
+            min[1] = Math.min(min[1], array[i + 1]) || 0; max[1] = Math.max(max[1], array[i + 1]) || 0;
         }
         return { min, max };
     }

@@ -140,8 +140,8 @@ function parseTextureProperty(material: SvfInternal.IMaterial, group: SvfInterna
         if (texture && texture.properties.uris && 'unifiedbitmap_Bitmap' in texture.properties.uris) {
             const uri = texture.properties.uris['unifiedbitmap_Bitmap'].values[0];
             // TODO: parse texture transforms aside from scale
-            const texture_UScale = texture.properties.scalars?.texture_UScale?.values[0] as number;
-            const texture_VScale = texture.properties.scalars?.texture_VScale?.values[0] as number;
+            const texture_UScale = texture.properties.scalars?.texture_UScale?.values[0] as number || 1;
+            const texture_VScale = texture.properties.scalars?.texture_VScale?.values[0] as number || 1;
             /*
             console.log('uri and scale', {
                 uri: uri,

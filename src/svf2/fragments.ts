@@ -50,7 +50,7 @@ export function *parseFragments(buffer: Buffer, fragmentOffset: IVec3 = { x: 0, 
             bdata[i] = stream.getUint8();
         }
         const geomId = idata[0];
-		const materialId = idata[1];
+		const materialId = idata[1] - 1;
 		const dbId = idata[2];
         const flags = idata[3];
         const translation: IVec3 = { x: fdata[4] + fragmentOffset.x, y: fdata[5] + fragmentOffset.y, z: fdata[6] + fragmentOffset.z };

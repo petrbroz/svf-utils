@@ -24,6 +24,12 @@ export class InputStream {
         this._offset = offset;
     }
 
+    getInt8(): number {
+        const val = this._buffer.readInt8(this._offset);
+        this._offset += 1;
+        return val;
+    }
+
     getUint8(): number {
         const val = this._buffer.readUInt8(this._offset);
         this._offset += 1;

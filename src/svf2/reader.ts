@@ -3,34 +3,65 @@ import { IAuthOptions } from 'forge-server-utils/dist/common';
 import { Client as Svf2Client, SharedClient as Svf2SharedClient, ManifestHelper as Svf2ManifestHelper, ViewHelper as Svf2ViewHelper } from './client';
 import { parseHashes } from './hashes';
 import { parseFragments } from './fragments';
-import { parseGeometry, IGeometry, IGeometryAttribute, AttributeType, ComponentType, GeometryType } from './geometries';
+import { parseGeometry, IGeometry, IGeometryAttribute, AttributeType, GeometryType } from './geometries';
 import * as IMF from '../common/intermediate-format';
 import { InputStream } from '../common/input-stream';
 import { parseMaterials as parseSvfMaterials } from './materials';
+import { OtgManifestHelper } from '..';
 
 interface ISvf2 {
     views: ISvf2View[];
 }
 
-// interface ISvf2View {
-//     id: string;
-//     fragments: any[];
-//     geometries: Map<string, any>;
-//     materials: Map<string, any>;
-// }
-
+//TODO: replace any with correct types
 interface ISvf2View {
     id: string;
+    metadata: { [key:string]: any};
     fragments: any[];
     geometries: any[];
     materials: any[];
+    textures: Map<string, any>;
 }
 
+interface Vec2 {
+    x:number;
+    y:number;
+}
+
+interface Vec3 {
+    x:number;
+    y:number;
+    z:number;
+}
+
+function deltaDecodeIndexBuffer3(ib: any) {
+    if (!ib.length)
+    return;
+
+    ib[1] += ib[0];
+    ib[2] += ib[0];
+
+    for (var i=3; i<ib.length; i+=3) {
+        ib[i] += ib[i-3];
+        ib[i+1] += ib[i];
+        ib[i+2] += ib[i];
+    }
+}
+
+function DecodeNormal (enc: Vec2)
+{
+    let ang = { x: enc.x * 2.0 - 1.0, y: enc.y * 2.0 - 1.0} as Vec2;
+    let scth = { x: Math.sin(ang.x * Math.PI), y: Math.cos(ang.x * Math.PI)} as Vec2;
+    let scphi = {x: Math.sqrt(1.0 - ang.y * ang.y), y:ang.y} as Vec2;
+    return {x: scth.y * scphi.x, y: scth.x * scphi.x, z: scphi.y} as Vec3;
+}
 export class Scene implements IMF.IScene {
     constructor(protected svf: ISvf2View) {}
 
+
+
     getMetadata(): IMF.IMetadata {
-        return []; // TODO add metadata from the manifest: otg_root.json ?
+        return this.svf.metadata;
     }
 
     getNodeCount(): number {
@@ -82,7 +113,13 @@ export class Scene implements IMF.IScene {
         {
             return { kind: IMF.GeometryKind.Empty }; 
         }
-        const geometry: IGeometry = this.svf.geometries[id-1].data;
+        const geomBuffer = this.svf.geometries[id]
+        if(geomBuffer === undefined) 
+        {
+            console.log(`Error with geom id: ${id}`);
+            return { kind: IMF.GeometryKind.Empty };;
+        }
+        const geometry: IGeometry = geomBuffer.data;
 
         if(geometry.type === GeometryType.Lines)
         {
@@ -91,7 +128,6 @@ export class Scene implements IMF.IScene {
                 kind: IMF.GeometryKind.Lines,
                 getIndices: () => {
                     let indicesAttr:IGeometryAttribute = attributes.filter((a:IGeometryAttribute) => a.attributeType === AttributeType.Index)[0]
-                    // let componentType = indicesAttr.componentType
                     if(indicesAttr)
                     {
                         let buffer = geometry.buffers[indicesAttr.bufferId]
@@ -100,21 +136,15 @@ export class Scene implements IMF.IScene {
                         is.seek(indicesAttr.itemOffset);
                         while(is.offset < is.length)
                         {
-                            for(let i = 0; i< indicesAttr.itemSize; i++)
-                            {
-                                //tbd dynamically from componentType
                                 indices.push(is.getUint16())
-                            }
                         }
-                        
-                        return new Uint16Array(indices);
+                        return new Uint16Array(indices)
                     }
                     
                     return new Uint16Array();
                 },
                 getVertices: () => {
                     let verticesAttr:IGeometryAttribute = attributes.filter((a:IGeometryAttribute) => a.attributeType === AttributeType.Position)[0]
-                    // let componentType = indicesAttr.componentType
                     if(verticesAttr){
                         let buffer = geometry.buffers[verticesAttr.bufferId]
                         let is = new InputStream(buffer);
@@ -125,20 +155,17 @@ export class Scene implements IMF.IScene {
                             let originalOffset = is.offset;
                             for(let i = 0; i< verticesAttr.itemSize; i++)
                             {
-                                //tbd dynamically from componentType
                                 vertices.push(is.getFloat32())
                             }
     
                             is.seek(originalOffset + verticesAttr.itemStride)
                         }
-                        
-                        return new Float32Array(vertices);
+                        return new Float32Array(vertices)
                     }
                     return new Float32Array();
                 },
                 getColors: () => {
                     let colorsAttr:IGeometryAttribute = attributes.filter((a:IGeometryAttribute) => a.attributeType === AttributeType.Color)[0]
-                    // let componentType = indicesAttr.componentType
                     if(colorsAttr)
                     {
                         let buffer = geometry.buffers[colorsAttr.bufferId]
@@ -150,7 +177,6 @@ export class Scene implements IMF.IScene {
                             let originalOffset = is.offset;
                             for(let i = 0; i< colorsAttr.itemSize; i++)
                             {
-                                //tbd dynamically from componentType
                                 colors.push(is.getFloat32())
                             }
     
@@ -174,106 +200,73 @@ export class Scene implements IMF.IScene {
                 kind: IMF.GeometryKind.Mesh,
                 getIndices: () => {
                     let indicesAttr:IGeometryAttribute = attributes.filter((a:IGeometryAttribute) => a.attributeType === AttributeType.Index)[0];
-                    // let componentType = indicesAttr.componentType
-                    let indices:any[] = [];
                     if(indicesAttr){
                         let buffer = geometry.buffers[indicesAttr.bufferId];
-
                         let is = new InputStream(buffer);
+                        let indices: number[] = [];
                         is.seek(indicesAttr.itemOffset);
-                        while(is.offset <= is.length - 2)
+                        while(is.offset < is.length)
                         {
-                            let index = is.getUint16();
-                            indices.push(index);
-                        }                        
-                    }
-                    else
-                    {
-                        console.log('no indices')
-                    }
-
-                    let edgesIndicesAttr:IGeometryAttribute = attributes.filter((a:IGeometryAttribute) => a.attributeType === AttributeType.IndexEdges)[0];
-                    // let componentType = indicesAttr.componentType
-                    let edgeIndices: any[]= [];
-                    if(edgesIndicesAttr){
-                        let buffer = geometry.buffers[edgesIndicesAttr.bufferId]
-
-                        let is = new InputStream(buffer);
-                        is.seek(edgesIndicesAttr.itemOffset);
-                        while(is.offset <= is.length - 2)
-                        {
-                            let index = is.getUint16();
-                            edgeIndices.push(index);
+                            indices.push(is.getUint16())
                         }
-                        
-                    }
-                    else
-                    {
-                        console.log('no edges indices')
+                        deltaDecodeIndexBuffer3(indices)
+                        return new Uint16Array(indices);
                     }
 
-                    const newIndices: number[] = [];
-          
-                    for (let i = 0; i < edgeIndices.length; i += 3) {
-                        let triangle: number[] = [];
-
-                        let e01 = indices[i * 3]
-                        let e02 = indices[(i * 3) + 1]
-                    
-                        if(triangle.indexOf(e01) === -1) triangle.push(e01);
-                        if(triangle.indexOf(e02) === -1) triangle.push(e02);
-
-                        let e11 = indices[(i+1) * 3]
-                        let e12 = indices[((i+1) * 3) + 1]
-                        
-                        if(triangle.indexOf(e11) === -1) triangle.push(e11);
-                        if(triangle.indexOf(e12) === -1) triangle.push(e12);
-
-                        let e21 = indices[(i+2) * 3]
-                        let e22 = indices[((i+2) * 3) + 1]
-                        
-                        if(triangle.indexOf(e21) === -1) triangle.push(e21);
-                        if(triangle.indexOf(e22) === -1) triangle.push(e22);
-
-                        newIndices.push(...triangle);
-                    }
-
-                    return new Uint16Array(newIndices);
+                    return new Uint16Array();
                 },
                 getVertices: () => {
-                    let verticesAttr:IGeometryAttribute = attributes.filter((a:IGeometryAttribute) => a.attributeType === AttributeType.Position)[0];
-                    let componentType = verticesAttr.componentType;
+                    let verticesAttr:IGeometryAttribute = attributes.filter((a:IGeometryAttribute) => a.attributeType === AttributeType.Position)[0];            
                     if(verticesAttr){
                         let buffer = geometry.buffers[verticesAttr.bufferId]
                         let is = new InputStream(buffer);
                         let vertices: number[] = [];
                         is.seek(verticesAttr.itemOffset);
-                        while(is.offset <= is.length - verticesAttr.itemStride)
+                        while(is.offset < is.length)
                         {
                             let originalOffset = is.offset;
-    
-                            let vA = is.getFloat32();
-                            let vB = is.getFloat32();
-                            let vC = is.getFloat32();
-   
-                            vertices.push(vA)
-                            vertices.push(vB)
-                            vertices.push(vC)
+                            for(let i = 0; i< verticesAttr.itemSize; i++)
+                            {
+                                vertices.push(is.getFloat32())
+                            }
     
                             is.seek(originalOffset + verticesAttr.itemStride)
                         }
-                        
-                        return new Float32Array(vertices);
+                        return new Float32Array(vertices)
                     }
                     return new Float32Array();
                 },
                 getNormals: () => {
-                    // TODO
+                    let normalsAttr:IGeometryAttribute = attributes.filter((a:IGeometryAttribute) => a.attributeType === AttributeType.Normal)[0]
+                    if(normalsAttr)
+                    {
+                        let buffer = geometry.buffers[normalsAttr.bufferId]
+                        let componentType = normalsAttr.componentType;
+                        let is = new InputStream(buffer);
+                        let normals: number[] = [];
+                        is.seek(normalsAttr.itemOffset);
+                        while(is.offset < is.length)
+                        {
+                            let originalOffset = is.offset;
+                            let encodedNorm = [];
+
+                            for(let i = 0; i< normalsAttr.itemSize; i++)
+                            {
+                                encodedNorm.push((is.getUint16() / 65535))
+                            }
+
+                            let decodedNorm = DecodeNormal({x:encodedNorm[0], y:encodedNorm[1]})
+
+                            normals.push(decodedNorm.x, decodedNorm.y, decodedNorm.z);
+    
+                            is.seek(originalOffset + normalsAttr.itemStride)
+                        }
+                        return new Float32Array(normals)
+                    }
                     return undefined;
                 },
                 getColors: () => {
                     let colorsAttr:IGeometryAttribute = attributes.filter((a:IGeometryAttribute) => a.attributeType === AttributeType.Color)[0]
-                    // let componentType = indicesAttr.componentType
                     if(colorsAttr)
                     {
                         let buffer = geometry.buffers[colorsAttr.bufferId]
@@ -295,8 +288,38 @@ export class Scene implements IMF.IScene {
                     }
                     return undefined;
                 },
-                getUvChannelCount: () => 0,
-                getUvs: (channel: number) => new Float32Array()
+                getUvChannelCount: () => 1,
+                getUvs: (channel: number) => {
+                    // how to use channel ?
+                    let uvsAttr:IGeometryAttribute = attributes.filter((a:IGeometryAttribute) => a.attributeType === AttributeType.TextureUV)[0];            
+                    if(uvsAttr){
+                        let buffer = geometry.buffers[uvsAttr.bufferId]
+                        let is = new InputStream(buffer);
+                        let uvs: number[] = [];
+                        is.seek(uvsAttr.itemOffset);
+                        while(is.offset < is.length)
+                        {
+                            let originalOffset = is.offset;
+                            // for(let i = 0; i< uvsAttr.itemSize; i++)
+                            // {
+                            //     uvs.push(is.getFloat32())
+                            // }
+                            if(uvsAttr.itemSize === 2)
+                            {
+                                uvs.push(is.getFloat32())
+                                uvs.push(1.0 - is.getFloat32())
+                            }
+                            else
+                            {
+                                console.log(`Can't parse uvs with this itemSize`)
+                            }
+    
+                            is.seek(originalOffset + uvsAttr.itemStride)
+                        }
+                        return new Float32Array(uvs)
+                    }
+                    return new Float32Array();
+                }
             };
             return geom;
         }  
@@ -338,7 +361,7 @@ export class Scene implements IMF.IScene {
     }
 
     getImage(uri: string): Buffer | undefined {
-        return undefined;
+        return this.svf.textures.get(uri);
     }
 }
 
@@ -383,13 +406,15 @@ export class Reader {
 
     protected async readView(id: string, resolvedUrn: string): Promise<ISvf2View> {
         let fragments: any[] = [];
-        let geometries: any[] = [];
+        let geometries: any[] = [null];
         let materials: any[] = [];
-        // let geometries: Map<string, any> = new Map<string, any>();
-        // let materials: Map<string, any> = new Map<string, any>();
+        let textures: Map<string, any> = new Map();
         const viewData = await this.client.getAsset(this.urn, encodeURIComponent(resolvedUrn));
         const otgViewHelper = new Svf2ViewHelper(JSON.parse(viewData.toString()), resolvedUrn);
         const privateModelAssets = otgViewHelper.listPrivateModelAssets();
+
+        let metadata = otgViewHelper.getMetadata();
+
         let tasks: Promise<void>[] = [];
         if (privateModelAssets) {
             if (privateModelAssets.fragments) {
@@ -401,13 +426,20 @@ export class Reader {
             if (privateModelAssets.materials_ptrs) {
                 tasks.push(this.parseMaterials(privateModelAssets.materials_ptrs.resolvedUrn, otgViewHelper, materials));
             }
+            if (privateModelAssets.texture_manifest) {
+                tasks.push(this.parseTextures(privateModelAssets.texture_manifest.resolvedUrn, otgViewHelper, textures));
+            }
         }
+
         await Promise.all(tasks);
+
         return {
             id,
+            metadata,
             fragments,
             geometries,
-            materials
+            materials,
+            textures
         };
     }
 
@@ -436,4 +468,23 @@ export class Reader {
             output.push(Array.from(parseSvfMaterials(materialData)));
         }
     }
+
+    protected async parseTextures(textureManifestUri: string, otgViewHelper: Svf2ViewHelper, output: Map<string, any>): Promise<void> {
+        const assetData = await this.client.getAsset(this.urn, encodeURIComponent(textureManifestUri));
+        const textureManifest = JSON.parse(assetData.toString()) as {[key:string]: string}
+        for(const [_, uri] of Object.entries(textureManifest))
+        {
+            const textureUrn = otgViewHelper.getTextureUrn(uri);
+            const textureData = await this.sharedClient.getAsset(this.urn, textureUrn);
+            output.set(uri, textureData)
+        }
+    }
+
+    // protected async getTexture(texUri: string, otgViewHelper: Svf2ViewHelper, output: Map<string, any>): Promise<void> {
+    //     const textureUrn = otgViewHelper.getTextureUrn(texUri);
+    //     const textureData = await this.sharedClient.getAsset(this.urn, textureUrn);
+    //     // output.push({key: texUri, data: textureData})
+    //     output.set(texUri, textureData)
+    // }
+
 }

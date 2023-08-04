@@ -1,5 +1,6 @@
 import { InputStream } from '../common/input-stream';
 
+
 export interface IGeometry {
     type: GeometryType;
     attributes: IGeometryAttribute[];
@@ -23,7 +24,7 @@ export enum GeometryType {
 }
 
 export enum AttributeType {
-	Index = 0,
+    Index = 0,
 	IndexEdges = 1,
 	Position = 2,
 	Normal = 3,
@@ -32,21 +33,35 @@ export enum AttributeType {
 }
 
 export enum ComponentType {
-	BYTE = 0,
+    BYTE = 0,
 	SHORT = 1,
 	UBYTE = 2,
 	USHORT = 3,
-
+    
 	BYTE_NORM = 4,
 	SHORT_NORM = 5,
 	UBYTE_NORM = 6,
 	USHORT_NORM = 7,
-
+    
 	FLOAT = 8,
 	INT = 9,
 	UINT = 10
 	//DOUBLE = 11
 }
+
+export const AttributeTypeToSize:any = {};
+AttributeTypeToSize[ComponentType.BYTE] = 1;
+AttributeTypeToSize[ComponentType.SHORT] = 2;
+AttributeTypeToSize[ComponentType.UBYTE] = 1;
+AttributeTypeToSize[ComponentType.USHORT] = 2;
+AttributeTypeToSize[ComponentType.BYTE_NORM] = 1;
+AttributeTypeToSize[ComponentType.SHORT_NORM] = 2;
+AttributeTypeToSize[ComponentType.UBYTE_NORM] = 1;
+AttributeTypeToSize[ComponentType.USHORT_NORM] = 2;
+AttributeTypeToSize[ComponentType.FLOAT] = 4;
+AttributeTypeToSize[ComponentType.INT] = 4;
+AttributeTypeToSize[ComponentType.UINT] = 4;
+
 
 export function parseGeometry(buffer: Buffer): IGeometry {
     const stream = new InputStream(buffer);
@@ -64,10 +79,12 @@ export function parseGeometry(buffer: Buffer): IGeometry {
     for (let i = 0; i < attrCount; i++) {
         attributes.push(parseGeometryAttribute(stream));
     }
+
     let dataOffset = stream.offset;
     if (dataOffset % 4 !== 0) {
         dataOffset += 4 - (dataOffset % 4);
     }
+
     let buffers: Buffer[] = [];
     for (let i = 0; i < buffCount; i++) {
         const offset = dataOffset + buffOffsets[i];

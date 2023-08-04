@@ -88,6 +88,13 @@ export class ViewHelper {
                     resolvedUrn: this.resolveAssetUrn(assets.geometry_ptrs)
                 };
             }
+            if (assets.texture_manifest)
+            {
+                result.texture_manifest = {
+                    uri: assets.texture_manifest,
+                    resolvedUrn: this.resolveAssetUrn(assets.texture_manifest)
+                }
+            }
             return result;
         } else {
             return undefined;
@@ -177,15 +184,29 @@ export class ViewHelper {
     }
 
     getGeometryUrn(hash: string): string {
-        return this.view.manifest.shared_assets.geometry + hash;
+        return this.view.manifest.shared_assets.geometry + encodeURI(hash);
     }
 
     getMaterialUrn(hash: string): string {
-        return this.view.manifest.shared_assets.materials + hash;
+        return this.view.manifest.shared_assets.materials + encodeURI(hash);
     }
 
     getTextureUrn(hash: string): string {
-        return this.view.manifest.shared_assets.textures + hash;
+        return this.view.manifest.shared_assets.textures + encodeURI(hash);
+    }
+
+    getMetadata(): { [key: string]: any } {
+        // map only necessary value
+
+        let metadata = {
+            "world bounding box": this.view["world bounding box"],
+            "world up vector": this.view["world up vector"],
+            "world front vector": this.view["world front vector"],
+            "world north vector": this.view["world north vector"],
+            "distance unit": this.view["distance unit"],
+        }
+
+        return metadata;
     }
 }
 

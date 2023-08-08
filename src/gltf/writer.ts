@@ -25,7 +25,7 @@ export interface IWriterOptions {
     skipUnusedUvs?: boolean; /** Skip unused tex coordinates. */
     center?: boolean; /** Move the model to origin. */
     log?: (msg: string) => void; /** Optional logging function. */
-    filter?: (dbid: number) => boolean;
+    filter?: (dbid: number, fragid: number) => boolean;
 }
 
 function hasTextures(material: IMF.Material | null): boolean {
@@ -75,7 +75,7 @@ export class Writer {
             skipUnusedUvs: !!options.skipUnusedUvs,
             center: !!options.center,
             log: (options && options.log) || function (msg: string) {},
-            filter: options && options.filter || ((dbid: number) => true)
+            filter: options && options.filter || ((dbid: number, fragid: number) => true)
         };
 
         // All these properties will be properly initialized in the 'reset' call
@@ -253,7 +253,7 @@ export class Writer {
             if (fragment.kind !== IMF.NodeKind.Object) {
                 continue;
             }
-            if (!filter(fragment.dbid)) {
+            if (!filter(fragment.dbid, i)) {
                 continue;
             }
             const material = imf.getMaterial(fragment.material);

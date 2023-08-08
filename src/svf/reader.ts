@@ -301,24 +301,7 @@ export class Reader {
         for (const img of this.listImages()) {
             tasks.push((async (uri: string) => {
                 log(`Downloading image ${uri}...`);
-                const normalizedUri = uri.toLowerCase().split(/[\/\\]/).join(path.sep);
-                let imageData = null;
-                // Sometimes, Model Derivative service URIs must be left unmodified...
-                try {
-                    imageData = await this.getAsset(uri);
-                } catch (err) {}
-                // Sometimes, they must be lower-cased...
-                if (!imageData) {
-                    log(`Could not find image ${uri}, trying a lower-cased version of the URI...`);
-                    try {
-                        imageData = await this.getAsset(uri.toLowerCase());
-                    } catch (err) {}
-                }
-                // And sometimes, they're just missing...
-                if (!imageData) {
-                    log(`Still could not find image ${uri}; will default to a single black pixel placeholder image...`);
-                    imageData = undefined;
-                }
+                const { normalizedUri, imageData } = await this.loadImage(uri);
                 output.images[normalizedUri] = imageData;
                 log(`Downloading image ${uri}: done`);
             })(img));
@@ -502,6 +485,30 @@ export class Reader {
         }
         const buffer = await this.getAsset(materialsAsset.URI);
         return Array.from(parseMaterials(buffer));
+    }
+
+    /**
+     * Loads an image.
+     * @param uri Image URI.
+     */
+    async loadImage(uri: string) {
+        const normalizedUri = uri.toLowerCase().split(/[\/\\]/).join(path.sep);
+        let imageData = null;
+        // Sometimes, Model Derivative service URIs must be left unmodified...
+        try {
+            imageData = await this.getAsset(uri);
+        } catch (err) {}
+        // Sometimes, they must be lower-cased...
+        if (!imageData) {
+            try {
+                imageData = await this.getAsset(uri.toLowerCase());
+            } catch (err) {}
+        }
+        // And sometimes, they're just missing...
+        if (!imageData) {
+            imageData = undefined;
+        }
+        return { normalizedUri, imageData };
     }
 
     /**

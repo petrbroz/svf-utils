@@ -155,6 +155,7 @@ export class Scene implements IMF.IScene {
 export interface IReaderOptions {
     log?: (msg: string) => void;
     skipPropertyDb?: boolean;
+    filter?: (dbid: number, fragid: number) => boolean;
 }
 
 /**
@@ -269,21 +270,18 @@ export class Reader {
         let tasks: Promise<void>[] = [];
         const log = (options && options.log) || function (msg: string) {};
 
-        tasks.push((async () => {
-            log(`Reading fragments...`);
-            output.fragments = await this.readFragments();
-            log(`Reading fragments: done`);
-        })());
-        tasks.push((async () => {
-            log(`Reading geometries...`);
-            output.geometries = await this.readGeometries();
-            log(`Reading geometries: done`);
-        })());
-        tasks.push((async () => {
-            log(`Reading materials...`);
-            output.materials = await this.readMaterials();
-            log(`Reading materials: done`);
-        })());
+        log(`Reading fragments...`);
+        output.fragments = await this.readFragments();
+        log(`Reading fragments: done`);
+
+        log(`Reading geometries...`);
+        output.geometries = await this.readGeometries();
+        log(`Reading geometries: done`);
+
+        log(`Reading materials...`);
+        output.materials = await this.readMaterials();
+        log(`Reading materials: done`);
+
         if (!(options && options.skipPropertyDb)) {
             tasks.push((async () => {
                 log(`Reading property database...`);
@@ -291,13 +289,34 @@ export class Reader {
                 log(`Reading property database: done`);
             })());
         }
-        for (let i = 0, len = this.getMeshPackCount(); i < len; i++) {
-            tasks.push((async (id: number) => {
-                log(`Reading meshpack #${id}...`);
-                output.meshpacks[id] = await this.readMeshPack(id);
-                log(`Reading meshpack #${id}: done`);
-            })(i));
+
+        if (options && options.filter) {
+            const fragments = output.fragments as SVF.IFragment[];
+            const geometries = output.geometries as SVF.IGeometryMetadata[];
+            const packIds = new Set<number>();
+            for (let i = 0, len = fragments.length; i < len; i++) {
+                const fragment = fragments[i];
+                if (options.filter(fragment.dbID, i)) {
+                    packIds.add(geometries[fragment.geometryID].packID);
+                }
+            }
+            for (const packId of packIds.values()) {
+                tasks.push((async (id: number) => {
+                    log(`Reading meshpack #${id}...`);
+                    output.meshpacks[id] = await this.readMeshPack(id);
+                    log(`Reading meshpack #${id}: done`);
+                })(packId));
+            }
+        } else {
+            for (let i = 0, len = this.getMeshPackCount(); i < len; i++) {
+                tasks.push((async (id: number) => {
+                    log(`Reading meshpack #${id}...`);
+                    output.meshpacks[id] = await this.readMeshPack(id);
+                    log(`Reading meshpack #${id}: done`);
+                })(i));
+            }
         }
+
         for (const img of this.listImages()) {
             tasks.push((async (uri: string) => {
                 log(`Downloading image ${uri}...`);

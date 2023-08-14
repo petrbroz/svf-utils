@@ -48,6 +48,19 @@ function deltaDecodeIndexBuffer3(ib: any) {
     }
 }
 
+function deltaDecodeIndexBuffer2(ib: any) {
+
+    if (!ib.length)
+    return;
+  
+    ib[1] += ib[0];
+  
+    for (var i = 2; i < ib.length; i += 2) {
+      ib[i] += ib[i - 2];
+      ib[i + 1] += ib[i];
+    }
+  }
+
 function DecodeNormal (enc: Vec2)
 {
     let ang = { x: enc.x * 2.0 - 1.0, y: enc.y * 2.0 - 1.0} as Vec2;
@@ -136,8 +149,9 @@ export class Scene implements IMF.IScene {
                         is.seek(indicesAttr.itemOffset);
                         while(is.offset < is.length)
                         {
-                                indices.push(is.getUint16())
+                                indices.push(is.getUint16());
                         }
+                        deltaDecodeIndexBuffer2(indices);
                         return new Uint16Array(indices)
                     }
                     
@@ -155,12 +169,12 @@ export class Scene implements IMF.IScene {
                             let originalOffset = is.offset;
                             for(let i = 0; i< verticesAttr.itemSize; i++)
                             {
-                                vertices.push(is.getFloat32())
+                                vertices.push(is.getFloat32());
                             }
     
-                            is.seek(originalOffset + verticesAttr.itemStride)
+                            is.seek(originalOffset + verticesAttr.itemStride);
                         }
-                        return new Float32Array(vertices)
+                        return new Float32Array(vertices);
                     }
                     return new Float32Array();
                 },
@@ -177,10 +191,10 @@ export class Scene implements IMF.IScene {
                             let originalOffset = is.offset;
                             for(let i = 0; i< colorsAttr.itemSize; i++)
                             {
-                                colors.push(is.getFloat32())
+                                colors.push(is.getFloat32());
                             }
     
-                            is.seek(originalOffset + colorsAttr.itemStride)
+                            is.seek(originalOffset + colorsAttr.itemStride);
                         }
                         
                         return new Float32Array(colors);
@@ -300,10 +314,7 @@ export class Scene implements IMF.IScene {
                         while(is.offset < is.length)
                         {
                             let originalOffset = is.offset;
-                            // for(let i = 0; i< uvsAttr.itemSize; i++)
-                            // {
-                            //     uvs.push(is.getFloat32())
-                            // }
+              
                             if(uvsAttr.itemSize === 2)
                             {
                                 uvs.push(is.getFloat32())
@@ -324,7 +335,8 @@ export class Scene implements IMF.IScene {
             return geom;
         }  
 
-
+        //TODO: handle points geometry
+        
         return { kind: IMF.GeometryKind.Empty };
     }
 
@@ -479,12 +491,5 @@ export class Reader {
             output.set(uri, textureData)
         }
     }
-
-    // protected async getTexture(texUri: string, otgViewHelper: Svf2ViewHelper, output: Map<string, any>): Promise<void> {
-    //     const textureUrn = otgViewHelper.getTextureUrn(texUri);
-    //     const textureData = await this.sharedClient.getAsset(this.urn, textureUrn);
-    //     // output.push({key: texUri, data: textureData})
-    //     output.set(texUri, textureData)
-    // }
 
 }

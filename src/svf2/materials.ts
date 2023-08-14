@@ -45,9 +45,9 @@ namespace SvfInternal {
  * @returns {Iterable<IMaterial | null>} Instances of parsed materials, or null if there are none (or are not supported).
  */
 export function *parseMaterials(buffer: Buffer): Iterable<IMaterial | null> {
-    // if (buffer[0] === 31 && buffer[1] === 139) {
-    //     buffer = zlib.gunzipSync(buffer);
-    // }
+    if (buffer[0] === 31 && buffer[1] === 139) {
+        buffer = zlib.gunzipSync(buffer);
+    }
     if (buffer.byteLength > 0) {
         const group = JSON.parse(buffer.toString()) as SvfInternal.IMaterialGroup;
         for (const key of Object.keys(group.materials)) {

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.4] - 2023-08-08
+
+- Added
+  - Support for gltf output filtering based on fragment IDs.
+  - Support for svf input filtering based on dbID or fragment ID.
+
+## [4.0.3] - 2023-06-28
+
+- Fixed
+  - Solved an issue with glTF geometry being broken in certain scenarios (kudos to [henrikbuchholz](https://github.com/henrikbuchholz)!)
+
 ## [4.0.2] - 2023-03-10
 
 - Added

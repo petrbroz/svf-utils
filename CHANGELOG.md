@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.5] - 2023-09-29
+
+- Added
+  - SVF materials that are not referenced by anything are excluded from the glTF output
+
 ## [4.0.4] - 2023-08-08
 
 - Added

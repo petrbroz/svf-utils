@@ -44,9 +44,12 @@ export class Downloader {
 
     private async _download(urn: string, context: IDownloadContext): Promise<void> {
         context.log(`Downloading derivative ${urn}`);
-        const helper = new ManifestHelper(await this.modelDerivativeClient.getManifest(urn));
+        const manifest = await this.modelDerivativeClient.getManifest(urn);
+        const helper = new ManifestHelper(manifest);
         const derivatives = helper.search({ type: 'resource', role: 'graphics' }) as IDerivativeResourceChild[];
         const urnDir = path.join(context.outputDir || '.', urn);
+        fse.ensureDirSync(urnDir);
+        fse.writeJsonSync(path.join(urnDir, 'manifest.json'), manifest);
         for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
             if (context.cancelled) {
                 return;

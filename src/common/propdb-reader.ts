@@ -80,4 +80,35 @@ export class PropDbReader {
         }
         return children;
     }
+
+    /**
+     * Finds ID of the parent of given object.
+     * @param id {number} Object ID.
+     * @returns {number} Parent IDs.
+     */
+    getParrent(id: number): number[] {
+        let parrents: number[] = [];
+        for (const prop of this.enumerateProperties(id)) {
+            if (prop.category === '__parent__') {
+                parrents.push(prop.value as number);
+            }
+        }
+        return parrents;
+    }
+
+
+    /**
+     * Finds ID of the instance of given object.
+     * @param id {number} Object ID.
+     * @returns {number} Instance IDs.
+     */
+    getInstanceOf(id: number): number[] {
+        let instanceofs: number[] = [];
+        for (const prop of this.enumerateProperties(id)) {
+            if (prop.category === '__instanceof__') {
+                instanceofs.push(prop.value as number);
+            }
+        }
+        return instanceofs;
+    }
 }

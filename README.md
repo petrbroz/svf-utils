@@ -1,30 +1,27 @@
-# forge-convert-utils
+# svf-utils
 
-![Publish to NPM](https://github.com/petrbroz/forge-convert-utils/workflows/Publish%20to%20NPM/badge.svg)
-[![npm version](https://badge.fury.io/js/forge-convert-utils.svg)](https://badge.fury.io/js/forge-convert-utils)
-![node](https://img.shields.io/node/v/forge-convert-utils.svg)
-![npm downloads](https://img.shields.io/npm/dw/forge-convert-utils.svg)
+![Publish to NPM](https://github.com/petrbroz/svf-utils/workflows/Publish%20to%20NPM/badge.svg)
+[![npm version](https://badge.fury.io/js/svf-utils.svg)](https://badge.fury.io/js/svf-utils)
+![node](https://img.shields.io/node/v/svf-utils.svg)
+![npm downloads](https://img.shields.io/npm/dw/svf-utils.svg)
 ![platforms](https://img.shields.io/badge/platform-windows%20%7C%20osx%20%7C%20linux-lightgray.svg)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](http://opensource.org/licenses/MIT)
 
-![Forge & glTF logos](./logo.png)
+![APS & glTF logos](./logo.png)
 
-Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file format into
+Utilities for converting [Autodesk Platform Services](https://aps.autodesk.com) SVF file format into
 [glTF 2.0](https://github.com/KhronosGroup/glTF/tree/master/specification/2.0).
-
-> Check out [forge-convert-sqlite](https://github.com/petrbroz/forge-convert-sqlite) with an experimental
-> serialization/deserialization of glTF to/from sqlite.
 
 ## Usage
 
 ### Command line
 
-- install the package: `npm install --global forge-convert-utils`
-- run the `forge-convert` command without parameters for usage info
+- install the package: `npm install --global svf-utils`
+- run the `svf-to-gltf` command without parameters for usage info
 - run the command with a path to a local SVF file
 - run the command with a Model Derivative URN (and optionally viewable GUID)
-    - to access Forge you must also specify credentials (`FORGE_CLIENT_ID` and `FORGE_CLIENT_SECRET`)
-    or an authentication token (`FORGE_ACCESS_TOKEN`) as env. variables
+    - to access APS you must also specify credentials (`APS_CLIENT_ID` and `APS_CLIENT_SECRET`)
+    or an authentication token (`APS_ACCESS_TOKEN`) as env. variables
     - this will also download the property database in sqlite format
 - optionally, use any combination of the following command line args:
   - `--output-folder <folder>` to change output folder (by default '.')
@@ -38,43 +35,43 @@ Utilities for converting [Autodesk Forge](https://forge.autodesk.com) SVF file f
 #### Unix/macOS
 
 ```
-forge-convert <path to local svf> --output-folder <path to output folder>
+svf-to-gltf <path to local svf> --output-folder <path to output folder>
 ```
 
 or
 
 ```
-export FORGE_CLIENT_ID=<client id>
-export FORGE_CLIENT_SECRET=<client secret>
-forge-convert <urn> --output-folder <path to output folder>
+export APS_CLIENT_ID=<client id>
+export APS_CLIENT_SECRET=<client secret>
+svf-to-gltf <urn> --output-folder <path to output folder>
 ```
 
 or
 
 ```
-export FORGE_ACCESS_TOKEN=<access token>>
-forge-convert <urn> --output-folder <path to output folder>
+export APS_ACCESS_TOKEN=<access token>
+svf-to-gltf <urn> --output-folder <path to output folder>
 ```
 
 #### Windows
 
 ```
-forge-convert <path to local svf> --output-folder <path to output folder>
+svf-to-gltf <path to local svf> --output-folder <path to output folder>
 ```
 
 or
 
 ```
-set FORGE_CLIENT_ID=<client id>
-set FORGE_CLIENT_SECRET=<client secret>
-forge-convert <urn> --output-folder <path to output folder>
+set APS_CLIENT_ID=<client id>
+set APS_CLIENT_SECRET=<client secret>
+svf-to-gltf <urn> --output-folder <path to output folder>
 ```
 
 or
 
 ```
-set FORGE_ACCESS_TOKEN=<access token>
-forge-convert <urn> --output-folder <path to output folder>
+set APS_ACCESS_TOKEN=<access token>
+svf-to-gltf <urn> --output-folder <path to output folder>
 ```
 
 ### Node.js
@@ -82,81 +79,41 @@ forge-convert <urn> --output-folder <path to output folder>
 The library can be used at different levels of granularity.
 
 The easiest way to convert an SVF file is to read the entire model into memory
-using [SvfReader#read](https://petrbroz.github.io/forge-convert-utils/docs/classes/_svf_reader_.reader.html#read)
-method, and save the model into glTF using [GltfWriter#write](https://petrbroz.github.io/forge-convert-utils/docs/classes/_gltf_writer_.writer.html#write):
-
-```js
-const path = require('path');
-const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
-const { SvfReader, GltfWriter } = require('forge-convert-utils');
-
-const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
-
-async function run(urn, outputDir) {
-    const auth = { client_id: FORGE_CLIENT_ID, client_secret: FORGE_CLIENT_SECRET };
-    const modelDerivativeClient = new ModelDerivativeClient(auth);
-    const manifestHelper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
-    const derivatives = manifestHelper.search({ type: 'resource', role: 'graphics' });
-    const readerOptions = {
-        log: console.log
-    };
-    const writerOptions = {
-        deduplicate: true,
-        skipUnusedUvs: true,
-        center: true,
-        log: console.log,
-        filter: (dbid) => (dbid >= 100 && dbid <= 200) // only output objects with dbIDs between 100 and 200
-    };
-    const writer = new GltfWriter(writerOptions);
-    for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
-        const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
-        const scene = await reader.read(readerOptions);
-        await writer.write(scene, path.join(outputDir, derivative.guid));
-    }
-}
-
-run('your model urn', 'path/to/output/folder');
-```
+using [SvfReader#read](https://petrbroz.github.io/svf-utils/docs/classes/_svf_reader_.reader.html#read)
+method, and save the model into glTF using [GltfWriter#write](https://petrbroz.github.io/svf-utils/docs/classes/_gltf_writer_.writer.html#write):
+[samples/remote-svf-to-gltf.js](./samples/remote-svf-to-gltf.js).
 
 If you don't want to read the entire model into memory (for example, when distributing
 the parsing of an SVF over multiple servers), you can use methods like
-[SvfReader#enumerateFragments](https://petrbroz.github.io/forge-convert-utils/docs/classes/_svf_reader_.reader.html#enumeratefragments)
-or [SvfReader#enumerateGeometries](https://petrbroz.github.io/forge-convert-utils/docs/classes/_svf_reader_.reader.html#enumerategeometries)
+[SvfReader#enumerateFragments](https://petrbroz.github.io/svf-utils/docs/classes/_svf_reader_.reader.html#enumeratefragments)
+or [SvfReader#enumerateGeometries](https://petrbroz.github.io/svf-utils/docs/classes/_svf_reader_.reader.html#enumerategeometries)
 to _asynchronously_ iterate over individual elements:
 
 ```js
-const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
-const { SvfReader } = require('forge-convert-utils');
+const { SvfReader } = require('svf-utils');
 
-const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
+// ...
 
-async function run (urn) {
-    const auth = { client_id: FORGE_CLIENT_ID, client_secret: FORGE_CLIENT_SECRET };
-    const modelDerivativeClient = new ModelDerivativeClient(auth);
-    const manifestHelper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
-    const derivatives = manifestHelper.search({ type: 'resource', role: 'graphics' });
-    for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
-        const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
-        for await (const fragment of reader.enumerateFragments()) {
-            console.log(fragment);
-        }
-    }
+const reader = await SvfReader.FromDerivativeService(urn, guid, authProvider);
+for await (const fragment of reader.enumerateFragments()) {
+    console.log(fragment);
 }
-
-run('your model urn');
 ```
 
 And finally, if you already have the individual SVF assets in memory, you can parse the binary data
-directly using _synchronous_ iterators like [parseMeshes](https://petrbroz.github.io/forge-convert-utils/docs/modules/_svf_meshes_.html#parsemeshes):
+directly using _synchronous_ iterators like [parseMeshes](https://petrbroz.github.io/svf-utils/docs/modules/_svf_meshes_.html#parsemeshes):
 
 ```js
-const { parseMeshes } = require('forge-convert-utils/lib/svf/meshes');
+const { parseMeshes } = require('svf-utils/lib/svf/meshes');
+
+// ...
+
 for (const mesh of parseMeshes(buffer)) {
     console.log(mesh);
 }
 ```
 
-> For additional examples, see the [test](./test) subfolder.
+> For additional examples, see the [samples](./samples) subfolder.
 
 ### Customization
 
@@ -167,7 +124,7 @@ You can customize the translation by sub-classing the reader and/or the writer c
 
 ### Metadata
 
-When converting models from [Model Derivative service](https://forge.autodesk.com/en/docs/model-derivative/v2),
+When converting models from [Model Derivative service](https://aps.autodesk.com/en/docs/model-derivative/v2),
 you can retrieve the model's properties and metadata in form of a sqlite database. The command line tool downloads
 this database automatically as _properties.sqlite_ file directly in your output folder. If you're using this library
 in your own Node.js code, you can find the database in the manifest by looking for an asset with type "resource",
@@ -213,7 +170,7 @@ See [./samples/local-svf-to-gltf.sh](./samples/local-svf-to-gltf.sh) or
 - clone the repository
 - install dependencies: `yarn install`
 - build the library (transpile TypeScript): `yarn run build`
-- run samples in the _test_ subfolder, for example: `FORGE_CLIENT_ID=<your client id> FORGE_CLIENT_SECRET=<your client secret> node test/remote-svf-to-gltf.js <model urn> <path to output folder>`
+- run samples in the _test_ subfolder, for example: `APS_CLIENT_ID=<your client id> APS_CLIENT_SECRET=<your client secret> node test/remote-svf-to-gltf.js <model urn> <path to output folder>`
 
 If you're using [Visual Studio Code](https://code.visualstudio.com), you can use the following "task" and "launch" configurations:
 
@@ -252,8 +209,8 @@ In _.vscode/launch.json_:
     "program": "${workspaceFolder}/test/remote-svf-to-gltf.js",
     "args": ["<your model urn>", "<path to output folder>"],
     "env": {
-        "FORGE_CLIENT_ID": "<your client id>",
-        "FORGE_CLIENT_SECRET": "<your client secret>"
+        "APS_CLIENT_ID": "<your client id>",
+        "APS_CLIENT_SECRET": "<your client secret>"
     },
     "preLaunchTask": "build"
 },

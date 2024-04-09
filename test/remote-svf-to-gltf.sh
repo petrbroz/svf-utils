@@ -2,12 +2,12 @@
 
 # Basic SVF-to-glTF conversion test.
 # Usage:
-#   export FORGE_CLIENT_ID=<your client id>
-#   export FORGE_CLIENT_SECRET=<your client secret>
+#   export APS_CLIENT_ID=<your client id>
+#   export APS_CLIENT_SECRET=<your client secret>
 #   ./remote-svf-to-gltf.sh <your model urn> <output folder>
 
 # Convert SVF to glTF
-node ./bin/forge-convert.js $1 --output-folder $2/gltf --deduplicate --skip-unused-uvs --ignore-lines --ignore-points
+node ./bin/svf-to-gltf.js $1 --output-folder $2/gltf --deduplicate --skip-unused-uvs --ignore-lines --ignore-points
 
 # Iterate over glTFs generated for all viewables (in <urn>/<guid> subfolders)
 for gltf in $(find $2/gltf -name "output.gltf"); do

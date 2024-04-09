@@ -1,8 +1,11 @@
 import * as path from 'path';
 import * as fse from 'fs-extra';
-import { ModelDerivativeClient, ManifestHelper, IDerivativeResourceChild } from 'forge-server-utils';
-import { IAuthOptions, Region } from 'forge-server-utils/dist/common';
+import axios from 'axios';
 import { SvfReader } from '..';
+import { SdkManager, SdkManagerBuilder } from '@aps_sdk/autodesk-sdkmanager';
+import { IAuthenticationProvider } from '../common/authentication-provider';
+import { ManifestDerivativesChildren, ModelDerivativeClient } from '@aps_sdk/model-derivative';
+import { Scopes } from '@aps_sdk/authentication';
 
 export interface IDownloadOptions {
     outputDir?: string;
@@ -23,10 +26,12 @@ interface IDownloadContext {
 }
 
 export class Downloader {
+    protected sdkManager: SdkManager;
     protected modelDerivativeClient: ModelDerivativeClient;
 
-    constructor(protected auth: IAuthOptions, host?: string, region?: Region) {
-        this.modelDerivativeClient = new ModelDerivativeClient(this.auth, host, region);
+    constructor(protected authenticationProvider: IAuthenticationProvider, host?: string, region?: string) {
+        this.sdkManager = SdkManagerBuilder.create().build();
+        this.modelDerivativeClient = new ModelDerivativeClient(this.sdkManager);
     }
 
     download(urn: string, options?: IDownloadOptions): IDownloadTask {
@@ -42,12 +47,39 @@ export class Downloader {
         };
     }
 
+    private async _downloadDerivative(urn: string, derivativeUrn: string) {
+        const accessToken = await this.authenticationProvider.getToken([Scopes.ViewablesRead]);
+        const downloadInfo = await this.modelDerivativeClient.getDerivativeUrl(accessToken, derivativeUrn, urn);
+        const response = await axios.get(downloadInfo.url as string, { responseType: 'arraybuffer', decompress: false });
+        return response.data;
+    }
+
     private async _download(urn: string, context: IDownloadContext): Promise<void> {
         context.log(`Downloading derivative ${urn}`);
-        const helper = new ManifestHelper(await this.modelDerivativeClient.getManifest(urn));
-        const derivatives = helper.search({ type: 'resource', role: 'graphics' }) as IDerivativeResourceChild[];
+        const accessToken = await this.authenticationProvider.getToken([Scopes.ViewablesRead]);
+        const manifest = await this.modelDerivativeClient.getManifest(accessToken, urn);
         const urnDir = path.join(context.outputDir || '.', urn);
-        for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
+
+        const derivatives: ManifestDerivativesChildren[] = [];
+        function collectDerivatives(derivative: ManifestDerivativesChildren) {
+            if (derivative.type === 'resource' && derivative.role === 'graphics' && (derivative as any).mime === 'application/autodesk-svf') {
+                derivatives.push(derivative);
+            }
+            if (derivative.children) {
+                for (const child of derivative.children) {
+                    collectDerivatives(child);
+                }
+            }
+        }
+        for (const derivative of manifest.derivatives) {
+            if (derivative.children) {
+                for (const child of derivative.children) {
+                    collectDerivatives(child);
+                }
+            }
+        }
+
+        for (const derivative of derivatives) {
             if (context.cancelled) {
                 return;
             }
@@ -55,9 +87,9 @@ export class Downloader {
             context.log(`Downloading viewable ${guid}`);
             const guidDir = path.join(urnDir, guid);
             fse.ensureDirSync(guidDir);
-            const svf = await this.modelDerivativeClient.getDerivative(urn, encodeURI(derivative.urn));
+            const svf = await this._downloadDerivative(urn, encodeURI((derivative as any).urn));
             fse.writeFileSync(path.join(guidDir, 'output.svf'), new Uint8Array(svf));
-            const reader = await SvfReader.FromDerivativeService(urn, guid, this.auth);
+            const reader = await SvfReader.FromDerivativeService(urn, guid, this.authenticationProvider);
             const manifest = await reader.getManifest();
             for (const asset of manifest.assets) {
                 if (context.cancelled) {

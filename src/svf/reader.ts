@@ -1,10 +1,11 @@
 import * as path from 'path';
 import * as fse from 'fs-extra';
 import Zip from 'adm-zip';
+import axios from 'axios';
 import { isNullOrUndefined } from 'util';
-
-import { ModelDerivativeClient, ManifestHelper, IDerivativeResourceChild } from 'forge-server-utils';
-import { IAuthOptions, Region } from 'forge-server-utils/dist/common';
+import { SdkManagerBuilder } from '@aps_sdk/autodesk-sdkmanager';
+import { ManifestDerivativesChildren, ModelDerivativeClient } from '@aps_sdk/model-derivative';
+import { Scopes } from '@aps_sdk/authentication';
 import { PropDbReader } from '../common/propdb-reader';
 import { parseFragments } from './fragments';
 import { parseGeometries } from './geometries';
@@ -12,6 +13,7 @@ import { parseMaterials } from './materials';
 import { parseMeshes } from './meshes';
 import * as SVF from './schema';
 import * as IMF from '../common/intermediate-format';
+import { IAuthenticationProvider } from '../common/authentication-provider';
 
 /**
  * Entire content of SVF and its assets loaded in memory.
@@ -168,13 +170,13 @@ export interface IReaderOptions {
  * individual SVF objects using methods like {@link readFragments} or {@link enumerateGeometries}.
  *
  * @example
- * const auth = { client_id: 'forge client id', client_secret: 'forge client secreet' };
- * const reader = await Reader.FromDerivativeService('model urn', 'viewable guid', auth);
+ * const authProvider = new TwoLeggedAuthenticationProvider(APS_CLIENT_ID, APS_CLIENT_SECRET);
+ * const reader = await Reader.FromDerivativeService(MODEL_URN, VIEWABLE_GUID, authProvider);
  * const scene = await reader.read(); // Read entire scene into an intermediate, in-memory representation
  * console.log(scene);
  *
  * @example
- * const reader = await Reader.FromFileSystem('path/to/svf');
+ * const reader = await Reader.FromFileSystem('path/to/output.svf');
  * // Enumerate fragments (without building a list of all of them)
  * for await (const fragment of reader.enumerateFragments()) {
  *   console.log(fragment);
@@ -198,30 +200,56 @@ export class Reader {
     }
 
     /**
-     * Instantiates new reader for an SVF in Forge Model Derivative service.
+     * Instantiates new reader for an SVF in APS Model Derivative service.
      * @async
-     * @param {string} urn Forge model URN.
-     * @param {string} guid Forge viewable GUID. The viewable(s) can be found in the manifest
+     * @param {string} urn APS model URN.
+     * @param {string} guid APS viewable GUID. The viewable(s) can be found in the manifest
      * with type: 'resource', role: 'graphics', and mime: 'application/autodesk-svf'.
-     * @param {IAuthOptions} auth Credentials or access token for accessing the Model Derivative service.
-     * @param {string} host Optional host URL to be used by all Forge calls.
-     * @param {Region} region Optional region to be used by all Forge calls.
+     * @param {IAuthenticationProvider} authenticationProvider Authentication provider for accessing the Model Derivative service.
+     * @param {string} host Optional host URL to be used by all APS calls.
+     * @param {string} region Optional region to be used by all APS calls.
      * @returns {Promise<Reader>} Reader for the provided SVF.
      */
-    static async FromDerivativeService(urn: string, guid: string, auth: IAuthOptions, host?: string, region?: Region): Promise<Reader> {
+    static async FromDerivativeService(urn: string, guid: string, authenticationProvider: IAuthenticationProvider, host?: string, region?: string): Promise<Reader> {
         urn = urn.replace(/=/g, '');
-        const modelDerivativeClient = new ModelDerivativeClient(auth, host, region);
-        const helper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
-        const resources = helper.search({ type: 'resource', role: 'graphics', guid });
-        if (resources.length === 0) {
+        const sdkManager = SdkManagerBuilder.create().build();
+        const modelDerivativeClient = new ModelDerivativeClient(sdkManager);
+        const accessToken = await authenticationProvider.getToken([Scopes.ViewablesRead]);
+        const manifest = await modelDerivativeClient.getManifest(accessToken, urn);
+        let foundDerivative: ManifestDerivativesChildren | null = null;
+        function findDerivative(derivative: ManifestDerivativesChildren) {
+            if (derivative.type === 'resource' && derivative.role === 'graphics' && derivative.guid === guid) {
+                foundDerivative = derivative;
+            }
+            if (derivative.children) {
+                for (const child of derivative.children) {
+                    findDerivative(child);
+                }
+            }
+        }
+        for (const derivative of manifest.derivatives) {
+            if (derivative.children) {
+                for (const child of derivative.children) {
+                    findDerivative(child);
+                }
+            }
+        }
+        if (!foundDerivative) {
             throw new Error(`Viewable '${guid}' not found.`);
         }
-        const svfUrn = (resources[0] as IDerivativeResourceChild).urn;
-        const svf = await modelDerivativeClient.getDerivative(urn, encodeURI(svfUrn)) as Buffer;
+
+        async function downloadDerivative(urn: string, derivativeUrn: string) {
+            const accessToken = await authenticationProvider.getToken([Scopes.ViewablesRead]);
+            const downloadInfo = await modelDerivativeClient.getDerivativeUrl(accessToken, derivativeUrn, urn);
+            const response = await axios.get(downloadInfo.url as string, { responseType: 'arraybuffer', decompress: false });
+            return response.data;
+        }
+
+        const svfUrn = (foundDerivative as any).urn;
+        const svf = await downloadDerivative(urn, encodeURI(svfUrn)) as Buffer;
         const baseUri = svfUrn.substr(0, svfUrn.lastIndexOf('/'));
         const resolve = async (uri: string) => {
-            const encodedUri = encodeURI(baseUri  + '/' + uri);
-            const buffer = await modelDerivativeClient.getDerivative(urn, encodedUri) as Buffer;
+            const buffer = await downloadDerivative(urn, encodeURI(path.join(baseUri, uri)));
             return buffer;
         };
         return new Reader(svf, resolve);

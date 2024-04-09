@@ -2,15 +2,15 @@
  * Example: converting a subset of SVF (based on a specified area) into glTF.
  * Usage:
  *     npm install --save gl-matrix
- *     export FORGE_CLIENT_ID=<your client id>
- *     export FORGE_CLIENT_SECRET=<your client secret>
+ *     export APS_CLIENT_ID=<your client id>
+ *     export APS_CLIENT_SECRET=<your client secret>
  *     node filter-by-area.js <your model urn> <path to output folder>
  */
 
 const path = require('path');
-const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
-const { SvfReader, GltfWriter } = require('../lib');
 const { mat4, vec3 } = require('gl-matrix');
+const { getSvfDerivatives } = require('./shared.js');
+const { SvfReader, GltfWriter, TwoLeggedAuthenticationProvider } = require('..');
 
 /*
  * Customized glTF writer, only outputting meshes completely contained in a specified area.
@@ -96,7 +96,7 @@ class AreaFilteredGltfWriter extends GltfWriter {
     }
 }
 
-const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
+const { APS_CLIENT_ID, APS_CLIENT_SECRET } = process.env;
 
 async function run(urn, outputDir) {
     const DefaultOptions = {
@@ -107,13 +107,11 @@ async function run(urn, outputDir) {
     };
 
     try {
-        const auth = { client_id: FORGE_CLIENT_ID, client_secret: FORGE_CLIENT_SECRET };
-        const modelDerivativeClient = new ModelDerivativeClient(auth);
-        const helper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
-        const derivatives = helper.search({ type: 'resource', role: 'graphics' });
+        const derivatives = await getSvfDerivatives(urn, APS_CLIENT_ID, APS_CLIENT_SECRET);
+        const authenticationProvider = new TwoLeggedAuthenticationProvider(APS_CLIENT_ID, APS_CLIENT_SECRET);
         const writer = new AreaFilteredGltfWriter(Object.assign({}, DefaultOptions), [-25.0, -25.0, -25.0], [25.0, 25.0, 25.0]);
-        for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
-            const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
+        for (const derivative of derivatives) {
+            const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, authenticationProvider);
             const scene = await reader.read({ log: console.log });
             await writer.write(scene, path.join(outputDir, derivative.guid));
         }

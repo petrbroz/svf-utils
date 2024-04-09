@@ -3,8 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 const { pack } = require('msgpackr');
-const { ModelDerivativeClient, ManifestHelper } = require('forge-server-utils');
-const { SvfReader, GltfWriter } = require('..');
+const { getSvfDerivatives } = require('./shared.js');
+const { SvfReader, GltfWriter, TwoLeggedAuthenticationProvider } = require('..');
 
 class MsgpackGltfWriter extends GltfWriter {
     serializeManifest(manifest, outputPath) {
@@ -13,17 +13,15 @@ class MsgpackGltfWriter extends GltfWriter {
     }
 }
 
-const { FORGE_CLIENT_ID, FORGE_CLIENT_SECRET } = process.env;
+const { APS_CLIENT_ID, APS_CLIENT_SECRET } = process.env;
 
-async function run (urn, outputDir) {
+async function run(urn, outputDir) {
     try {
-        const auth = { client_id: FORGE_CLIENT_ID, client_secret: FORGE_CLIENT_SECRET };
-        const modelDerivativeClient = new ModelDerivativeClient(auth);
-        const helper = new ManifestHelper(await modelDerivativeClient.getManifest(urn));
-        const derivatives = helper.search({ type: 'resource', role: 'graphics' });
+        const derivatives = await getSvfDerivatives(urn, APS_CLIENT_ID, APS_CLIENT_SECRET);
+        const authenticationProvider = new TwoLeggedAuthenticationProvider(APS_CLIENT_ID, APS_CLIENT_SECRET);
         const writer = new MsgpackGltfWriter({ deduplicate: true, center: true, log: console.log });
-        for (const derivative of derivatives.filter(d => d.mime === 'application/autodesk-svf')) {
-            const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, auth);
+        for (const derivative of derivatives) {
+            const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, authenticationProvider);
             const scene = await reader.read({ log: console.log });
             await writer.write(scene, path.join(outputDir, derivative.guid));
         }

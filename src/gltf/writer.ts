@@ -129,8 +129,8 @@ export class Writer {
         this.manifest = {
             asset: {
                 version: '2.0',
-                generator: 'forge-convert-utils',
-                copyright: '2019 (c) Autodesk'
+                generator: 'svf-utils',
+                copyright: '2024 (c) Autodesk'
             },
             extensionsUsed: [
                 "KHR_texture_transform"

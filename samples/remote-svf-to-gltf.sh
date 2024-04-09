@@ -3,20 +3,20 @@
 # Script converting an SVF (without property database) from Model Derivative service
 # to glTF, and post-processing it using various 3rd party tools.
 #
-# Usage example with Forge credentials:
-#   export FORGE_CLIENT_ID=<your client id>
-#   export FORGE_CLIENT_SECRET=<your client secret>
+# Usage example with APS credentials:
+#   export APS_CLIENT_ID=<your client id>
+#   export APS_CLIENT_SECRET=<your client secret>
 #   ./remote-svf-to-gltf.sh <your model urn> <path to output folder>
 #
 # Usage example with an existing token:
-#   export FORGE_ACCESS_TOKEN=<your token>
+#   export APS_ACCESS_TOKEN=<your token>
 #   ./remote-svf-to-gltf.sh <your model urn> <path to output folder>
 
 # Install dependencies
-npm install --global forge-convert-utils gltf-pipeline
+npm install --global svf-utils gltf-pipeline
 
-# Convert SVF to glTF with [forge-convert-utils](https://github.com/petrbroz/forge-convert-utils)
-forge-convert $1 --output-folder $2/gltf --deduplicate --skip-unused-uvs --ignore-lines --ignore-points
+# Convert SVF to glTF with [svf-utils](https://github.com/petrbroz/svf-utils)
+svf-to-gltf $1 --output-folder $2/gltf --deduplicate --skip-unused-uvs --ignore-lines --ignore-points
 
 # Iterate over glTFs generated for all viewables (in <urn>/<guid> subfolders)
 for gltf in $(find $2/gltf -name "output.gltf"); do

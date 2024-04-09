@@ -7,10 +7,10 @@
 #   ./local-svf-to-gltf.sh <path to svf file> <path to output folder>
 
 # Install dependencies
-npm install --global forge-convert-utils gltf-pipeline
+npm install --global svf-utils gltf-pipeline
 
-# Convert SVF to glTF with [forge-convert-utils](https://github.com/petrbroz/forge-convert-utils)
-forge-convert $1 --output-folder $2/gltf --deduplicate --skip-unused-uvs --ignore-lines --ignore-points
+# Convert SVF to glTF with [svf-utils](https://github.com/petrbroz/svf-utils)
+svf-to-gltf $1 --output-folder $2/gltf --deduplicate --skip-unused-uvs --ignore-lines --ignore-points
 
 # Validate glTF using [gltf-validator](https://github.com/KhronosGroup/glTF-Validator), if available
 if [ -x "$(command -v gltf_validator)" ]; then

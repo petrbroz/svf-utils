@@ -15,7 +15,6 @@ function run(dir) {
     const attrs = fs.readFileSync(path.join(dir, 'objects_attrs.json.gz'));
     const vals = fs.readFileSync(path.join(dir, 'objects_vals.json.gz'));
     const db = new PropDbReader(ids, offs, avs, attrs, vals);
-
     const numObjects = offs.length - 1;
     for (let dbid = 1; dbid < numObjects; dbid++) {
         console.log(`Properties of #${dbid}`);

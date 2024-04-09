@@ -7,7 +7,7 @@
     "svf-to-gltf": "./bin/svf-to-gltf.js"
   },
   "engines": {
-    "node": ">=10.15.0"
+    "node": ">=16.0.0"
   },
   "scripts": {
     "build": "tsc",

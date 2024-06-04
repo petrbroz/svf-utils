@@ -9,13 +9,13 @@
 const { getSvfDerivatives } = require('./shared.js');
 const { SvfReader, TwoLeggedAuthenticationProvider } = require('..');
 
-const { APS_CLIENT_ID, APS_CLIENT_SECRET } = process.env;
+const { APS_CLIENT_ID, APS_CLIENT_SECRET, APS_HOST, APS_REGION } = process.env;
 
 async function run(urn) {
-    const derivatives = await getSvfDerivatives(urn, APS_CLIENT_ID, APS_CLIENT_SECRET);
+    const derivatives = await getSvfDerivatives(urn, APS_CLIENT_ID, APS_CLIENT_SECRET, APS_REGION);
     const authenticationProvider = new TwoLeggedAuthenticationProvider(APS_CLIENT_ID, APS_CLIENT_SECRET);
     for (const derivative of derivatives) {
-        const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, authenticationProvider);
+        const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, authenticationProvider, APS_HOST, APS_REGION);
         const propdb = await reader.getPropertyDb();
         const props = propdb.getProperties(1);
         for (const name of Object.keys(props)) {

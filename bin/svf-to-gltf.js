@@ -7,7 +7,7 @@ const { ModelDerivativeClient} = require('@aps_sdk/model-derivative');
 const { Scopes } = require('@aps_sdk/authentication');
 const { SvfReader, GltfWriter, BasicAuthenticationProvider, TwoLeggedAuthenticationProvider } = require('../lib');
 
-const { APS_CLIENT_ID, APS_CLIENT_SECRET, APS_ACCESS_TOKEN } = process.env;
+const { APS_CLIENT_ID, APS_CLIENT_SECRET, APS_ACCESS_TOKEN, APS_HOST, APS_REGION } = process.env;
 let authenticationProvider = null;
 if (APS_ACCESS_TOKEN) {
     authenticationProvider = new BasicAuthenticationProvider(APS_ACCESS_TOKEN);
@@ -15,9 +15,9 @@ if (APS_ACCESS_TOKEN) {
     authenticationProvider = new TwoLeggedAuthenticationProvider(APS_CLIENT_ID, APS_CLIENT_SECRET);
 }
 
-async function convertRemote(urn, guid, outputFolder, options) {
+async function convertRemote(urn, guid, host, region, outputFolder, options) {
     console.log(`Converting urn ${urn}, guid ${guid}`);
-    const reader = await SvfReader.FromDerivativeService(urn, guid, authenticationProvider);
+    const reader = await SvfReader.FromDerivativeService(urn, guid, authenticationProvider, host, region);
     const scene = await reader.read({ log: console.log });
     const writer = new GltfWriter(options);
     await writer.write(scene, path.join(outputFolder, guid));
@@ -68,12 +68,12 @@ program
                 const urn = id;
                 const folder = path.join(program.outputFolder, urn);
                 if (guid) {
-                    await convertRemote(urn, guid, folder, options);
+                    await convertRemote(urn, guid, APS_HOST, APS_REGION, folder, options);
                 } else {
                     const sdkManager = SdkManagerBuilder.create().build();
                     const modelDerivativeClient = new ModelDerivativeClient(sdkManager);
                     const accessToken = await authenticationProvider.getToken([Scopes.ViewablesRead]);
-                    const manifest = await modelDerivativeClient.getManifest(accessToken, urn);
+                    const manifest = await modelDerivativeClient.getManifest(accessToken, urn, { region: APS_REGION });
                     const derivatives = [];
                     function traverse(derivative) {
                         if (derivative.type === 'resource' && derivative.role === 'graphics' && derivative.mime === 'application/autodesk-svf') {
@@ -93,7 +93,7 @@ program
                         }
                     }
                     for (const derivative of derivatives) {
-                        await convertRemote(urn, derivative.guid, folder, options);
+                        await convertRemote(urn, derivative.guid, APS_HOST, APS_REGION, folder, options);
                     }
                 }
             }

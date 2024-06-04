@@ -96,7 +96,7 @@ class AreaFilteredGltfWriter extends GltfWriter {
     }
 }
 
-const { APS_CLIENT_ID, APS_CLIENT_SECRET } = process.env;
+const { APS_CLIENT_ID, APS_CLIENT_SECRET, APS_HOST, APS_REGION } = process.env;
 
 async function run(urn, outputDir) {
     const DefaultOptions = {
@@ -107,11 +107,11 @@ async function run(urn, outputDir) {
     };
 
     try {
-        const derivatives = await getSvfDerivatives(urn, APS_CLIENT_ID, APS_CLIENT_SECRET);
+        const derivatives = await getSvfDerivatives(urn, APS_CLIENT_ID, APS_CLIENT_SECRET, APS_REGION);
         const authenticationProvider = new TwoLeggedAuthenticationProvider(APS_CLIENT_ID, APS_CLIENT_SECRET);
         const writer = new AreaFilteredGltfWriter(Object.assign({}, DefaultOptions), [-25.0, -25.0, -25.0], [25.0, 25.0, 25.0]);
         for (const derivative of derivatives) {
-            const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, authenticationProvider);
+            const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, authenticationProvider, APS_HOST, APS_REGION);
             const scene = await reader.read({ log: console.log });
             await writer.write(scene, path.join(outputDir, derivative.guid));
         }

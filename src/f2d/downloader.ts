@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as zlib from 'zlib';
 import * as fse from 'fs-extra';
 import axios from 'axios';
-import { ManifestDerivativesChildren, ModelDerivativeClient } from '@aps_sdk/model-derivative';
+import { ManifestDerivativesChildren, ModelDerivativeClient, Region } from '@aps_sdk/model-derivative';
 import { SdkManager, SdkManagerBuilder } from '@aps_sdk/autodesk-sdkmanager';
 import { IAuthenticationProvider } from '../common/authentication-provider';
 import { Scopes } from '@aps_sdk/authentication';
@@ -28,10 +28,14 @@ interface IDownloadContext {
 export class Downloader {
     protected sdkManager: SdkManager;
     protected modelDerivativeClient: ModelDerivativeClient;
+    protected region: Region;
+    protected host: string;
 
-    constructor(protected authenticationProvider: IAuthenticationProvider) {
+    constructor(protected authenticationProvider: IAuthenticationProvider, host?: string, region?: Region) {
         this.sdkManager = SdkManagerBuilder.create().build();
         this.modelDerivativeClient = new ModelDerivativeClient(this.sdkManager);
+        this.host = 'developer.api.autodesk.com'
+        this.region = region || 'US';
     }
 
     download(urn: string, options?: IDownloadOptions): IDownloadTask {
@@ -57,7 +61,7 @@ export class Downloader {
     private async _download(urn: string, context: IDownloadContext): Promise<void> {
         context.log(`Downloading derivative ${urn}`);
         const accessToken = await this.authenticationProvider.getToken([Scopes.ViewablesRead]);
-        const manifest = await this.modelDerivativeClient.getManifest(accessToken, urn);
+        const manifest = await this.modelDerivativeClient.getManifest(accessToken, urn, { region: this.region });
         let derivatives: ManifestDerivativesChildren[] = [];
         function collectDerivatives(derivative: ManifestDerivativesChildren) {
             if (derivative.type === 'resource' && derivative.role === 'graphics' && (derivative as any).mime === 'application/autodesk-f2d') {

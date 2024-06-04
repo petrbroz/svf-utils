@@ -13,12 +13,12 @@ async function downloadDerivative(urn, derivativeUrn, clientId, clientSecret) {
     return response.data;
 }
 
-async function getSvfDerivatives(urn, clientId, clientSecret) {
+async function getSvfDerivatives(urn, clientId, clientSecret, region) {
     const sdkManager = SdkManagerBuilder.create().build();
     const authenticationClient = new AuthenticationClient(sdkManager);
     const modelDerivativeClient = new ModelDerivativeClient(sdkManager);
     const credentials = await authenticationClient.getTwoLeggedToken(clientId, clientSecret, [Scopes.ViewablesRead]);
-    const manifest = await modelDerivativeClient.getManifest(credentials.access_token, urn);
+    const manifest = await modelDerivativeClient.getManifest(credentials.access_token, urn, { region });
     const derivatives = [];
     function traverse(derivative) {
         if (derivative.type === 'resource' && derivative.role === 'graphics' && derivative.mime === 'application/autodesk-svf') {

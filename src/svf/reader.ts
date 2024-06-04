@@ -4,7 +4,7 @@ import Zip from 'adm-zip';
 import axios from 'axios';
 import { isNullOrUndefined } from 'util';
 import { SdkManagerBuilder } from '@aps_sdk/autodesk-sdkmanager';
-import { ManifestDerivativesChildren, ModelDerivativeClient } from '@aps_sdk/model-derivative';
+import { ManifestDerivativesChildren, ModelDerivativeClient, Region } from '@aps_sdk/model-derivative';
 import { Scopes } from '@aps_sdk/authentication';
 import { PropDbReader } from '../common/propdb-reader';
 import { parseFragments } from './fragments';
@@ -210,12 +210,12 @@ export class Reader {
      * @param {string} region Optional region to be used by all APS calls.
      * @returns {Promise<Reader>} Reader for the provided SVF.
      */
-    static async FromDerivativeService(urn: string, guid: string, authenticationProvider: IAuthenticationProvider, host?: string, region?: string): Promise<Reader> {
+    static async FromDerivativeService(urn: string, guid: string, authenticationProvider: IAuthenticationProvider, host?: string, region?: Region): Promise<Reader> {
         urn = urn.replace(/=/g, '');
         const sdkManager = SdkManagerBuilder.create().build();
         const modelDerivativeClient = new ModelDerivativeClient(sdkManager);
         const accessToken = await authenticationProvider.getToken([Scopes.ViewablesRead]);
-        const manifest = await modelDerivativeClient.getManifest(accessToken, urn);
+        const manifest = await modelDerivativeClient.getManifest(accessToken, urn, { region });
         let foundDerivative: ManifestDerivativesChildren | null = null;
         function findDerivative(derivative: ManifestDerivativesChildren) {
             if (derivative.type === 'resource' && derivative.role === 'graphics' && derivative.guid === guid) {

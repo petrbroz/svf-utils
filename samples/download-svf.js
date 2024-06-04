@@ -7,11 +7,11 @@
  */
 
 const { SvfDownloader, TwoLeggedAuthenticationProvider } = require('..');
-const { APS_CLIENT_ID, APS_CLIENT_SECRET } = process.env;
+const { APS_CLIENT_ID, APS_CLIENT_SECRET, APS_HOST, APS_REGION } = process.env;
 
 async function run(urn, outputDir = '.') {
     const authenticationProvider = new TwoLeggedAuthenticationProvider(APS_CLIENT_ID, APS_CLIENT_SECRET);
-    const downloader = new SvfDownloader(authenticationProvider);
+    const downloader = new SvfDownloader(authenticationProvider, APS_HOST, APS_REGION);
     const download = downloader.download(urn, { outputDir, log: console.log });
     await download.ready;
 }

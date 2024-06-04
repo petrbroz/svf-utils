@@ -43,6 +43,7 @@ or
 ```
 export APS_CLIENT_ID=<client id>
 export APS_CLIENT_SECRET=<client secret>
+export APS_REGION=<resource region>
 svf-to-gltf <urn> --output-folder <path to output folder>
 ```
 
@@ -50,6 +51,7 @@ or
 
 ```
 export APS_ACCESS_TOKEN=<access token>
+export APS_REGION=<resource region>
 svf-to-gltf <urn> --output-folder <path to output folder>
 ```
 
@@ -64,6 +66,7 @@ or
 ```
 set APS_CLIENT_ID=<client id>
 set APS_CLIENT_SECRET=<client secret>
+set APS_REGION=<resource region>
 svf-to-gltf <urn> --output-folder <path to output folder>
 ```
 
@@ -71,6 +74,7 @@ or
 
 ```
 set APS_ACCESS_TOKEN=<access token>
+set APS_REGION=<resource region>
 svf-to-gltf <urn> --output-folder <path to output folder>
 ```
 

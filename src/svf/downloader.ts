@@ -4,7 +4,7 @@ import axios from 'axios';
 import { SvfReader } from '..';
 import { SdkManager, SdkManagerBuilder } from '@aps_sdk/autodesk-sdkmanager';
 import { IAuthenticationProvider } from '../common/authentication-provider';
-import { ManifestDerivativesChildren, ModelDerivativeClient } from '@aps_sdk/model-derivative';
+import { ManifestDerivativesChildren, ModelDerivativeClient, Region } from '@aps_sdk/model-derivative';
 import { Scopes } from '@aps_sdk/authentication';
 
 export interface IDownloadOptions {
@@ -23,15 +23,21 @@ interface IDownloadContext {
     outputDir: string;
     cancelled: boolean;
     failOnMissingAssets: boolean;
+    host?: string;
+    region?: Region;
 }
 
 export class Downloader {
     protected sdkManager: SdkManager;
     protected modelDerivativeClient: ModelDerivativeClient;
+    protected region: Region;
+    protected host: string;
 
-    constructor(protected authenticationProvider: IAuthenticationProvider, host?: string, region?: string) {
+    constructor(protected authenticationProvider: IAuthenticationProvider, host?: string, region?: Region) {
         this.sdkManager = SdkManagerBuilder.create().build();
         this.modelDerivativeClient = new ModelDerivativeClient(this.sdkManager);
+        this.host = 'developer.api.autodesk.com'
+        this.region = region || 'US';
     }
 
     download(urn: string, options?: IDownloadOptions): IDownloadTask {
@@ -57,7 +63,7 @@ export class Downloader {
     private async _download(urn: string, context: IDownloadContext): Promise<void> {
         context.log(`Downloading derivative ${urn}`);
         const accessToken = await this.authenticationProvider.getToken([Scopes.ViewablesRead]);
-        const manifest = await this.modelDerivativeClient.getManifest(accessToken, urn);
+        const manifest = await this.modelDerivativeClient.getManifest(accessToken, urn, { region: this.region });
         const urnDir = path.join(context.outputDir || '.', urn);
 
         const derivatives: ManifestDerivativesChildren[] = [];
@@ -89,7 +95,7 @@ export class Downloader {
             fse.ensureDirSync(guidDir);
             const svf = await this._downloadDerivative(urn, encodeURI((derivative as any).urn));
             fse.writeFileSync(path.join(guidDir, 'output.svf'), new Uint8Array(svf));
-            const reader = await SvfReader.FromDerivativeService(urn, guid, this.authenticationProvider);
+            const reader = await SvfReader.FromDerivativeService(urn, guid, this.authenticationProvider, this.host, this.region);
             const manifest = await reader.getManifest();
             for (const asset of manifest.assets) {
                 if (context.cancelled) {

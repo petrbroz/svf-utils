@@ -10,16 +10,16 @@ const path = require('path');
 const { getSvfDerivatives } = require('./shared.js');
 const { SvfReader, GltfWriter, TwoLeggedAuthenticationProvider } = require('..');
 
-const { APS_CLIENT_ID, APS_CLIENT_SECRET } = process.env;
+const { APS_CLIENT_ID, APS_CLIENT_SECRET, APS_HOST, APS_REGION } = process.env;
 
 async function run(urn, outputDir) {
     try {
-        const derivatives = await getSvfDerivatives(urn, APS_CLIENT_ID, APS_CLIENT_SECRET);
+        const derivatives = await getSvfDerivatives(urn, APS_CLIENT_ID, APS_CLIENT_SECRET, APS_REGION);
         const writer0 = new GltfWriter({ deduplicate: false, skipUnusedUvs: false, center: true, log: console.log });
         const writer1 = new GltfWriter({ deduplicate: true, skipUnusedUvs: true, center: true, log: console.log });
         const authenticationProvider = new TwoLeggedAuthenticationProvider(APS_CLIENT_ID, APS_CLIENT_SECRET);
         for (const derivative of derivatives) {
-            const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, authenticationProvider);
+            const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, authenticationProvider, APS_HOST, APS_REGION);
             const scene = await reader.read({ log: console.log });
             await writer0.write(scene, path.join(outputDir, derivative.guid, 'gltf-raw'));
             await writer1.write(scene, path.join(outputDir, derivative.guid, 'gltf-dedup'));

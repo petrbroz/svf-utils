@@ -13,7 +13,7 @@ async function downloadDerivative(urn, derivativeUrn, clientId, clientSecret) {
     return response.data;
 }
 
-async function getSvfDerivatives(urn, clientId, clientSecret, region) {
+async function getSvfDerivatives(urn, clientId, clientSecret, host, region) {
     const sdkManager = SdkManagerBuilder.create().build();
     const authenticationClient = new AuthenticationClient(sdkManager);
     const modelDerivativeClient = new ModelDerivativeClient(sdkManager);

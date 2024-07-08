@@ -107,7 +107,7 @@ async function run(urn, outputDir) {
     };
 
     try {
-        const derivatives = await getSvfDerivatives(urn, APS_CLIENT_ID, APS_CLIENT_SECRET, APS_REGION);
+        const derivatives = await getSvfDerivatives(urn, APS_CLIENT_ID, APS_CLIENT_SECRET, APS_HOST, APS_REGION);
         const authenticationProvider = new TwoLeggedAuthenticationProvider(APS_CLIENT_ID, APS_CLIENT_SECRET);
         const writer = new AreaFilteredGltfWriter(Object.assign({}, DefaultOptions), [-25.0, -25.0, -25.0], [25.0, 25.0, 25.0]);
         for (const derivative of derivatives) {

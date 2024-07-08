@@ -34,7 +34,7 @@ export class Downloader {
     constructor(protected authenticationProvider: IAuthenticationProvider, host?: string, region?: Region) {
         this.sdkManager = SdkManagerBuilder.create().build();
         this.modelDerivativeClient = new ModelDerivativeClient(this.sdkManager);
-        this.host = 'developer.api.autodesk.com'
+        this.host = host || 'developer.api.autodesk.com'
         this.region = region || 'US';
     }
 

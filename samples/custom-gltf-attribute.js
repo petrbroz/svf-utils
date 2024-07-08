@@ -64,7 +64,7 @@ const { APS_CLIENT_ID, APS_CLIENT_SECRET, APS_HOST, APS_REGION } = process.env;
 
 async function run(urn, outputDir) {
     try {
-        const derivatives = await getSvfDerivatives(urn, APS_CLIENT_ID, APS_CLIENT_SECRET, APS_REGION);
+        const derivatives = await getSvfDerivatives(urn, APS_CLIENT_ID, APS_CLIENT_SECRET, APS_HOST, APS_REGION);
         const authenticationProvider = new TwoLeggedAuthenticationProvider(APS_CLIENT_ID, APS_CLIENT_SECRET);
         const writer = new CustomGltfWriter({
             deduplicate: false,

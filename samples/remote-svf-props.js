@@ -12,7 +12,7 @@ const { SvfReader, TwoLeggedAuthenticationProvider } = require('..');
 const { APS_CLIENT_ID, APS_CLIENT_SECRET, APS_HOST, APS_REGION } = process.env;
 
 async function run(urn) {
-    const derivatives = await getSvfDerivatives(urn, APS_CLIENT_ID, APS_CLIENT_SECRET, APS_REGION);
+    const derivatives = await getSvfDerivatives(urn, APS_CLIENT_ID, APS_CLIENT_SECRET, APS_HOST, APS_REGION);
     const authenticationProvider = new TwoLeggedAuthenticationProvider(APS_CLIENT_ID, APS_CLIENT_SECRET);
     for (const derivative of derivatives) {
         const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, authenticationProvider, APS_HOST, APS_REGION);

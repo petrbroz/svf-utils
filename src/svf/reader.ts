@@ -249,7 +249,12 @@ export class Reader {
         const svf = await downloadDerivative(urn, encodeURI(svfUrn)) as Buffer;
         const baseUri = svfUrn.substr(0, svfUrn.lastIndexOf('/'));
         const resolve = async (uri: string) => {
-            const buffer = await downloadDerivative(urn, encodeURI(path.normalize(path.join(baseUri, uri))));
+            const buffer = await downloadDerivative(
+                urn,
+                encodeURI(
+                    path.join(baseUri, uri).replace(new RegExp("\\" + path.sep, "g"), "/")
+                )
+            );
             return buffer;
         };
         return new Reader(svf, resolve);

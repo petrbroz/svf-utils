@@ -1,6 +1,6 @@
 {
   "name": "svf-utils",
-  "version": "5.0.3",
+  "version": "5.0.4",
   "description": "Tools for working with the SVF format used by Autodesk Platform Services.",
   "main": "lib/index.js",
   "bin": {
@@ -36,9 +36,9 @@
     "typescript": "^4.5.5"
   },
   "dependencies": {
-    "@aps_sdk/authentication": "^0.1.0-beta.1",
-    "@aps_sdk/autodesk-sdkmanager": "^0.0.7-beta.1",
-    "@aps_sdk/model-derivative": "^0.1.0-beta.1",
+    "@aps_sdk/authentication": "^1.0.0-beta.1",
+    "@aps_sdk/autodesk-sdkmanager": "^1.0.0-beta.2",
+    "@aps_sdk/model-derivative": "^1.0.0-beta.3",
     "adm-zip": "^0.5.9",
     "axios": "^1.6.8",
     "commander": "^3.0.2",

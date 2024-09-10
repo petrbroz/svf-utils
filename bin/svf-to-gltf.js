@@ -2,7 +2,6 @@
 
 const program = require('commander');
 const path = require('path');
-const { SdkManagerBuilder } = require('@aps_sdk/autodesk-sdkmanager');
 const { ModelDerivativeClient} = require('@aps_sdk/model-derivative');
 const { Scopes } = require('@aps_sdk/authentication');
 const { SvfReader, GltfWriter, BasicAuthenticationProvider, TwoLeggedAuthenticationProvider } = require('../lib');
@@ -70,10 +69,9 @@ program
                 if (guid) {
                     await convertRemote(urn, guid, folder, options);
                 } else {
-                    const sdkManager = SdkManagerBuilder.create().build();
-                    const modelDerivativeClient = new ModelDerivativeClient(sdkManager);
+                    const modelDerivativeClient = new ModelDerivativeClient();
                     const accessToken = await authenticationProvider.getToken([Scopes.ViewablesRead]);
-                    const manifest = await modelDerivativeClient.getManifest(accessToken, urn);
+                    const manifest = await modelDerivativeClient.getManifest(urn, { accessToken });
                     const derivatives = [];
                     function traverse(derivative) {
                         if (derivative.type === 'resource' && derivative.role === 'graphics' && derivative.mime === 'application/autodesk-svf') {

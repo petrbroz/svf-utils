@@ -3,8 +3,7 @@ import * as fse from 'fs-extra';
 import Zip from 'adm-zip';
 import axios from 'axios';
 import { isNullOrUndefined } from 'util';
-import { SdkManagerBuilder } from '@aps_sdk/autodesk-sdkmanager';
-import { ManifestDerivativesChildren, ModelDerivativeClient } from '@aps_sdk/model-derivative';
+import { ManifestResources, ModelDerivativeClient } from '@aps_sdk/model-derivative';
 import { Scopes } from '@aps_sdk/authentication';
 import { PropDbReader } from '../common/propdb-reader';
 import { parseFragments } from './fragments';
@@ -212,12 +211,11 @@ export class Reader {
      */
     static async FromDerivativeService(urn: string, guid: string, authenticationProvider: IAuthenticationProvider, host?: string, region?: string): Promise<Reader> {
         urn = urn.replace(/=/g, '');
-        const sdkManager = SdkManagerBuilder.create().build();
-        const modelDerivativeClient = new ModelDerivativeClient(sdkManager);
+        const modelDerivativeClient = new ModelDerivativeClient();
         const accessToken = await authenticationProvider.getToken([Scopes.ViewablesRead]);
-        const manifest = await modelDerivativeClient.getManifest(accessToken, urn);
-        let foundDerivative: ManifestDerivativesChildren | null = null;
-        function findDerivative(derivative: ManifestDerivativesChildren) {
+        const manifest = await modelDerivativeClient.getManifest(urn, { accessToken });
+        let foundDerivative: ManifestResources | null = null;
+        function findDerivative(derivative: ManifestResources) {
             if (derivative.type === 'resource' && derivative.role === 'graphics' && derivative.guid === guid) {
                 foundDerivative = derivative;
             }
@@ -239,17 +237,25 @@ export class Reader {
         }
 
         async function downloadDerivative(urn: string, derivativeUrn: string) {
-            const accessToken = await authenticationProvider.getToken([Scopes.ViewablesRead]);
-            const downloadInfo = await modelDerivativeClient.getDerivativeUrl(accessToken, derivativeUrn, urn);
-            const response = await axios.get(downloadInfo.url as string, { responseType: 'arraybuffer', decompress: false });
-            return response.data;
+            try {
+                const accessToken = await authenticationProvider.getToken([Scopes.ViewablesRead]);
+                const downloadInfo = await modelDerivativeClient.getDerivativeUrl(derivativeUrn, urn, { accessToken });
+                const response = await axios.get(downloadInfo.url as string, { responseType: 'arraybuffer', decompress: false });
+                return response.data;
+            } catch (error) {
+                if (axios.isAxiosError(error)) {
+                    throw new Error(`Could not download derivative ${derivativeUrn}: ${error.message}`);
+                } else {
+                    throw error;
+                }
+            }
         }
 
         const svfUrn = (foundDerivative as any).urn;
         const svf = await downloadDerivative(urn, encodeURI(svfUrn)) as Buffer;
         const baseUri = svfUrn.substr(0, svfUrn.lastIndexOf('/'));
         const resolve = async (uri: string) => {
-            const buffer = await downloadDerivative(urn, encodeURI(path.join(baseUri, uri)));
+            const buffer = await downloadDerivative(urn, encodeURI(path.normalize(path.join(baseUri, uri))));
             return buffer;
         };
         return new Reader(svf, resolve);

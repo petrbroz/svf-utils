@@ -4,21 +4,27 @@ const { AuthenticationClient, Scopes } = require('@aps_sdk/authentication');
 const { ModelDerivativeClient } = require('@aps_sdk/model-derivative');
 
 async function downloadDerivative(urn, derivativeUrn, clientId, clientSecret) {
-    const sdkManager = SdkManagerBuilder.create().build();
-    const authenticationClient = new AuthenticationClient(sdkManager);
-    const modelDerivativeClient = new ModelDerivativeClient(sdkManager);
-    const credentials = await authenticationClient.getTwoLeggedToken(clientId, clientSecret, [Scopes.ViewablesRead]);
-    const downloadInfo = await modelDerivativeClient.getDerivativeUrl(credentials.access_token, derivativeUrn, urn);
-    const response = await axios.get(downloadInfo.url, { responseType: 'arraybuffer', decompress: false });
-    return response.data;
+    const authenticationClient = new AuthenticationClient(SdkManagerBuilder.create().build());
+    const modelDerivativeClient = new ModelDerivativeClient();
+    try {
+        const credentials = await authenticationClient.getTwoLeggedToken(clientId, clientSecret, [Scopes.ViewablesRead]);
+        const downloadInfo = await modelDerivativeClient.getDerivativeUrl(derivativeUrn, urn, { accessToken: credentials.access_token });
+        const response = await axios.get(downloadInfo.url, { responseType: 'arraybuffer', decompress: false });
+        return response.data;
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            throw new Error(`Could not download derivative ${derivativeUrn}: ${error.message}`);
+        } else {
+            throw error;
+        }
+    }
 }
 
 async function getSvfDerivatives(urn, clientId, clientSecret) {
-    const sdkManager = SdkManagerBuilder.create().build();
-    const authenticationClient = new AuthenticationClient(sdkManager);
-    const modelDerivativeClient = new ModelDerivativeClient(sdkManager);
+    const authenticationClient = new AuthenticationClient(SdkManagerBuilder.create().build());
+    const modelDerivativeClient = new ModelDerivativeClient();
     const credentials = await authenticationClient.getTwoLeggedToken(clientId, clientSecret, [Scopes.ViewablesRead]);
-    const manifest = await modelDerivativeClient.getManifest(credentials.access_token, urn);
+    const manifest = await modelDerivativeClient.getManifest(urn, { accessToken: credentials.access_token });
     const derivatives = [];
     function traverse(derivative) {
         if (derivative.type === 'resource' && derivative.role === 'graphics' && derivative.mime === 'application/autodesk-svf') {

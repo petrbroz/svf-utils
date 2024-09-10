@@ -2,8 +2,7 @@ import * as path from 'path';
 import * as zlib from 'zlib';
 import * as fse from 'fs-extra';
 import axios from 'axios';
-import { ManifestDerivativesChildren, ModelDerivativeClient } from '@aps_sdk/model-derivative';
-import { SdkManager, SdkManagerBuilder } from '@aps_sdk/autodesk-sdkmanager';
+import { ManifestResources, ModelDerivativeClient } from '@aps_sdk/model-derivative';
 import { IAuthenticationProvider } from '../common/authentication-provider';
 import { Scopes } from '@aps_sdk/authentication';
 
@@ -26,12 +25,10 @@ interface IDownloadContext {
 }
 
 export class Downloader {
-    protected sdkManager: SdkManager;
     protected modelDerivativeClient: ModelDerivativeClient;
 
     constructor(protected authenticationProvider: IAuthenticationProvider) {
-        this.sdkManager = SdkManagerBuilder.create().build();
-        this.modelDerivativeClient = new ModelDerivativeClient(this.sdkManager);
+        this.modelDerivativeClient = new ModelDerivativeClient();
     }
 
     download(urn: string, options?: IDownloadOptions): IDownloadTask {
@@ -48,18 +45,26 @@ export class Downloader {
     }
 
     private async _downloadDerivative(urn: string, derivativeUrn: string) {
-        const accessToken = await this.authenticationProvider.getToken([Scopes.ViewablesRead]);
-        const downloadInfo = await this.modelDerivativeClient.getDerivativeUrl(accessToken, derivativeUrn, urn);
-        const response = await axios.get(downloadInfo.url as string, { responseType: 'arraybuffer', decompress: false });
-        return response.data;
+        try {
+            const accessToken = await this.authenticationProvider.getToken([Scopes.ViewablesRead]);
+            const downloadInfo = await this.modelDerivativeClient.getDerivativeUrl(derivativeUrn, urn, { accessToken });
+            const response = await axios.get(downloadInfo.url as string, { responseType: 'arraybuffer', decompress: false });
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(`Could not download derivative ${derivativeUrn}: ${error.message}`);
+            } else {
+                throw error;
+            }
+        }
     }
 
     private async _download(urn: string, context: IDownloadContext): Promise<void> {
         context.log(`Downloading derivative ${urn}`);
         const accessToken = await this.authenticationProvider.getToken([Scopes.ViewablesRead]);
-        const manifest = await this.modelDerivativeClient.getManifest(accessToken, urn);
-        let derivatives: ManifestDerivativesChildren[] = [];
-        function collectDerivatives(derivative: ManifestDerivativesChildren) {
+        const manifest = await this.modelDerivativeClient.getManifest(urn, { accessToken });
+        let derivatives: ManifestResources[] = [];
+        function collectDerivatives(derivative: ManifestResources) {
             if (derivative.type === 'resource' && derivative.role === 'graphics' && (derivative as any).mime === 'application/autodesk-f2d') {
                 derivatives.push(derivative);
             }

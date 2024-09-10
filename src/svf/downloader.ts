@@ -45,10 +45,18 @@ export class Downloader {
     }
 
     private async _downloadDerivative(urn: string, derivativeUrn: string) {
-        const accessToken = await this.authenticationProvider.getToken([Scopes.ViewablesRead]);
-        const downloadInfo = await this.modelDerivativeClient.getDerivativeUrl(derivativeUrn, urn, { accessToken });
-        const response = await axios.get(downloadInfo.url as string, { responseType: 'arraybuffer', decompress: false });
-        return response.data;
+        try {
+            const accessToken = await this.authenticationProvider.getToken([Scopes.ViewablesRead]);
+            const downloadInfo = await this.modelDerivativeClient.getDerivativeUrl(derivativeUrn, urn, { accessToken });
+            const response = await axios.get(downloadInfo.url as string, { responseType: 'arraybuffer', decompress: false });
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                throw new Error(`Could not download derivative ${derivativeUrn}: ${error.message}`);
+            } else {
+                throw error;
+            }
+        }
     }
 
     private async _download(urn: string, context: IDownloadContext): Promise<void> {

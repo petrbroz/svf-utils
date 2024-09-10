@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added
+  - Cleaning up error logs for Axios-related errors
 - Modified
   - Upgraded to newer version of APS SDK
 

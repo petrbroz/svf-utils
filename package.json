@@ -1,6 +1,6 @@
 {
   "name": "svf-utils",
-  "version": "5.0.3",
+  "version": "5.0.4",
   "description": "Tools for working with the SVF format used by Autodesk Platform Services.",
   "main": "lib/index.js",
   "bin": {

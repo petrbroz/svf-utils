@@ -6,7 +6,7 @@ const { ModelDerivativeClient} = require('@aps_sdk/model-derivative');
 const { Scopes } = require('@aps_sdk/authentication');
 const { SvfReader, GltfWriter, BasicAuthenticationProvider, TwoLeggedAuthenticationProvider } = require('../lib');
 
-const { APS_CLIENT_ID, APS_CLIENT_SECRET, APS_ACCESS_TOKEN } = process.env;
+const { APS_CLIENT_ID, APS_CLIENT_SECRET, APS_ACCESS_TOKEN, APS_REGION } = process.env;
 let authenticationProvider = null;
 if (APS_ACCESS_TOKEN) {
     authenticationProvider = new BasicAuthenticationProvider(APS_ACCESS_TOKEN);
@@ -71,7 +71,7 @@ program
                 } else {
                     const modelDerivativeClient = new ModelDerivativeClient();
                     const accessToken = await authenticationProvider.getToken([Scopes.ViewablesRead]);
-                    const manifest = await modelDerivativeClient.getManifest(urn, { accessToken });
+                    const manifest = await modelDerivativeClient.getManifest(urn, { accessToken, region: APS_REGION });
                     const derivatives = [];
                     function traverse(derivative) {
                         if (derivative.type === 'resource' && derivative.role === 'graphics' && derivative.mime === 'application/autodesk-svf') {

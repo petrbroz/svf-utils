@@ -3,10 +3,11 @@ import * as fse from 'fs-extra';
 import axios from 'axios';
 import { SvfReader } from '..';
 import { IAuthenticationProvider } from '../common/authentication-provider';
-import { ManifestResources, ModelDerivativeClient } from '@aps_sdk/model-derivative';
+import { ManifestResources, ModelDerivativeClient, Region } from '@aps_sdk/model-derivative';
 import { Scopes } from '@aps_sdk/authentication';
 
 export interface IDownloadOptions {
+    region?: Region
     outputDir?: string;
     log?: (message: string) => void;
     failOnMissingAssets?: boolean;
@@ -25,11 +26,9 @@ interface IDownloadContext {
 }
 
 export class Downloader {
-    protected modelDerivativeClient: ModelDerivativeClient;
+    protected readonly modelDerivativeClient = new ModelDerivativeClient();
 
-    constructor(protected authenticationProvider: IAuthenticationProvider, host?: string, region?: string) {
-        this.modelDerivativeClient = new ModelDerivativeClient();
-    }
+    constructor(protected authenticationProvider: IAuthenticationProvider) {}
 
     download(urn: string, options?: IDownloadOptions): IDownloadTask {
         const context: IDownloadContext = {
@@ -39,15 +38,15 @@ export class Downloader {
             failOnMissingAssets: !!options?.failOnMissingAssets
         };
         return {
-            ready: this._download(urn, context),
+            ready: this._download(urn, context, options?.region),
             cancel: () => { context.cancelled = true; }
         };
     }
 
-    private async _downloadDerivative(urn: string, derivativeUrn: string) {
+    private async _downloadDerivative(urn: string, derivativeUrn: string, region?: Region) {
         try {
             const accessToken = await this.authenticationProvider.getToken([Scopes.ViewablesRead]);
-            const downloadInfo = await this.modelDerivativeClient.getDerivativeUrl(derivativeUrn, urn, { accessToken });
+            const downloadInfo = await this.modelDerivativeClient.getDerivativeUrl(derivativeUrn, urn, { accessToken, region });
             const response = await axios.get(downloadInfo.url as string, { responseType: 'arraybuffer', decompress: false });
             return response.data;
         } catch (error) {
@@ -59,10 +58,10 @@ export class Downloader {
         }
     }
 
-    private async _download(urn: string, context: IDownloadContext): Promise<void> {
-        context.log(`Downloading derivative ${urn}`);
+    private async _download(urn: string, context: IDownloadContext, region?: Region): Promise<void> {
+        context.log(`Downloading derivative ${urn} (region: ${region || 'default'})`);
         const accessToken = await this.authenticationProvider.getToken([Scopes.ViewablesRead]);
-        const manifest = await this.modelDerivativeClient.getManifest(urn, { accessToken });
+        const manifest = await this.modelDerivativeClient.getManifest(urn, { accessToken, region });
         const urnDir = path.join(context.outputDir || '.', urn);
 
         const derivatives: ManifestResources[] = [];
@@ -92,9 +91,9 @@ export class Downloader {
             context.log(`Downloading viewable ${guid}`);
             const guidDir = path.join(urnDir, guid);
             fse.ensureDirSync(guidDir);
-            const svf = await this._downloadDerivative(urn, encodeURI((derivative as any).urn));
+            const svf = await this._downloadDerivative(urn, encodeURI((derivative as any).urn), region);
             fse.writeFileSync(path.join(guidDir, 'output.svf'), new Uint8Array(svf));
-            const reader = await SvfReader.FromDerivativeService(urn, guid, this.authenticationProvider);
+            const reader = await SvfReader.FromDerivativeService(urn, guid, this.authenticationProvider, region);
             const manifest = await reader.getManifest();
             for (const asset of manifest.assets) {
                 if (context.cancelled) {

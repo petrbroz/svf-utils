@@ -3,16 +3,17 @@
  * Usage:
  *     export APS_CLIENT_ID=<your client id>
  *     export APS_CLIENT_SECRET=<your client secret>
+ *     export APS_REGION=<your region> # optional, can be one of the following: "US", "EMEA", "APAC"
  *     node remote-svf-props.js <your model urn>
  */
 
 const { getSvfDerivatives } = require('./shared.js');
 const { SvfReader, TwoLeggedAuthenticationProvider } = require('..');
 
-const { APS_CLIENT_ID, APS_CLIENT_SECRET } = process.env;
+const { APS_CLIENT_ID, APS_CLIENT_SECRET, APS_REGION } = process.env;
 
 async function run(urn) {
-    const derivatives = await getSvfDerivatives(urn, APS_CLIENT_ID, APS_CLIENT_SECRET);
+    const derivatives = await getSvfDerivatives(urn, APS_CLIENT_ID, APS_CLIENT_SECRET, APS_REGION);
     const authenticationProvider = new TwoLeggedAuthenticationProvider(APS_CLIENT_ID, APS_CLIENT_SECRET);
     for (const derivative of derivatives) {
         const reader = await SvfReader.FromDerivativeService(urn, derivative.guid, authenticationProvider);

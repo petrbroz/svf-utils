@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added
+  - SVF/F2D downloads can now be configured for different regions
 - Fixed
   - Bug in URN resolution on Windows (https://github.com/petrbroz/svf-utils/issues/84)
 

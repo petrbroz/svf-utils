@@ -485,7 +485,8 @@ export class Writer {
         let colorAccessorID: number | undefined = undefined;
         const colors = geometry.getColors();
         if (colors) {
-            const colorBufferView = this.createBufferView(Buffer.from(colors.buffer, colors.byteOffset, colors.byteLength));
+            const normalizedColors = colors.map(c => c / 255.0);
+            const colorBufferView = this.createBufferView(Buffer.from(normalizedColors.buffer, normalizedColors.byteOffset, normalizedColors.byteLength));
             const colorBufferViewID = this.addBufferView(colorBufferView);
             const colorAccessor = this.createAccessor(colorBufferViewID, 5126, colorBufferView.byteLength / 4 / 3, 'VEC3');
             colorAccessorID = this.addAccessor(colorAccessor);

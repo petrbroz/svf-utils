@@ -1,9 +1,10 @@
 import * as path from 'path';
 
-interface IView {
+export interface IView {
     id: string;
     role: string;
     mime: string;
+    urn: string;
     resolvedUrn: string;
 }
 

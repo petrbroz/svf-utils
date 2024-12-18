@@ -1,5 +1,43 @@
 import * as path from 'path';
 
+export interface View {
+    name: string;
+    version: number;
+    manifest: Manifest;
+    stats: { [key: string]: any };
+    // "double sided geometry": { value: boolean; };
+    // "navigation hint": { value: string; };
+    // "cameras": any[];
+    // "fragmentTransformsOffset": { x: number; y: number; z: number; };
+    // ...
+}
+
+export interface Manifest {
+    assets: {
+        fragments: string;
+        fragments_extra?: string;
+        materials_ptrs: string;
+        geometry_ptrs: string;
+        texture_manifest?: string;
+        pdb?: {
+            avs: string;
+            offsets: string;
+            dbid: string;
+        };
+    };
+    shared_assets: {
+        geometry: string;
+        materials: string;
+        textures: string;
+        global_sharding: number;
+        pdb?: {
+            attrs: string;
+            values: string;
+            ids: string;
+        };
+    };
+}
+
 /**
  * Utility class to handle and resolve various assets associated with a view's manifest
  * in Autodesk Platform Services. It includes methods to list private and shared model assets,
@@ -7,7 +45,7 @@ import * as path from 'path';
  * to get URNs for geometry, materials, and textures, as well as retrieve metadata from the view.
  */
 export class ViewHelper {
-    constructor(protected view: any, protected resolvedViewUrn: string) {}
+    constructor(public view: View, protected resolvedViewUrn: string) {}
 
     listPrivateModelAssets(): ({ [key: string]: { uri: string; resolvedUrn: string; } } | undefined) {
         const assets = this.view.manifest && this.view.manifest.assets;
@@ -146,16 +184,15 @@ export class ViewHelper {
     }
 
     getMetadata(): { [key: string]: any } {
-        // map only necessary value
-
+        // Only map necessary values
+        const map = this.view as any;
         let metadata = {
-            "world bounding box": this.view["world bounding box"],
-            "world up vector": this.view["world up vector"],
-            "world front vector": this.view["world front vector"],
-            "world north vector": this.view["world north vector"],
-            "distance unit": this.view["distance unit"],
+            "world bounding box": map["world bounding box"],
+            "world up vector": map["world up vector"],
+            "world front vector": map["world front vector"],
+            "world north vector": map["world north vector"],
+            "distance unit": map["distance unit"],
         }
-
         return metadata;
     }
 }

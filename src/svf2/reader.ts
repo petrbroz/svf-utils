@@ -99,13 +99,13 @@ export class Reader {
     protected async readTextures(textureManifestUri: string, viewHelper: ViewHelper): Promise<Map<string, any>> {
         const map = new Map<string, any>();
         const assetData = await this.modelDataClient.getAsset(this.urn, encodeURIComponent(textureManifestUri));
-        const textureManifest = JSON.parse(assetData.toString()) as { [key: string]: string }
+        const textureManifest = JSON.parse(assetData.toString()) as { [key: string]: string };
         for (const [_, uri] of Object.entries(textureManifest)) {
-            console.log(`Downloading image ${uri} ...`)
+            console.log(`Downloading image ${uri} ...`);
             const textureUrn = viewHelper.getTextureUrn(uri);
             const textureData = await this.sharedDataClient.getAsset(this.urn, textureUrn);
-            map.set(uri, textureData)
-            console.log(`Downloading image ${uri}: done`)
+            map.set(uri, textureData);
+            console.log(`Downloading image ${uri}: done`);
         }
         return map;
     }

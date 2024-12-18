@@ -193,8 +193,8 @@ export class Scene implements IMF.IScene {
                     getVertices: () => geom.vertices,
                     getNormals: () => geom.normals,
                     getColors: () => geom.colors,
-                    getUvChannelCount: () => 0,
-                    getUvs: (channel: number) => new Float32Array(),
+                    getUvChannelCount: () => geom.uvs ? 1 : 0,
+                    getUvs: (channel: number) => geom.uvs || new Float32Array(),
                 }
                 return meshGeometry;
             case GeometryType.Lines:

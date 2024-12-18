@@ -278,7 +278,7 @@ function getNormals(attributes: IGeometryAttribute[], buffers: Buffer[]): Float3
 
 // TODO: handle uvmaps with multiple channels as done in svf ?
 function getUvs(attributes: IGeometryAttribute[], buffers: Buffer[]): Float32Array | undefined {
-    const uvsAttr: IGeometryAttribute = attributes.filter((a: IGeometryAttribute) => a.attributeType === AttributeType.TextureUV)[0];;
+    const uvsAttr: IGeometryAttribute = attributes.filter((a: IGeometryAttribute) => a.attributeType === AttributeType.TextureUV)[0];
     if (uvsAttr) {
         const buffer = buffers[uvsAttr.bufferId];
         const is = new InputStream(buffer);

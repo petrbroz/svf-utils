@@ -1,39 +1,5 @@
 import * as zlib from 'zlib';
 
-// export interface Materials {
-//     name: string;
-//     version: string;
-//     scene: { [key: string]: any };
-//     materials: { [key: string]: MaterialGroup };
-// }
-
-// export interface MaterialGroup {
-//     version: number;
-//     userassets: string[];
-//     materials: { [key: string]: Material };
-// }
-
-// export interface Material {
-//     tag: string;
-//     proteinType: string;
-//     definition: string;
-//     transparent: boolean;
-//     keywords?: string[];
-//     categories?: string[];
-//     properties: {
-//         integers?: { [key: string]: number; };
-//         booleans?: { [key: string]: boolean; };
-//         strings?: { [key: string]: { values: string[] }; };
-//         uris?: { [key: string]: { values: string[] }; };
-//         scalars?: { [key: string]: { units: string; values: number[] }; };
-//         colors?: { [key: string]: { values: { r: number; g: number; b: number; a: number; }[]; connections?: string[]; }; };
-//         choicelists?: { [key: string]: { values: number[] }; };
-//         uuids?: { [key: string]: { values: number[] }; };
-//         references?: any; // TODO
-//     };
-//     textures?: { [key: string]: { connections: string[] }; };
-// }
-
 export interface Material {
     diffuse?: number[];
     specular?: number[];

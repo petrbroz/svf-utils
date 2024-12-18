@@ -1,4 +1,4 @@
-import { InputStream } from '../common/input-stream';
+import { InputStream } from '../../common/input-stream';
 
 /**
  * Parses a buffer containing hash values and yields each hash as a hexadecimal string.
@@ -20,7 +20,6 @@ export function* parseHashes(buffer: Buffer): Iterable<string> {
     console.assert(hashSize % 4 === 0);
     const version = stream.getUint16();
     const count = stream.getUint16();
-
     for (let i = 1; i <= count; i++) {
         yield buffer.toString('hex', i * hashSize, (i + 1) * hashSize);
     }

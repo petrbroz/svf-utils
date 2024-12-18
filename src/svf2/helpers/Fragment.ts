@@ -1,8 +1,39 @@
-import { InputStream } from '../common/input-stream';
-import * as SVF2 from './interfaces';
+import { InputStream } from '../../common/input-stream';
+
+export interface Fragment {
+    geomId: number;
+    materialId: number;
+    dbId: number;
+    flags: number;
+    transform: Transform;
+}
+
+export interface Transform {
+    translation: Vec3;
+    quaternion: Quaternion;
+    scale: Vec3;
+}
+
+export interface Quaternion {
+    x: number;
+    y: number;
+    z: number;
+    w: number;
+}
+
+export interface Vec3 {
+    x: number;
+    y: number;
+    z: number;
+}
+
+export interface Vec2 {
+    x: number;
+    y: number;
+}
 
 /**
- * Parses fragments from a given buffer and yields them as an iterable of IFragment objects.
+ * Parses fragments from a given buffer and yields them as an iterable of Fragment objects.
  *
  * @param buffer The buffer containing the fragment data.
  * @param fragmentOffset An optional offset to apply to the fragment's translation. Defaults to { x: 0, y: 0, z: 0 }.
@@ -21,7 +52,7 @@ import * as SVF2 from './interfaces';
  * }
  * ```
  */
-export function* parseFragments(buffer: Buffer, fragmentOffset: SVF2.IVec3 = { x: 0, y: 0, z: 0 }): Iterable<SVF2.IFragment> {
+export function* parseFragments(buffer: Buffer, fragmentOffset: Vec3 = { x: 0, y: 0, z: 0 }): Iterable<Fragment> {
     const stream = new InputStream(buffer);
     const byteStride = stream.getUint16();
     console.assert(byteStride % 4 === 0);

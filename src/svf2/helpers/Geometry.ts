@@ -1,5 +1,28 @@
-import { InputStream } from '../common/input-stream';
-import * as SVF2 from './interfaces';
+import { InputStream } from '../../common/input-stream';
+
+export type Geometry = IMeshGeometry | ILineGeometry;
+
+export interface IMeshGeometry {
+    type: GeometryType.Triangles;
+    indices: Uint16Array;
+    vertices: Float32Array;
+    normals?: Float32Array;
+    colors?: Float32Array;
+    uvs?: Float32Array
+}
+
+export interface ILineGeometry {
+    type: GeometryType.Lines;
+    indices: Uint16Array;
+    vertices: Float32Array;
+}
+
+export enum GeometryType {
+    Triangles = 0,
+    Lines = 1,
+    Points = 2,
+    WideLines = 3,
+}
 
 interface IGeometryAttribute {
     attributeType: AttributeType;
@@ -64,12 +87,12 @@ function attributeTypeSize(componentType: ComponentType): number {
  * @returns An object representing the parsed geometry.
  * @throws Will throw an error if the magic string is not 'OTG0'.
  */
-export function parseGeometry(buffer: Buffer): SVF2.Geometry {
+export function parseGeometry(buffer: Buffer): Geometry {
     const stream = new InputStream(buffer);
     const magic = stream.getString(4);
     console.assert(magic === 'OTG0');
     const flags = stream.getUint16();
-    const geomType: SVF2.GeometryType = flags & 0x03;
+    const geomType: GeometryType = flags & 0x03;
     const buffCount = stream.getUint8();
     const attrCount = stream.getUint8();
     const buffOffsets = [0];
@@ -94,9 +117,9 @@ export function parseGeometry(buffer: Buffer): SVF2.Geometry {
     }
 
     switch (geomType) {
-        case SVF2.GeometryType.Triangles:
+        case GeometryType.Triangles:
             return parseTriangleGeometry(attributes, buffers);
-        case SVF2.GeometryType.Lines:
+        case GeometryType.Lines:
             return parseLineGeometry(attributes, buffers);
         default:
             throw new Error(`Unsupported geometry type: ${geomType}`);
@@ -121,9 +144,9 @@ function parseGeometryAttribute(stream: InputStream): IGeometryAttribute {
     };
 }
 
-function parseTriangleGeometry(attributes: IGeometryAttribute[], buffers: Buffer[]): SVF2.IMeshGeometry {
+function parseTriangleGeometry(attributes: IGeometryAttribute[], buffers: Buffer[]): IMeshGeometry {
     return {
-        type: SVF2.GeometryType.Triangles,
+        type: GeometryType.Triangles,
         indices: getIndices(attributes, buffers, false),
         vertices: getVertices(attributes, buffers),
         normals: getNormals(attributes, buffers),
@@ -132,9 +155,9 @@ function parseTriangleGeometry(attributes: IGeometryAttribute[], buffers: Buffer
     };
 }
 
-function parseLineGeometry(attributes: IGeometryAttribute[], buffers: Buffer[]): SVF2.ILineGeometry {
+function parseLineGeometry(attributes: IGeometryAttribute[], buffers: Buffer[]): ILineGeometry {
     return {
-        type: SVF2.GeometryType.Lines,
+        type: GeometryType.Lines,
         indices: getIndices(attributes, buffers, true),
         vertices: getVertices(attributes, buffers),
     };
@@ -162,10 +185,10 @@ function deltaDecodeIndexBuffer2(ib: any) {
     }
 }
 
-function decodeNormal(enc: SVF2.IVec2): SVF2.IVec3 {
-    let ang: SVF2.IVec2 = { x: enc.x * 2.0 - 1.0, y: enc.y * 2.0 - 1.0 };
-    let scth: SVF2.IVec2 = { x: Math.sin(ang.x * Math.PI), y: Math.cos(ang.x * Math.PI) };
-    let scphi: SVF2.IVec2 = { x: Math.sqrt(1.0 - ang.y * ang.y), y: ang.y };
+function decodeNormal(enc: { x: number; y: number; }): ({ x: number; y: number; z: number; }) {
+    let ang = { x: enc.x * 2.0 - 1.0, y: enc.y * 2.0 - 1.0 };
+    let scth = { x: Math.sin(ang.x * Math.PI), y: Math.cos(ang.x * Math.PI) };
+    let scphi = { x: Math.sqrt(1.0 - ang.y * ang.y), y: ang.y };
     return { x: scth.y * scphi.x, y: scth.x * scphi.x, z: scphi.y };
 }
 

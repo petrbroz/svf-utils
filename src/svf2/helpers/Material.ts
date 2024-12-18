@@ -1,12 +1,54 @@
 import * as zlib from 'zlib';
-import * as SVF2 from './interfaces';
 
-export function parseMaterial(buffer: Buffer): SVF2.IMaterial {
+export interface Materials {
+    name: string;
+    version: string;
+    scene: { [key: string]: any };
+    materials: { [key: string]: MaterialGroup };
+}
+
+export interface MaterialGroup {
+    version: number;
+    userassets: string[];
+    materials: { [key: string]: Material };
+}
+
+export interface Material {
+    tag: string;
+    proteinType: string;
+    definition: string;
+    transparent: boolean;
+    keywords?: string[];
+    categories?: string[];
+    properties: {
+        integers?: { [key: string]: number; };
+        booleans?: { [key: string]: boolean; };
+        strings?: { [key: string]: { values: string[] }; };
+        uris?: { [key: string]: { values: string[] }; };
+        scalars?: { [key: string]: { units: string; values: number[] }; };
+        colors?: { [key: string]: { values: { r: number; g: number; b: number; a: number; }[]; connections?: string[]; }; };
+        choicelists?: { [key: string]: { values: number[] }; };
+        uuids?: { [key: string]: { values: number[] }; };
+        references?: any; // TODO
+    };
+    textures?: { [key: string]: { connections: string[] }; };
+}
+
+/**
+ * Parses a buffer to extract material information.
+ * If the buffer is gzipped, it will be decompressed first.
+ * The function currently supports only 'SimplePhong' material definition.
+ * 
+ * @param buffer The buffer containing material data.
+ * @returns The parsed material.
+ * @throws Will throw an error if the material definition is unsupported.
+ */
+export function parseMaterial(buffer: Buffer): Material {
     if (buffer[0] === 31 && buffer[1] === 139) {
         buffer = zlib.gunzipSync(buffer);
     }
     console.assert(buffer.byteLength > 0);
-    const group = JSON.parse(buffer.toString()) as SVF2.IMaterialGroup;
+    const group = JSON.parse(buffer.toString()) as MaterialGroup;
     const material = group.materials['0'];
     switch (material.definition) {
         case 'SimplePhong':
@@ -16,7 +58,7 @@ export function parseMaterial(buffer: Buffer): SVF2.IMaterial {
     }
 }
 
-function parseSimplePhongMaterial(group: SVF2.IMaterialGroup): SVF2.IMaterial {
+function parseSimplePhongMaterial(group: MaterialGroup): Material {
     let result: any = {};
     const material = group.materials[0];
 
@@ -58,7 +100,7 @@ function parseSimplePhongMaterial(group: SVF2.IMaterialGroup): SVF2.IMaterial {
     return result;
 }
 
-function parseBooleanProperty(material: SVF2.IMaterial, prop: string, defaultValue: boolean): boolean {
+function parseBooleanProperty(material: Material, prop: string, defaultValue: boolean): boolean {
     if (material.properties.booleans && prop in material.properties.booleans) {
         return material.properties.booleans[prop];
     } else {
@@ -66,7 +108,7 @@ function parseBooleanProperty(material: SVF2.IMaterial, prop: string, defaultVal
     }
 }
 
-function parseScalarProperty(material: SVF2.IMaterial, prop: string, defaultValue: number): number {
+function parseScalarProperty(material: Material, prop: string, defaultValue: number): number {
     if (material.properties.scalars && prop in material.properties.scalars) {
         return material.properties.scalars[prop].values[0];
     } else {
@@ -74,7 +116,7 @@ function parseScalarProperty(material: SVF2.IMaterial, prop: string, defaultValu
     }
 }
 
-function parseColorProperty(material: SVF2.IMaterial, prop: string, defaultValue: number[]): number[] {
+function parseColorProperty(material: Material, prop: string, defaultValue: number[]): number[] {
     if (material.properties.colors && prop in material.properties.colors) {
         const color = material.properties.colors[prop].values[0];
         return [color.r, color.g, color.b, color.a];
@@ -83,7 +125,7 @@ function parseColorProperty(material: SVF2.IMaterial, prop: string, defaultValue
     }
 }
 
-function parseTextureProperty(material: SVF2.IMaterial, group: SVF2.IMaterialGroup, prop: string): any | null {
+function parseTextureProperty(material: Material, group: MaterialGroup, prop: string): any | null {
     if (material.textures && prop in material.textures) {
         const connection = material.textures[prop].connections[0];
         const texture = group.materials[connection];

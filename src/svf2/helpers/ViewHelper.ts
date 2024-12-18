@@ -1,5 +1,11 @@
 import * as path from 'path';
 
+/**
+ * Utility class to handle and resolve various assets associated with a view's manifest
+ * in Autodesk Platform Services. It includes methods to list private and shared model assets,
+ * private and shared database assets, and resolve asset URNs. Additionally, it provides methods
+ * to get URNs for geometry, materials, and textures, as well as retrieve metadata from the view.
+ */
 export class ViewHelper {
     constructor(protected view: any, protected resolvedViewUrn: string) {}
 

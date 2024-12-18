@@ -48,14 +48,17 @@ export class Reader {
         // TODO: Decode property database
         const viewData = await this.modelDataClient.getAsset(this.urn, encodeURIComponent(view.resolvedViewUrn));
         const viewHelper = new ViewHelper(JSON.parse(viewData.toString()), view.resolvedViewUrn);
-        const privateModelAssets = viewHelper.listPrivateModelAssets();
+        const privateModelAssets = viewHelper.listPrivateModelAssets()!;
         const metadata = viewHelper.getMetadata();
+
         const [fragments, geometries, materials] = await Promise.all([
-            this.readFragments(privateModelAssets!.fragments.resolvedUrn),
-            this.readGeometries(privateModelAssets!.geometry_ptrs.resolvedUrn, viewHelper),
-            this.readMaterials(privateModelAssets!.materials_ptrs.resolvedUrn, viewHelper)
+            this.readFragments(privateModelAssets.fragments.resolvedUrn),
+            this.readGeometries(privateModelAssets.geometry_ptrs.resolvedUrn, viewHelper),
+            this.readMaterials(privateModelAssets.materials_ptrs.resolvedUrn, viewHelper),
         ]);
-        const textures = new Map(); // await this.readTextures(privateModelAssets!.texture_manifest.resolvedUrn, viewHelper);
+        const textures = privateModelAssets.texture_manifest
+            ? await this.readTextures(privateModelAssets.texture_manifest.resolvedUrn, viewHelper)
+            : new Map<string, any>();
         return new Scene(metadata, fragments, geometries, materials, textures);
     }
 
@@ -70,13 +73,10 @@ export class Reader {
     protected async readGeometries(geomHashListUrn: string, viewHelper: ViewHelper): Promise<Geometry[]> {
         console.time('Reading geometries');
         const geometryPromises: Promise<Geometry>[] = [];
-        //const geometries: Geometry[] = [];
         const assetData = await this.modelDataClient.getAsset(this.urn, encodeURIComponent(geomHashListUrn));
         for (const hash of parseHashes(assetData)) {
             const geometryUrn = viewHelper.getGeometryUrn(hash);
             geometryPromises.push(this.sharedDataClient.getAsset(this.urn, geometryUrn).then(parseGeometry));
-            // const geometryData = await this.sharedDataClient.getAsset(this.urn, geometryUrn);
-            // geometries.push(parseGeometry(geometryData));
         }
         const geometries = await Promise.all(geometryPromises);
         console.timeEnd('Reading geometries');
@@ -97,16 +97,17 @@ export class Reader {
     }
 
     protected async readTextures(textureManifestUri: string, viewHelper: ViewHelper): Promise<Map<string, any>> {
-        return new Map();
-        // const assetData = await this.client.getAsset(this.urn, encodeURIComponent(textureManifestUri));
-        // const textureManifest = JSON.parse(assetData.toString()) as { [key: string]: string }
-        // for (const [_, uri] of Object.entries(textureManifest)) {
-        //     console.log(`Downloading image ${uri} ...`)
-        //     const textureUrn = viewHelper.getTextureUrn(uri);
-        //     const textureData = await this.sharedClient.getAsset(this.urn, textureUrn);
-        //     output.set(uri, textureData)
-        //     console.log(`Downloading image ${uri}: done`)
-        // }
+        const map = new Map<string, any>();
+        const assetData = await this.modelDataClient.getAsset(this.urn, encodeURIComponent(textureManifestUri));
+        const textureManifest = JSON.parse(assetData.toString()) as { [key: string]: string }
+        for (const [_, uri] of Object.entries(textureManifest)) {
+            console.log(`Downloading image ${uri} ...`)
+            const textureUrn = viewHelper.getTextureUrn(uri);
+            const textureData = await this.sharedDataClient.getAsset(this.urn, textureUrn);
+            map.set(uri, textureData)
+            console.log(`Downloading image ${uri}: done`)
+        }
+        return map;
     }
 
     protected async getPropertyDb(viewHelper: ViewHelper): Promise<PropDbReader> {
@@ -213,38 +214,31 @@ export class Scene implements IMF.IScene {
     }
 
     getMaterial(id: number): IMF.Material {
-        return {
+        const _mat = this.materials[id]; // should fix this remove one array level
+        const mat: IMF.IPhysicalMaterial = {
             kind: IMF.MaterialKind.Physical,
             diffuse: { x: 0, y: 0, z: 0 },
-            metallic: 0.0,
-            roughness: 0.0,
-            opacity: 1.0
+            metallic: _mat?.metal ? 1.0 : 0.0,
+            opacity: _mat?.opacity ?? 1.0,
+            roughness: _mat?.glossiness ? (20.0 / _mat.glossiness) : 1.0, // TODO: how to map glossiness to roughness properly?
+            scale: { x: _mat?.maps?.diffuse?.scale.texture_UScale ?? 1.0, y: _mat?.maps?.diffuse?.scale.texture_VScale ?? 1.0 }
         };
-        // const _mat = this.view.materials[id][0]; // should fix this remove one array level
-        // const mat: IMF.IPhysicalMaterial = {
-        //     kind: IMF.MaterialKind.Physical,
-        //     diffuse: { x: 0, y: 0, z: 0 },
-        //     metallic: _mat?.metal ? 1.0 : 0.0,
-        //     opacity: _mat?.opacity ?? 1.0,
-        //     roughness: _mat?.glossiness ? (20.0 / _mat.glossiness) : 1.0, // TODO: how to map glossiness to roughness properly?
-        //     scale: { x: _mat?.maps?.diffuse?.scale.texture_UScale ?? 1.0, y: _mat?.maps?.diffuse?.scale.texture_VScale ?? 1.0 }
-        // };
-        // if (_mat?.diffuse) {
-        //     mat.diffuse.x = _mat.diffuse[0];
-        //     mat.diffuse.y = _mat.diffuse[1];
-        //     mat.diffuse.z = _mat.diffuse[2];
-        // }
-        // if (_mat?.metal && _mat.specular && _mat.glossiness) {
-        //     mat.diffuse.x = _mat.specular[0];
-        //     mat.diffuse.y = _mat.specular[1];
-        //     mat.diffuse.z = _mat.specular[2];
-        //     mat.roughness = 60 / _mat.glossiness;
-        // }
-        // if (_mat?.maps?.diffuse) {
-        //     mat.maps = mat.maps || {};
-        //     mat.maps.diffuse = _mat.maps.diffuse.uri
-        // }
-        // return mat;
+        if (_mat?.diffuse) {
+            mat.diffuse.x = _mat.diffuse[0];
+            mat.diffuse.y = _mat.diffuse[1];
+            mat.diffuse.z = _mat.diffuse[2];
+        }
+        if (_mat?.metal && _mat.specular && _mat.glossiness) {
+            mat.diffuse.x = _mat.specular[0];
+            mat.diffuse.y = _mat.specular[1];
+            mat.diffuse.z = _mat.specular[2];
+            mat.roughness = 60 / _mat.glossiness;
+        }
+        if (_mat?.maps?.diffuse) {
+            mat.maps = mat.maps || {};
+            mat.maps.diffuse = _mat.maps.diffuse.uri
+        }
+        return mat;
     }
 
     getImage(uri: string): Buffer | undefined {

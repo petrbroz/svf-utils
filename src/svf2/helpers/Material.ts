@@ -1,37 +1,63 @@
 import * as zlib from 'zlib';
 
-export interface Materials {
-    name: string;
-    version: string;
-    scene: { [key: string]: any };
-    materials: { [key: string]: MaterialGroup };
-}
+// export interface Materials {
+//     name: string;
+//     version: string;
+//     scene: { [key: string]: any };
+//     materials: { [key: string]: MaterialGroup };
+// }
 
-export interface MaterialGroup {
-    version: number;
-    userassets: string[];
-    materials: { [key: string]: Material };
-}
+// export interface MaterialGroup {
+//     version: number;
+//     userassets: string[];
+//     materials: { [key: string]: Material };
+// }
+
+// export interface Material {
+//     tag: string;
+//     proteinType: string;
+//     definition: string;
+//     transparent: boolean;
+//     keywords?: string[];
+//     categories?: string[];
+//     properties: {
+//         integers?: { [key: string]: number; };
+//         booleans?: { [key: string]: boolean; };
+//         strings?: { [key: string]: { values: string[] }; };
+//         uris?: { [key: string]: { values: string[] }; };
+//         scalars?: { [key: string]: { units: string; values: number[] }; };
+//         colors?: { [key: string]: { values: { r: number; g: number; b: number; a: number; }[]; connections?: string[]; }; };
+//         choicelists?: { [key: string]: { values: number[] }; };
+//         uuids?: { [key: string]: { values: number[] }; };
+//         references?: any; // TODO
+//     };
+//     textures?: { [key: string]: { connections: string[] }; };
+// }
 
 export interface Material {
-    tag: string;
-    proteinType: string;
-    definition: string;
-    transparent: boolean;
-    keywords?: string[];
-    categories?: string[];
-    properties: {
-        integers?: { [key: string]: number; };
-        booleans?: { [key: string]: boolean; };
-        strings?: { [key: string]: { values: string[] }; };
-        uris?: { [key: string]: { values: string[] }; };
-        scalars?: { [key: string]: { units: string; values: number[] }; };
-        colors?: { [key: string]: { values: { r: number; g: number; b: number; a: number; }[]; connections?: string[]; }; };
-        choicelists?: { [key: string]: { values: number[] }; };
-        uuids?: { [key: string]: { values: number[] }; };
-        references?: any; // TODO
+    diffuse?: number[];
+    specular?: number[];
+    ambient?: number[];
+    emissive?: number[];
+    glossiness?: number;
+    reflectivity?: number;
+    opacity?: number;
+    metal?: boolean;
+    maps?: {
+        diffuse?: MaterialMap;
+        specular?: MaterialMap;
+        normal?: MaterialMap;
+        bump?: MaterialMap;
+        alpha?: MaterialMap;
     };
-    textures?: { [key: string]: { connections: string[] }; };
+}
+
+export interface MaterialMap {
+    uri: string;
+    scale: {
+        texture_UScale: number;
+        texture_VScale: number;
+    };
 }
 
 /**
@@ -48,7 +74,7 @@ export function parseMaterial(buffer: Buffer): Material {
         buffer = zlib.gunzipSync(buffer);
     }
     console.assert(buffer.byteLength > 0);
-    const group = JSON.parse(buffer.toString()) as MaterialGroup;
+    const group = JSON.parse(buffer.toString());
     const material = group.materials['0'];
     switch (material.definition) {
         case 'SimplePhong':
@@ -58,8 +84,8 @@ export function parseMaterial(buffer: Buffer): Material {
     }
 }
 
-function parseSimplePhongMaterial(group: MaterialGroup): Material {
-    let result: any = {};
+function parseSimplePhongMaterial(group: any): Material {
+    let result: Material = {};
     const material = group.materials[0];
 
     result.diffuse = parseColorProperty(material, 'generic_diffuse', [0, 0, 0, 1]);
@@ -100,7 +126,7 @@ function parseSimplePhongMaterial(group: MaterialGroup): Material {
     return result;
 }
 
-function parseBooleanProperty(material: Material, prop: string, defaultValue: boolean): boolean {
+function parseBooleanProperty(material: any, prop: string, defaultValue: boolean): boolean {
     if (material.properties.booleans && prop in material.properties.booleans) {
         return material.properties.booleans[prop];
     } else {
@@ -108,7 +134,7 @@ function parseBooleanProperty(material: Material, prop: string, defaultValue: bo
     }
 }
 
-function parseScalarProperty(material: Material, prop: string, defaultValue: number): number {
+function parseScalarProperty(material: any, prop: string, defaultValue: number): number {
     if (material.properties.scalars && prop in material.properties.scalars) {
         return material.properties.scalars[prop].values[0];
     } else {
@@ -116,7 +142,7 @@ function parseScalarProperty(material: Material, prop: string, defaultValue: num
     }
 }
 
-function parseColorProperty(material: Material, prop: string, defaultValue: number[]): number[] {
+function parseColorProperty(material: any, prop: string, defaultValue: number[]): number[] {
     if (material.properties.colors && prop in material.properties.colors) {
         const color = material.properties.colors[prop].values[0];
         return [color.r, color.g, color.b, color.a];
@@ -125,7 +151,7 @@ function parseColorProperty(material: Material, prop: string, defaultValue: numb
     }
 }
 
-function parseTextureProperty(material: Material, group: MaterialGroup, prop: string): any | null {
+function parseTextureProperty(material: any, group: any, prop: string): any | null {
     if (material.textures && prop in material.textures) {
         const connection = material.textures[prop].connections[0];
         const texture = group.materials[connection];

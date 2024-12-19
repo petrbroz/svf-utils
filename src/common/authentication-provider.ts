@@ -1,4 +1,4 @@
-import { AuthenticationClient, Scopes } from "@aps_sdk/authentication";
+import { AuthenticationClient, Scopes, TwoLeggedToken } from "@aps_sdk/authentication";
 import { SdkManagerBuilder } from "@aps_sdk/autodesk-sdkmanager";
 
 export interface IAuthenticationProvider {
@@ -16,13 +16,17 @@ export class BasicAuthenticationProvider implements IAuthenticationProvider {
 
 export class TwoLeggedAuthenticationProvider implements IAuthenticationProvider {
     protected authenticationClient: AuthenticationClient;
+    protected lastCredentials: TwoLeggedToken | null = null;
 
     constructor(protected clientId: string, protected clientSecret: string) {
         this.authenticationClient = new AuthenticationClient(SdkManagerBuilder.create().build());
     }
 
     async getToken(scopes: Scopes[]): Promise<string> {
-        const credentials = await this.authenticationClient.getTwoLeggedToken(this.clientId, this.clientSecret, scopes);
-        return credentials.access_token as string;
+        if (!this.lastCredentials || Date.now() > this.lastCredentials.expires_at!) {
+            console.log('Refreshing token...');
+            this.lastCredentials = await this.authenticationClient.getTwoLeggedToken(this.clientId, this.clientSecret, scopes);
+        }
+        return this.lastCredentials.access_token;
     }
 }

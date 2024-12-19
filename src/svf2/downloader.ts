@@ -5,14 +5,15 @@ import { SharedDataClient } from './helpers/SharedDataClient';
 import { ManifestHelper, IView } from './helpers/ManifestHelper';
 import { ViewHelper } from './helpers/ViewHelper';
 import { parseHashes } from './helpers/HashList';
+import { IAuthenticationProvider } from '../common/authentication-provider';
 
 export class Downloader {
     protected readonly modelDataClient: ModelDataClient;
     protected readonly sharedDataClient: SharedDataClient;
 
-    constructor(accessToken: string) {
-        this.modelDataClient = new ModelDataClient(accessToken);
-        this.sharedDataClient = new SharedDataClient(accessToken);
+    constructor(protected readonly authenticationProvider: IAuthenticationProvider) {
+        this.modelDataClient = new ModelDataClient(authenticationProvider);
+        this.sharedDataClient = new SharedDataClient(authenticationProvider);
     }
 
     async download(urn: string, outputDir: string): Promise<void> {
@@ -44,7 +45,6 @@ export class Downloader {
         await this.downloadGeometries(urn, privateModelAssets.geometry_ptrs.resolvedUrn, viewFolderPath, sharedAssetsDir, viewHelper);
         await this.downloadMaterials(urn, privateModelAssets.materials_ptrs.resolvedUrn, viewFolderPath, sharedAssetsDir, viewHelper);
         if (privateModelAssets.texture_manifest) {
-            console.log('TEST', privateModelAssets.texture_manifest);
             await this.downloadTextures(urn, privateModelAssets.texture_manifest.resolvedUrn, viewFolderPath, sharedAssetsDir, viewHelper);
         }
     }

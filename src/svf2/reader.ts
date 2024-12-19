@@ -8,6 +8,7 @@ import { parseHashes } from './helpers/HashList';
 import { Fragment, parseFragments } from './helpers/Fragment';
 import { Geometry, GeometryType, parseGeometry } from './helpers/Geometry';
 import { Material, parseMaterial } from './helpers/Material';
+import { IAuthenticationProvider } from '../common/authentication-provider';
 
 export interface View {
     id: string;
@@ -15,9 +16,9 @@ export interface View {
 }
 
 export class Reader {
-    static async FromDerivativeService(urn: string, accessToken: string): Promise<Reader> {
-        const modelDataClient = new ModelDataClient(accessToken);
-        const sharedDataClient = new SharedDataClient(accessToken);
+    static async FromDerivativeService(urn: string, authenticationProvider: IAuthenticationProvider): Promise<Reader> {
+        const modelDataClient = new ModelDataClient(authenticationProvider);
+        const sharedDataClient = new SharedDataClient(authenticationProvider);
         const manifest = await modelDataClient.getManifest(urn);
         const viewable = manifest.children.find((child: any) => child.role === 'viewable' && child.otg_manifest);
         console.assert(viewable, 'Could not find a viewable with SVF2 data');

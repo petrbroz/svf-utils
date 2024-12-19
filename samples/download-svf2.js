@@ -1,14 +1,15 @@
-const { SVF2Downloader } = require('../lib');
+const { SVF2Downloader } = require('..');
+const { initializeAuthenticationProvider } = require('./shared.js');
 
-const { APS_ACCESS_TOKEN } = process.env;
 const [,, urn, outputDir] = process.argv;
-
-async function run() {
-    const downloader = new SVF2Downloader(APS_ACCESS_TOKEN);
-    await downloader.download(urn, outputDir);
+if (!urn || !outputDir) {
+    console.error('Usage: node download-svf2.js <urn> <outputDir>');
+    process.exit(1);
 }
 
-run()
+const authenticationProvider = initializeAuthenticationProvider();
+const downloader = new SVF2Downloader(authenticationProvider);
+downloader.download(urn, outputDir)
     .then(() => console.log('Done!'))
     .catch(err => {
         console.error(err);

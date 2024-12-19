@@ -1,15 +1,20 @@
-import axios, { AxiosInstance } from 'axios';
+import axios from 'axios';
+import { IAuthenticationProvider } from '../../common/authentication-provider';
+import { Scopes } from '@aps_sdk/authentication';
 
 export class ModelDataClient {
-    protected readonly axios: AxiosInstance;
+    protected readonly axios = axios.create({
+        baseURL: 'https://cdn.derivative.autodesk.com/modeldata',
+        headers: {
+            'Pragma': 'no-cache'
+        }
+    });
 
-    constructor(accessToken: string) {
-        this.axios = axios.create({
-            baseURL: 'https://cdn.derivative.autodesk.com/modeldata',
-            headers: {
-                'Pragma': 'no-cache',
-                'Authorization': `Bearer ${accessToken}`
-            }
+    constructor(protected readonly authenticationProvider: IAuthenticationProvider) {
+        this.axios.interceptors.request.use(async config => {
+            const accessToken = await this.authenticationProvider.getToken([Scopes.ViewablesRead]);
+            config.headers['Authorization'] = `Bearer ${accessToken}`;
+            return config;
         });
     }
 

@@ -1,11 +1,16 @@
-const { SVF2Reader, GltfWriter } = require('..');
 const path = require('path')
+const { SVF2Reader, GltfWriter } = require('..');
+const { initializeAuthenticationProvider } = require('./shared.js');
 
-const { APS_ACCESS_TOKEN } = process.env;
 const [,, urn, outputDir] = process.argv;
+if (!urn || !outputDir) {
+    console.error('Usage: node remote-svf2-to-gltf.js <urn> <outputDir>');
+    process.exit(1);
+}
 
 async function run() {
-    const reader = await SVF2Reader.FromDerivativeService(urn, APS_ACCESS_TOKEN);
+    const authenticationProvider = initializeAuthenticationProvider();
+    const reader = await SVF2Reader.FromDerivativeService(urn, authenticationProvider);
     const views = await reader.listViews();
     for (const view of views) {
         console.log('Processing view:', view.id);

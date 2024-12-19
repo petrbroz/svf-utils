@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import { Ajv } from 'ajv';
 import { Manifest, OTGManifest, View } from '../schemas/Manifest';
-import schema from '../schemas/manifest.schema.json';
+import schema from '../schemas/Manifest.schema.json';
 
 /**
  * Parse a manifest JSON object.

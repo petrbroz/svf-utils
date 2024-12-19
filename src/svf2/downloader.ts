@@ -42,23 +42,23 @@ export class Downloader {
         const viewFolderPath = path.dirname(viewFilePath);
         await fse.ensureDir(viewFolderPath);
         await fse.writeFile(viewFilePath, viewData);
-        const { assets } = view.manifest;
-        await this.downloadFragments(urn, view, resolveAssetUrn(resolvedViewURN, assets.fragments), viewFolderPath, sharedAssetsDir);
-        await this.downloadGeometries(urn, view, resolveAssetUrn(resolvedViewURN, assets.geometry_ptrs), viewFolderPath, sharedAssetsDir);
-        await this.downloadMaterials(urn, view, resolveAssetUrn(resolvedViewURN, assets.materials_ptrs), viewFolderPath, sharedAssetsDir);
-        if (assets.texture_manifest) {
-            await this.downloadTextures(urn, view, resolveAssetUrn(resolvedViewURN, assets.texture_manifest), viewFolderPath, sharedAssetsDir);
-        }
+        await this.downloadFragments(urn, resolvedViewURN, view, viewFolderPath, sharedAssetsDir);
+        await this.downloadGeometries(urn, resolvedViewURN, view, viewFolderPath, sharedAssetsDir);
+        await this.downloadMaterials(urn, resolvedViewURN, view, viewFolderPath, sharedAssetsDir);
+        await this.downloadTextures(urn, resolvedViewURN, view, viewFolderPath, sharedAssetsDir);
+        await this.downloadProperties(urn, resolvedViewURN, view, viewFolderPath, sharedAssetsDir);
     }
 
-    protected async downloadFragments(urn: string, view: View, resolvedFragmentListUrn: string, outputDir: string, sharedAssetsDir: string): Promise<void> {
+    protected async downloadFragments(urn: string, resolvedViewURN: string, view: View, outputDir: string, sharedAssetsDir: string): Promise<void> {
         console.log(`Downloading fragment list...`);
+        const resolvedFragmentListUrn = resolveAssetUrn(resolvedViewURN, view.manifest.assets.fragments);
         const fragmentListBuffer = await this.modelDataClient.getAsset(urn, encodeURIComponent(resolvedFragmentListUrn));
         await fse.writeFile(path.join(outputDir, 'fragments.fl'), fragmentListBuffer);
     }
 
-    protected async downloadGeometries(urn: string, view: View, resolvedGeometryListUrn: string, outputDir: string, sharedAssetsDir: string): Promise<void> {
+    protected async downloadGeometries(urn: string, resolvedViewURN: string, view: View, outputDir: string, sharedAssetsDir: string): Promise<void> {
         console.log(`Downloading geometry list...`);
+        const resolvedGeometryListUrn = resolveAssetUrn(resolvedViewURN, view.manifest.assets.geometry_ptrs);
         const geometryListBuffer = await this.modelDataClient.getAsset(urn, encodeURIComponent(resolvedGeometryListUrn));
         await fse.writeFile(path.join(outputDir, 'geometry_ptrs.hl'), geometryListBuffer);
         const geometryFolderPath = path.join(sharedAssetsDir, view.manifest.shared_assets.geometry);
@@ -76,8 +76,9 @@ export class Downloader {
         }
     }
 
-    protected async downloadMaterials(urn: string, view: View, resolvedMaterialListUrn: string, outputDir: string, sharedAssetsDir: string): Promise<void> {
+    protected async downloadMaterials(urn: string, resolvedViewURN: string, view: View, outputDir: string, sharedAssetsDir: string): Promise<void> {
         console.log(`Downloading material list...`);
+        const resolvedMaterialListUrn = resolveAssetUrn(resolvedViewURN, view.manifest.assets.materials_ptrs);
         const materialListBuffer = await this.modelDataClient.getAsset(urn, encodeURIComponent(resolvedMaterialListUrn));
         await fse.writeFile(path.join(outputDir, 'materials_ptrs.hl'), materialListBuffer);
         const materialFolderPath = path.join(sharedAssetsDir, view.manifest.shared_assets.materials);
@@ -95,8 +96,12 @@ export class Downloader {
         }
     }
 
-    protected async downloadTextures(urn: string, view: View, resolvedTextureManifestUrn: string, outputDir: string, sharedAssetsDir: string): Promise<void> {
+    protected async downloadTextures(urn: string, resolvedViewUrn: string, view: View, outputDir: string, sharedAssetsDir: string): Promise<void> {
+        if (!view.manifest.assets.texture_manifest) {
+            return;
+        }
         console.log(`Downloading texture manifest...`);
+        const resolvedTextureManifestUrn = resolveAssetUrn(resolvedViewUrn, view.manifest.assets.texture_manifest!);
         const textureManifestBuffer = await this.modelDataClient.getAsset(urn, encodeURIComponent(resolvedTextureManifestUrn));
         await fse.writeFile(path.join(outputDir, 'texture_manifest.json'), textureManifestBuffer);
         const textureFolderPath = path.join(sharedAssetsDir, view.manifest.shared_assets.textures);
@@ -115,5 +120,27 @@ export class Downloader {
         }
     }
 
-    //TODO: download properties
+    protected async downloadProperties(urn: string, resolvedViewURN: string, view: View, outputDir: string, sharedAssetsDir: string): Promise<void> {
+        console.log(`Downloading property assets...`);
+        const write = async (uri?: string) => {
+            if (uri) {
+                console.log(`Downloading ${uri}...`);
+                const resolvedAssetUrn = resolveAssetUrn(resolvedViewURN, uri);
+                const buffer = await this.modelDataClient.getAsset(urn, encodeURIComponent(resolvedAssetUrn));
+                const filePath = path.join(outputDir, uri);
+                await fse.ensureDir(path.dirname(filePath));
+                await fse.writeFile(filePath, buffer);
+            }
+        };
+        const { avs, dbid, offsets } = view.manifest.assets.pdb;
+        const { attrs, ids, values } = view.manifest.shared_assets.pdb;
+        await Promise.all([
+            write(avs),
+            write(dbid),
+            write(offsets),
+            write(attrs),
+            write(ids),
+            write(values),
+        ]);
+    }
 }

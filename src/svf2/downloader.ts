@@ -23,6 +23,7 @@ export class Downloader {
         const manifest = await this.modelDataClient.getManifest(urn);
         const viewable = manifest.children.find((child: any) => child.role === 'viewable' && child.otg_manifest);
         console.assert(viewable, 'Could not find a viewable with SVF2 data');
+        await fse.writeFile(path.join(outputDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
         const manifestHelper = new ManifestHelper(viewable.otg_manifest);
         for (const view of manifestHelper.listViews()) {
             if (view.role === 'graphics' && view.mime === 'application/autodesk-otg') {

@@ -2,15 +2,16 @@ import * as IMF from '../common/intermediate-format';
 import { PropDbReader } from '../common/propdb-reader';
 import { ModelDataClient } from './helpers/ModelDataClient';
 import { SharedDataClient } from './helpers/SharedDataClient';
-import { ManifestHelper } from './helpers/ManifestHelper';
 import { ViewHelper } from './helpers/ViewHelper';
 import { parseHashes } from './helpers/HashList';
 import { Fragment, parseFragments } from './helpers/Fragment';
 import { Geometry, GeometryType, parseGeometry } from './helpers/Geometry';
 import { Material, parseMaterial } from './helpers/Material';
 import { IAuthenticationProvider } from '../common/authentication-provider';
+import { findManifestSVF2, resolveViewURN } from './helpers/Manifest';
+import { OTGManifest } from './schemas/Manifest';
 
-export interface View {
+export interface IView {
     id: string;
     resolvedViewUrn: string;
 }
@@ -19,33 +20,34 @@ export class Reader {
     static async FromDerivativeService(urn: string, authenticationProvider: IAuthenticationProvider): Promise<Reader> {
         const modelDataClient = new ModelDataClient(authenticationProvider);
         const sharedDataClient = new SharedDataClient(authenticationProvider);
-        const manifest = await modelDataClient.getManifest(urn);
-        const viewable = manifest.children.find((child: any) => child.role === 'viewable' && child.otg_manifest);
-        console.assert(viewable, 'Could not find a viewable with SVF2 data');
-        return new Reader(urn, viewable.otg_manifest, modelDataClient, sharedDataClient);
+        const derivativeManifest = await modelDataClient.getManifest(urn);
+        const manifest = findManifestSVF2(derivativeManifest);
+        return new Reader(urn, manifest, modelDataClient, sharedDataClient);
     }
 
     protected constructor(
         protected urn: string,
-        protected manifest: any,
+        protected manifest: OTGManifest,
         protected modelDataClient: ModelDataClient,
         protected sharedDataClient: SharedDataClient
     ) {}
 
     protected properties: PropDbReader | undefined;
 
-    async listViews(): Promise<View[]>  {
-        const manifestHelper = new ManifestHelper(this.manifest);
-        const views: View[] = [];
-        for (const view of manifestHelper.listViews()) {
+    async listViews(): Promise<IView[]>  {
+        const views: IView[] = [];
+        for (const [id, view] of Object.entries(this.manifest.views)) {
             if (view.role === 'graphics' && view.mime === 'application/autodesk-otg') {
-                views.push({ id: view.id, resolvedViewUrn: view.resolvedUrn });
+                views.push({
+                    id,
+                    resolvedViewUrn: resolveViewURN(this.manifest, view)
+                });
             }
         }
         return views;
     }
 
-    async readView(view: View): Promise<Scene> {
+    async readView(view: IView): Promise<Scene> {
         // TODO: Decode property database
         const viewData = await this.modelDataClient.getAsset(this.urn, encodeURIComponent(view.resolvedViewUrn));
         const viewHelper = new ViewHelper(JSON.parse(viewData.toString()), view.resolvedViewUrn);

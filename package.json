@@ -10,7 +10,8 @@
     "node": ">=16.0.0"
   },
   "scripts": {
-    "build": "tsc",
+    "generate:types": "json2ts src/svf2/schemas/Manifest.schema.json src/svf2/schemas/Manifest.d.ts",
+    "build": "npm run generate:types && tsc",
     "docs": "typedoc --out docs src"
   },
   "author": "Petr Broz <petr.broz@autodesk.com>",
@@ -40,8 +41,10 @@
     "@aps_sdk/autodesk-sdkmanager": "^1.0.0-beta.2",
     "@aps_sdk/model-derivative": "^1.0.0-beta.3",
     "adm-zip": "^0.5.9",
+    "ajv": "^8.17.1",
     "axios": "^1.6.8",
     "commander": "^3.0.2",
-    "fs-extra": "^10.0.0"
+    "fs-extra": "^10.0.0",
+    "json-schema-to-typescript": "^15.0.3"
   }
 }

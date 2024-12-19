@@ -2,10 +2,11 @@ import * as path from 'node:path';
 import * as fse from 'fs-extra';
 import { ModelDataClient } from './helpers/ModelDataClient';
 import { SharedDataClient } from './helpers/SharedDataClient';
-import { ManifestHelper, IView } from './helpers/ManifestHelper';
+import { findManifestSVF2, resolveViewURN } from './helpers/Manifest';
 import { ViewHelper } from './helpers/ViewHelper';
 import { parseHashes } from './helpers/HashList';
 import { IAuthenticationProvider } from '../common/authentication-provider';
+import { OTGManifest, View } from './schemas/Manifest';
 
 export class Downloader {
     protected readonly modelDataClient: ModelDataClient;
@@ -20,27 +21,26 @@ export class Downloader {
         console.log(`Downloading ${urn}...`);
         await fse.ensureDir(outputDir);
         const sharedAssetsDir = outputDir; // For now, store shared assets in the same directory as the views
-        const manifest = await this.modelDataClient.getManifest(urn);
-        const viewable = manifest.children.find((child: any) => child.role === 'viewable' && child.otg_manifest);
-        console.assert(viewable, 'Could not find a viewable with SVF2 data');
-        await fse.writeFile(path.join(outputDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
-        const manifestHelper = new ManifestHelper(viewable.otg_manifest);
-        for (const view of manifestHelper.listViews()) {
+        const derivativeManifest = await this.modelDataClient.getManifest(urn);
+        await fse.writeFile(path.join(outputDir, 'manifest.json'), JSON.stringify(derivativeManifest, null, 2));
+        const manifest = findManifestSVF2(derivativeManifest);
+        for (const [id, view] of Object.entries(manifest.views)) {
             if (view.role === 'graphics' && view.mime === 'application/autodesk-otg') {
-                await this.downloadView(urn, view, path.join(outputDir, view.id), sharedAssetsDir);
+                await this.downloadView(urn, manifest, view, path.join(outputDir, id), sharedAssetsDir);
             }
         }
     }
 
-    protected async downloadView(urn: string, view: IView, outputDir: string, sharedAssetsDir: string): Promise<void> {
+    protected async downloadView(urn: string, manifest: OTGManifest, view: View, outputDir: string, sharedAssetsDir: string): Promise<void> {
         console.log(`Downloading view ${view.urn}...`);
         await fse.ensureDir(outputDir);
-        const viewData = await this.modelDataClient.getAsset(urn, encodeURIComponent(view.resolvedUrn));
+        const resolvedViewURN = resolveViewURN(manifest, view);
+        const viewData = await this.modelDataClient.getAsset(urn, encodeURIComponent(resolvedViewURN));
         const viewFilePath = path.join(outputDir, view.urn);
         const viewFolderPath = path.dirname(viewFilePath);
         await fse.ensureDir(viewFolderPath);
         await fse.writeFile(viewFilePath, viewData);
-        const viewHelper = new ViewHelper(JSON.parse(viewData.toString()), view.resolvedUrn);
+        const viewHelper = new ViewHelper(JSON.parse(viewData.toString()), resolvedViewURN);
         const privateModelAssets = viewHelper.listPrivateModelAssets()!;
         await this.downloadFragments(urn, privateModelAssets.fragments.resolvedUrn, viewFolderPath, sharedAssetsDir, viewHelper);
         await this.downloadGeometries(urn, privateModelAssets.geometry_ptrs.resolvedUrn, viewFolderPath, sharedAssetsDir, viewHelper);

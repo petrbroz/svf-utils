@@ -1,6 +1,8 @@
 import axios from 'axios';
-import { IAuthenticationProvider } from '../../common/authentication-provider';
 import { Scopes } from '@aps_sdk/authentication';
+import { IAuthenticationProvider } from '../../common/authentication-provider';
+import { parse } from './Manifest';
+import { Manifest } from '../schemas/Manifest';
 
 export class ModelDataClient {
     protected readonly axios = axios.create({
@@ -21,13 +23,13 @@ export class ModelDataClient {
     /**
      * Retrieves the Model Derivative manifest augmented with OTG information.
      * @async
-     * @param {string} urn Model Derivative model URN.
-     * @returns {Promise<any>} Model Derivative manifest augmented with OTG information.
+     * @param urn Model Derivative model URN.
+     * @returns Model Derivative manifest augmented with OTG information.
      * @throws Error when the request fails, for example, due to insufficient rights, or incorrect scopes.
      */
-    async getManifest(urn: string): Promise<any> {
+    async getManifest(urn: string): Promise<Manifest> {
         const { data } = await this.axios.get(`manifest/${urn}`);
-        return data;
+        return parse(data);
     }
 
     /**

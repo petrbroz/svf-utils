@@ -2,7 +2,6 @@ import * as IMF from '../common/intermediate-format';
 import { PropDbReader } from '../common/propdb-reader';
 import { ModelDataClient } from './helpers/ModelDataClient';
 import { SharedDataClient } from './helpers/SharedDataClient';
-import { ViewHelper } from './helpers/ViewHelper';
 import { parseHashes } from './helpers/HashList';
 import { Fragment, parseFragments } from './helpers/Fragment';
 import { Geometry, GeometryType, parseGeometry } from './helpers/Geometry';
@@ -10,11 +9,8 @@ import { Material, parseMaterial } from './helpers/Material';
 import { IAuthenticationProvider } from '../common/authentication-provider';
 import { findManifestSVF2, resolveViewURN } from './helpers/Manifest';
 import { OTGManifest } from './schemas/Manifest';
-
-export interface IView {
-    id: string;
-    resolvedViewUrn: string;
-}
+import { getViewMetadata, parse, resolveAssetUrn, resolveGeometryUrn, resolveMaterialUrn, resolveTextureUrn } from './helpers/View';
+import { View } from './schemas/View';
 
 export class Reader {
     static async FromDerivativeService(urn: string, authenticationProvider: IAuthenticationProvider): Promise<Reader> {
@@ -34,113 +30,112 @@ export class Reader {
 
     protected properties: PropDbReader | undefined;
 
-    async listViews(): Promise<IView[]>  {
-        const views: IView[] = [];
+    async listViews(): Promise<string[]>  {
+        const ids: string[] = [];
         for (const [id, view] of Object.entries(this.manifest.views)) {
             if (view.role === 'graphics' && view.mime === 'application/autodesk-otg') {
-                views.push({
-                    id,
-                    resolvedViewUrn: resolveViewURN(this.manifest, view)
-                });
+                ids.push(id);
             }
         }
-        return views;
+        return ids;
     }
 
-    async readView(view: IView): Promise<Scene> {
+    async readView(viewId: string): Promise<Scene> {
         // TODO: Decode property database
-        const viewData = await this.modelDataClient.getAsset(this.urn, encodeURIComponent(view.resolvedViewUrn));
-        const viewHelper = new ViewHelper(JSON.parse(viewData.toString()), view.resolvedViewUrn);
-        const privateModelAssets = viewHelper.listPrivateModelAssets()!;
-        const metadata = viewHelper.getMetadata();
-
+        console.log(`Reading view ${viewId}...`);
+        const resolvedViewURN = resolveViewURN(this.manifest, this.manifest.views[viewId]);
+        const viewData = await this.modelDataClient.getAsset(this.urn, encodeURIComponent(resolvedViewURN));
+        const view = parse(JSON.parse(viewData.toString()));
+        const { assets } = view.manifest;
         const [fragments, geometries, materials] = await Promise.all([
-            this.readFragments(privateModelAssets.fragments.resolvedUrn),
-            this.readGeometries(privateModelAssets.geometry_ptrs.resolvedUrn, viewHelper),
-            this.readMaterials(privateModelAssets.materials_ptrs.resolvedUrn, viewHelper),
+            this.readFragments(view, resolveAssetUrn(resolvedViewURN, assets.fragments)),
+            this.readGeometries(view, resolveAssetUrn(resolvedViewURN, assets.geometry_ptrs)),
+            this.readMaterials(view, resolveAssetUrn(resolvedViewURN, assets.materials_ptrs)),
         ]);
-        const textures = privateModelAssets.texture_manifest
-            ? await this.readTextures(privateModelAssets.texture_manifest.resolvedUrn, viewHelper)
+        const textures = assets.texture_manifest
+            ? await this.readTextures(view, resolveAssetUrn(resolvedViewURN, assets.texture_manifest))
             : new Map<string, any>();
+        const metadata = getViewMetadata(view);
         return new Scene(metadata, fragments, geometries, materials, textures);
     }
 
-    protected async readFragments(fragListUrn: string): Promise<Fragment[]> {
-        console.time('Reading fragments');
-        const fragmentData = await this.modelDataClient.getAsset(this.urn, encodeURIComponent(fragListUrn));
+    protected async readFragments(view: View, resolvedfragListUrn: string): Promise<Fragment[]> {
+        console.log('Reading fragment list...');
+        const fragmentData = await this.modelDataClient.getAsset(this.urn, encodeURIComponent(resolvedfragListUrn));
         const fragments = Array.from(parseFragments(fragmentData));
-        console.timeEnd('Reading fragments');
         return fragments;
     }
 
-    protected async readGeometries(geomHashListUrn: string, viewHelper: ViewHelper): Promise<Geometry[]> {
-        console.time('Reading geometries');
+    protected async readGeometries(view: View, resolvedGeomHashListUrn: string): Promise<Geometry[]> {
+        console.log('Reading geometry list...');
         const geometryPromises: Promise<Geometry>[] = [];
-        const assetData = await this.modelDataClient.getAsset(this.urn, encodeURIComponent(geomHashListUrn));
+        const assetData = await this.modelDataClient.getAsset(this.urn, encodeURIComponent(resolvedGeomHashListUrn));
         for (const hash of parseHashes(assetData)) {
-            const geometryUrn = viewHelper.getGeometryUrn(hash);
+            console.log(`Reading geometry ${hash}...`);
+            const geometryUrn = resolveGeometryUrn(view, hash);
             geometryPromises.push(this.sharedDataClient.getAsset(this.urn, geometryUrn).then(parseGeometry));
         }
         const geometries = await Promise.all(geometryPromises);
-        console.timeEnd('Reading geometries');
         return geometries;
     }
 
-    protected async readMaterials(matHashListUrn: string, viewHelper: ViewHelper): Promise<Material[]> {
-        console.time('Reading materials');
+    protected async readMaterials(view: View, resolvedMaterialHashListUrn: string): Promise<Material[]> {
+        console.log('Reading material list...');
         const materials: Material[] = [];
-        const assetData = await this.modelDataClient.getAsset(this.urn, encodeURIComponent(matHashListUrn));
+        const assetData = await this.modelDataClient.getAsset(this.urn, encodeURIComponent(resolvedMaterialHashListUrn));
         for (const hash of parseHashes(assetData)) {
-            const materialUrn = viewHelper.getMaterialUrn(hash);
+            console.log(`Reading material ${hash}...`);
+            const materialUrn = resolveMaterialUrn(view, hash);
             const materialData = await this.sharedDataClient.getAsset(this.urn, materialUrn);
             materials.push(parseMaterial(materialData));
         }
-        console.timeEnd('Reading materials');
         return materials;
     }
 
-    protected async readTextures(textureManifestUri: string, viewHelper: ViewHelper): Promise<Map<string, any>> {
+    protected async readTextures(view: View, textureManifestUri: string): Promise<Map<string, any>> {
+        console.log('Reading texture list...');
         const map = new Map<string, any>();
         const assetData = await this.modelDataClient.getAsset(this.urn, encodeURIComponent(textureManifestUri));
         const textureManifest = JSON.parse(assetData.toString()) as { [key: string]: string };
         for (const [_, uri] of Object.entries(textureManifest)) {
-            console.log(`Downloading image ${uri} ...`);
-            const textureUrn = viewHelper.getTextureUrn(uri);
+            console.log(`Reading texture ${uri} ...`);
+            const textureUrn = resolveTextureUrn(view, uri);
             const textureData = await this.sharedDataClient.getAsset(this.urn, textureUrn);
             map.set(uri, textureData);
-            console.log(`Downloading image ${uri}: done`);
         }
         return map;
     }
 
-    protected async getPropertyDb(viewHelper: ViewHelper): Promise<PropDbReader> {
-        const privateDbAssets = viewHelper.listPrivateDatabaseAssets();
-        const sharedDbAssets = viewHelper.listSharedDatabaseAssets();
+    // protected async getPropertyDb(view: View): Promise<PropDbReader> {
+    //     // const privateDbAssets = viewHelper.listPrivateDatabaseAssets();
+    //     // const sharedDbAssets = viewHelper.listSharedDatabaseAssets();
 
-        if (privateDbAssets === undefined || sharedDbAssets === undefined) {
-            throw new Error('Could not parse property database. Some of the database assets are missing.');
-        }
+    //     const privateDbAssets = view.manifest.assets.pdb;
+    //     const sharedDbAssets = view.manifest.shared_assets.pdb;
+    //     if (!privateDbAssets || !sharedDbAssets) {
+    //         throw new Error('Could not parse property database. Some of the database assets are missing.');
+    //     }
 
-        const offsetsAsset = privateDbAssets['offsets'];
-        const avsAsset = privateDbAssets['avs'];
-        const dbIdAsset = privateDbAssets['dbid'];
+    //     const offsetsAsset = privateDbAssets['offsets'];
+    //     const avsAsset = privateDbAssets['avs'];
+    //     const dbIdAsset = privateDbAssets['dbid'];
 
-        const idsAsset = sharedDbAssets['ids'];
-        const attrsAsset = sharedDbAssets['attrs'];
-        const valsAsset = sharedDbAssets['values'];
+    //     const idsAsset = sharedDbAssets['ids'];
+    //     const attrsAsset = sharedDbAssets['attrs'];
+    //     const valsAsset = sharedDbAssets['values'];
 
-        const buffers = await Promise.all([
-            this.modelDataClient.getAsset(this.urn, encodeURIComponent(idsAsset.resolvedUrn)),
-            this.modelDataClient.getAsset(this.urn, encodeURIComponent(offsetsAsset.resolvedUrn)),
-            this.modelDataClient.getAsset(this.urn, encodeURIComponent(avsAsset.resolvedUrn)),
-            this.modelDataClient.getAsset(this.urn, encodeURIComponent(attrsAsset.resolvedUrn)),
-            this.modelDataClient.getAsset(this.urn, encodeURIComponent(valsAsset.resolvedUrn)),
-            this.modelDataClient.getAsset(this.urn, encodeURIComponent(dbIdAsset.resolvedUrn)),
-        ]);
+    //     const buffers = await Promise.all([
+    //         this.modelDataClient.getAsset(this.urn, encodeURIComponent(resolveAssetUrn(view, idsAsset))),
+    //         this.modelDataClient.getAsset(this.urn, encodeURIComponent(offsetsAsset.resolvedUrn)),
+    //         this.modelDataClient.getAsset(this.urn, encodeURIComponent(avsAsset.resolvedUrn)),
+    //         this.modelDataClient.getAsset(this.urn, encodeURIComponent(attrsAsset.resolvedUrn)),
+    //         this.modelDataClient.getAsset(this.urn, encodeURIComponent(valsAsset.resolvedUrn)),
+    //         this.modelDataClient.getAsset(this.urn, encodeURIComponent(dbIdAsset.resolvedUrn)),
+    //     ]);
 
-        // SVF common function not working with private db assets
-        return new PropDbReader(buffers[0], buffers[1], buffers[2], buffers[3], buffers[4]);
-    }
+    //     // SVF common function not working with private db assets
+    //     return new PropDbReader(buffers[0], buffers[1], buffers[2], buffers[3], buffers[4]);
+    // }
 }
 
 export class Scene implements IMF.IScene {

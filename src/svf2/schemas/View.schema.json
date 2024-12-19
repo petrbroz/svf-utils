@@ -1,0 +1,187 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "View",
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": "View name."
+        },
+        "version": {
+            "type": "number",
+            "description": "View schema version."
+        },
+        "manifest": {
+            "$ref": "#/definitions/Manifest"
+        },
+        "stats": {
+            "$ref": "#/definitions/Stats"
+        },
+        "georeference": {
+            "$ref": "#/definitions/Georeference"
+        },
+        "fragmentTransformsOffset": {
+            "type": "object",
+            "properties": {
+                "x": {
+                    "type": "number"
+                },
+                "y": {
+                    "type": "number"
+                },
+                "z": {
+                    "type": "number"
+                }
+            },
+            "required": [
+                "x",
+                "y",
+                "z"
+            ]
+        }
+    },
+    "required": [
+        "name",
+        "version",
+        "manifest"
+    ],
+    "definitions": {
+        "Manifest": {
+            "type": "object",
+            "properties": {
+                "assets": {
+                    "$ref": "#/definitions/PrivateAssets"
+                },
+                "shared_assets": {
+                    "$ref": "#/definitions/SharedAssets"
+                }
+            },
+            "required": [
+                "assets",
+                "shared_assets"
+            ]
+        },
+        "Stats": {
+            "type": "object",
+            "properties": {
+                "num_fragments": {
+                    "type": "number"
+                },
+                "num_polys": {
+                    "type": "number"
+                },
+                "num_materials": {
+                    "type": "number"
+                },
+                "num_geoms": {
+                    "type": "number"
+                },
+                "num_textures": {
+                    "type": "number"
+                }
+            }
+        },
+        "PrivateAssets": {
+            "type": "object",
+            "properties": {
+                "pdb": {
+                    "$ref": "#/definitions/PrivatePDB"
+                },
+                "fragments": {
+                    "type": "string"
+                },
+                "fragments_extra": {
+                    "type": "string"
+                },
+                "materials_ptrs": {
+                    "type": "string"
+                },
+                "geometry_ptrs": {
+                    "type": "string"
+                },
+                "texture_manifest": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "pdb",
+                "fragments",
+                "fragments_extra",
+                "materials_ptrs",
+                "geometry_ptrs"
+            ]
+        },
+        "SharedAssets": {
+            "type": "object",
+            "properties": {
+                "pdb": {
+                    "$ref": "#/definitions/SharedPDB"
+                },
+                "geometry": {
+                    "type": "string"
+                },
+                "materials": {
+                    "type": "string"
+                },
+                "textures": {
+                    "type": "string"
+                },
+                "global_sharding": {
+                    "type": "number"
+                }
+            },
+            "required": [
+                "pdb",
+                "geometry",
+                "materials",
+                "textures",
+                "global_sharding"
+            ]
+        },
+        "PrivatePDB": {
+            "type": "object",
+            "properties": {
+                "avs": {
+                    "type": "string"
+                },
+                "offsets": {
+                    "type": "string"
+                },
+                "dbid": {
+                    "type": "string"
+                }
+            }
+        },
+        "SharedPDB": {
+            "type": "object",
+            "properties": {
+                "attrs": {
+                    "type": "string"
+                },
+                "values": {
+                    "type": "string"
+                },
+                "ids": {
+                    "type": "string"
+                }
+            }
+        },
+        "Georeference": {
+            "type": "object",
+            "properties": {
+                "positionLL84": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "refPointLMV": {
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                }
+            }
+        }
+    }
+}

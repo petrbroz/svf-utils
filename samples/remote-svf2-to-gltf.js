@@ -13,7 +13,6 @@ async function run() {
     const reader = await SVF2Reader.FromDerivativeService(urn, authenticationProvider);
     const views = await reader.listViews();
     for (const view of views) {
-        console.log('Processing view:', view.id);
         const scene = await reader.readView(view);
         const writer = new GltfWriter({
             deduplicate: false,
@@ -21,7 +20,7 @@ async function run() {
             center: true,
             log: console.log
         });
-        await writer.write(scene, path.join(outputDir, view.id));
+        await writer.write(scene, path.join(outputDir, view));
     }
 }
 

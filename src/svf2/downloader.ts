@@ -5,9 +5,9 @@ import { SharedDataClient } from './helpers/SharedDataClient';
 import { findManifestSVF2, resolveViewURN } from './helpers/Manifest';
 import { parseHashes } from './helpers/HashList';
 import { IAuthenticationProvider } from '../common/authentication-provider';
-import { OTGManifest } from './schemas/Manifest';
+import { OTGManifest } from './helpers/Manifest.schema';
+import { View } from './helpers/View.schema';
 import { parse, resolveAssetUrn, resolveGeometryUrn, resolveMaterialUrn, resolveTextureUrn } from './helpers/View';
-import { View } from './schemas/View';
 
 export class Downloader {
     protected readonly modelDataClient: ModelDataClient;

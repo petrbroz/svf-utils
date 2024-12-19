@@ -10,7 +10,7 @@
     "node": ">=16.0.0"
   },
   "scripts": {
-    "generate:types": "json2ts src/svf2/schemas/Manifest.schema.json src/svf2/schemas/Manifest.d.ts && json2ts src/svf2/schemas/View.schema.json src/svf2/schemas/View.d.ts",
+    "generate:types": "json2ts -i 'src/svf2/schemas/*.json' -o src/svf2/helpers",
     "build": "npm run generate:types && tsc",
     "docs": "typedoc --out docs src"
   },

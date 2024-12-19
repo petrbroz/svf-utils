@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 import { Ajv } from 'ajv';
+import { View } from './View.schema';
 import schema from '../schemas/View.schema.json';
-import { View } from '../schemas/View';
 
 export function parse(json: any): View {
     const ajv = new Ajv();

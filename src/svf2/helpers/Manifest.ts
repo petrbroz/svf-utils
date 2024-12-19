@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 import { Ajv } from 'ajv';
-import { Manifest, OTGManifest, View } from '../schemas/Manifest';
+import { Manifest, OTGManifest, View } from './Manifest.schema';
 import schema from '../schemas/Manifest.schema.json';
 
 /**

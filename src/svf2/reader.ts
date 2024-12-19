@@ -8,9 +8,9 @@ import { Geometry, GeometryType, parseGeometry } from './helpers/Geometry';
 import { Material, parseMaterial } from './helpers/Material';
 import { IAuthenticationProvider } from '../common/authentication-provider';
 import { findManifestSVF2, resolveViewURN } from './helpers/Manifest';
-import { OTGManifest } from './schemas/Manifest';
+import { OTGManifest } from './helpers/Manifest.schema';
+import { View } from './helpers/View.schema';
 import { getViewMetadata, parse, resolveAssetUrn, resolveGeometryUrn, resolveMaterialUrn, resolveTextureUrn } from './helpers/View';
-import { View } from './schemas/View';
 
 export class Reader {
     static async FromDerivativeService(urn: string, authenticationProvider: IAuthenticationProvider): Promise<Reader> {

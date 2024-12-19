@@ -63,10 +63,15 @@ export class Downloader {
         const geometryFolderPath = path.join(sharedAssetsDir, viewHelper.view.manifest.shared_assets.geometry);
         await fse.ensureDir(geometryFolderPath);
         for (const hash of parseHashes(geometryListBuffer)) {
+            const geometryFilePath = path.join(geometryFolderPath, hash);
+            if (await fse.pathExists(geometryFilePath)) {
+                console.log(`Geometry ${hash} already exists, skipping...`);
+                continue;
+            }
             console.log(`Downloading geometry ${hash}...`);
             const geometryUrn = viewHelper.getGeometryUrn(hash);
             const geometryBuffer = await this.sharedDataClient.getAsset(urn, geometryUrn);
-            await fse.writeFile(path.join(geometryFolderPath, hash), geometryBuffer);
+            await fse.writeFile(geometryFilePath, geometryBuffer);
         }
     }
 
@@ -77,10 +82,15 @@ export class Downloader {
         const materialFolderPath = path.join(sharedAssetsDir, viewHelper.view.manifest.shared_assets.materials);
         await fse.ensureDir(materialFolderPath);
         for (const hash of parseHashes(materialListBuffer)) {
+            const materialFilePath = path.join(materialFolderPath, hash);
+            if (await fse.pathExists(materialFilePath)) {
+                console.log(`Material ${hash} already exists, skipping...`);
+                continue;
+            }
             console.log(`Downloading material ${hash}...`);
             const materialUrn = viewHelper.getMaterialUrn(hash);
             const materialBuffer = await this.sharedDataClient.getAsset(urn, materialUrn);
-            await fse.writeFile(path.join(materialFolderPath, hash), materialBuffer);
+            await fse.writeFile(materialFilePath, materialBuffer);
         }
     }
 
@@ -92,10 +102,15 @@ export class Downloader {
         await fse.ensureDir(textureFolderPath);
         const textureManifest = JSON.parse(textureManifestBuffer.toString()) as { [key: string]: string };
         for (const [_, uri] of Object.entries(textureManifest)) {
+            const textureFilePath = path.join(textureFolderPath, uri);
+            if (await fse.pathExists(textureFilePath)) {
+                console.log(`Texture ${uri} already exists, skipping...`);
+                continue;
+            }
             console.log(`Downloading texture ${uri}...`);
             const textureUrn = viewHelper.getTextureUrn(uri);
             const textureBuffer = await this.sharedDataClient.getAsset(urn, textureUrn);
-            await fse.writeFile(path.join(textureFolderPath, uri), textureBuffer);
+            await fse.writeFile(textureFilePath, textureBuffer);
         }
     }
 

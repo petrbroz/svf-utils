@@ -10,7 +10,11 @@ import { IAuthenticationProvider } from '../common/authentication-provider';
 import { findManifestSVF2, resolveViewURN } from './helpers/Manifest';
 import { OTGManifest } from './helpers/Manifest.schema';
 import { View } from './helpers/View.schema';
-import { getViewMetadata, parse, resolveAssetUrn, resolveGeometryUrn, resolveMaterialUrn, resolveTextureUrn } from './helpers/View';
+import { getViewAccount, getViewMetadata, parse, resolveAssetUrn, resolveGeometryUrn, resolveMaterialUrn, resolveTextureUrn } from './helpers/View';
+import { ResourceType, SharedDataWebSocketClient } from './helpers/SharedDataWebSocketClient';
+
+const UseWebSockets = true;
+const BatchSize = 32;
 
 export class Reader {
     static async FromDerivativeService(urn: string, authenticationProvider: IAuthenticationProvider): Promise<Reader> {
@@ -18,14 +22,15 @@ export class Reader {
         const sharedDataClient = new SharedDataClient(authenticationProvider);
         const derivativeManifest = await modelDataClient.getManifest(urn);
         const manifest = findManifestSVF2(derivativeManifest);
-        return new Reader(urn, manifest, modelDataClient, sharedDataClient);
+        return new Reader(urn, manifest, modelDataClient, sharedDataClient, authenticationProvider);
     }
 
     protected constructor(
         protected urn: string,
         protected manifest: OTGManifest,
         protected modelDataClient: ModelDataClient,
-        protected sharedDataClient: SharedDataClient
+        protected sharedDataClient: SharedDataClient,
+        protected authenticationProvider: IAuthenticationProvider
     ) {}
 
     protected properties: PropDbReader | undefined;
@@ -49,8 +54,12 @@ export class Reader {
         const { assets } = view.manifest;
         const [fragments, geometries, materials] = await Promise.all([
             this.readFragments(view, resolveAssetUrn(resolvedViewURN, assets.fragments)),
-            this.readGeometries(view, resolveAssetUrn(resolvedViewURN, assets.geometry_ptrs)),
-            this.readMaterials(view, resolveAssetUrn(resolvedViewURN, assets.materials_ptrs)),
+            UseWebSockets
+                ? this.readGeometriesWS(view, resolveAssetUrn(resolvedViewURN, assets.geometry_ptrs))
+                : this.readGeometries(view, resolveAssetUrn(resolvedViewURN, assets.geometry_ptrs)),
+            UseWebSockets
+                ? this.readMaterialsWS(view, resolveAssetUrn(resolvedViewURN, assets.materials_ptrs))
+                : this.readMaterials(view, resolveAssetUrn(resolvedViewURN, assets.materials_ptrs)),,
         ]);
         const textures = assets.texture_manifest
             ? await this.readTextures(view, resolveAssetUrn(resolvedViewURN, assets.texture_manifest))
@@ -79,6 +88,36 @@ export class Reader {
         return geometries;
     }
 
+    protected async readGeometriesWS(view: View, resolvedGeomHashListUrn: string): Promise<Geometry[]> {
+        console.log('Reading geometry list...');
+        const sharedDataWebSocketClient = await SharedDataWebSocketClient.Connect(this.authenticationProvider);
+        const geometries: Geometry[] = [];
+        const assetData = await this.modelDataClient.getAsset(this.urn, encodeURIComponent(resolvedGeomHashListUrn));
+        const account = getViewAccount(view);
+        let batch: string[] = [];
+        for (const hash of parseHashes(assetData)) {
+            batch.push(hash);
+            if (batch.length >= BatchSize) {
+                console.log(`Reading geometries ${batch}...`);
+                const buffers = await sharedDataWebSocketClient.getAssets(this.urn, account, ResourceType.Geometry, batch);
+                for (const _hash of batch) {
+                    geometries.push(parseGeometry(buffers.get(_hash)!));
+                }
+                batch = [];
+            }
+        }
+        if (batch.length > 0) {
+            console.log(`Reading geometries ${batch}...`);
+            const buffers = await sharedDataWebSocketClient.getAssets(this.urn, account, ResourceType.Geometry, batch);
+            for (const _hash of batch) {
+                geometries.push(parseGeometry(buffers.get(_hash)!));
+            }
+            batch = [];
+        }
+        sharedDataWebSocketClient.close();
+        return geometries;
+    }
+
     protected async readMaterials(view: View, resolvedMaterialHashListUrn: string): Promise<Material[]> {
         console.log('Reading material list...');
         const materials: Material[] = [];
@@ -89,6 +128,36 @@ export class Reader {
             const materialData = await this.sharedDataClient.getAsset(this.urn, materialUrn);
             materials.push(parseMaterial(materialData));
         }
+        return materials;
+    }
+
+    protected async readMaterialsWS(view: View, resolvedMaterialHashListUrn: string): Promise<Material[]> {
+        console.log('Reading material list...');
+        const sharedDataWebSocketClient = await SharedDataWebSocketClient.Connect(this.authenticationProvider);
+        const materials: Material[] = [];
+        const assetData = await this.modelDataClient.getAsset(this.urn, encodeURIComponent(resolvedMaterialHashListUrn));
+        const account = getViewAccount(view);
+        let batch: string[] = [];
+        for (const hash of parseHashes(assetData)) {
+            batch.push(hash);
+            if (batch.length >= BatchSize) {
+                console.log(`Reading materials ${batch}...`);
+                const buffers = await sharedDataWebSocketClient.getAssets(this.urn, account, ResourceType.Material, batch);
+                for (const _hash of batch) {
+                    materials.push(parseMaterial(buffers.get(_hash)!));
+                }
+                batch = [];
+            }
+        }
+        if (batch.length > 0) {
+            console.log(`Reading materials ${batch}...`);
+            const buffers = await sharedDataWebSocketClient.getAssets(this.urn, account, ResourceType.Material, batch);
+            for (const _hash of batch) {
+                materials.push(parseMaterial(buffers.get(_hash)!));
+            }
+            batch = [];
+        }
+        sharedDataWebSocketClient.close();
         return materials;
     }
 

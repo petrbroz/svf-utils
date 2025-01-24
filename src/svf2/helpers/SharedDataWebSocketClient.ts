@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 import { gunzipSync } from 'zlib';
-import { IAuthenticationProvider } from '../../common/authentication-provider';
 import { Scopes } from '@aps_sdk/authentication';
+import { IAuthenticationProvider } from '../../common/authentication-provider';
 
 export enum ResourceType {
     Geometry = 'g',
@@ -111,19 +111,21 @@ export class SharedDataWebSocketClient {
 
     async getAsset(urn: string, assetUrn: string): Promise<Buffer> {
         const [_, account, type, hash] = assetUrn.split('/');
-        const accessToken = this.lastSentAccessToken || await this.authenticationProvider.getToken([Scopes.ViewablesRead]);
+        const accessToken = await this.authenticationProvider.getToken([Scopes.ViewablesRead]);
         const resources = await this.requestResources(urn, account, type as ResourceType, [hash], accessToken);
-        const buffer = Buffer.from(resources[0].data.buffer);
-        return type === ResourceType.Material ? gunzipSync(buffer) : buffer;
+        return gunzipSync(Buffer.from(resources[0].data.buffer));
     }
 
-    // async getAssets(urn: string, assetUrns: string[]): Promise<Buffer[]> {
-    //     const assetUrnTokens = assetUrn.split('/');
-    //     const account = assetUrnTokens[1];
-    //     const type = assetUrnTokens[2];
-    //     const hash = assetUrnTokens[3];
-    // }
-    
+    async getAssets(urn: string, account: string, type: ResourceType, hashes: string[]): Promise<Map<string, Buffer>> {
+        const accessToken = await this.authenticationProvider.getToken([Scopes.ViewablesRead]);
+        const resources = await this.requestResources(urn, account, type as ResourceType, hashes, accessToken);
+        const assets = new Map<string, Buffer>();
+        for (const { hash, data } of resources) {
+            assets.set(hash, gunzipSync(Buffer.from(data.buffer)));
+        }
+        return assets;
+    }
+
     protected requestResources(urn: string, accountID: string, type: ResourceType, hashes: string[], accessToken: string): Promise<Resource[]> {
         if (this.ws.readyState !== WebSocket.OPEN) {
             throw new Error('WebSocket connection is not open.');

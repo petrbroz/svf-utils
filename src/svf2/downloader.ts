@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import * as fse from 'fs-extra';
 import { ModelDataClient } from './helpers/ModelDataClient';
 import { SharedDataClient } from './helpers/SharedDataClient';
+import { SharedDataWebSocketClient } from './helpers/SharedDataWebSocketClient';
 import { findManifestSVF2, resolveViewURN } from './helpers/Manifest';
 import { parseHashes } from './helpers/HashList';
 import { IAuthenticationProvider } from '../common/authentication-provider';
@@ -12,6 +13,7 @@ import { parse, resolveAssetUrn, resolveGeometryUrn, resolveMaterialUrn, resolve
 export class Downloader {
     protected readonly modelDataClient: ModelDataClient;
     protected readonly sharedDataClient: SharedDataClient;
+    protected sharedDataWebSocketClient?: SharedDataWebSocketClient;
 
     constructor(protected readonly authenticationProvider: IAuthenticationProvider) {
         this.modelDataClient = new ModelDataClient(authenticationProvider);
@@ -25,11 +27,13 @@ export class Downloader {
         const derivativeManifest = await this.modelDataClient.getManifest(urn);
         await fse.writeFile(path.join(outputDir, 'manifest.json'), JSON.stringify(derivativeManifest, null, 2));
         const manifest = findManifestSVF2(derivativeManifest);
+        this.sharedDataWebSocketClient = await SharedDataWebSocketClient.Connect(this.authenticationProvider);
         for (const [id, view] of Object.entries(manifest.views)) {
             if (view.role === 'graphics' && view.mime === 'application/autodesk-otg') {
                 await this.downloadView(urn, manifest, id, path.join(outputDir, id), sharedAssetsDir);
             }
         }
+        this.sharedDataWebSocketClient.close();
     }
 
     protected async downloadView(urn: string, manifest: OTGManifest, viewId: string, outputDir: string, sharedAssetsDir: string): Promise<void> {
@@ -71,7 +75,8 @@ export class Downloader {
             }
             console.log(`Downloading geometry ${hash}...`);
             const geometryUrn = resolveGeometryUrn(view, hash);
-            const geometryBuffer = await this.sharedDataClient.getAsset(urn, geometryUrn);
+            // const geometryBuffer = await this.sharedDataClient.getAsset(urn, geometryUrn);
+            const geometryBuffer = await this.sharedDataWebSocketClient!.getAsset(urn, geometryUrn);
             await fse.writeFile(geometryFilePath, geometryBuffer);
         }
     }
@@ -91,7 +96,8 @@ export class Downloader {
             }
             console.log(`Downloading material ${hash}...`);
             const materialUrn = resolveMaterialUrn(view, hash);
-            const materialBuffer = await this.sharedDataClient.getAsset(urn, materialUrn);
+            // const materialBuffer = await this.sharedDataClient.getAsset(urn, materialUrn);
+            const materialBuffer = await this.sharedDataWebSocketClient!.getAsset(urn, materialUrn);
             await fse.writeFile(materialFilePath, materialBuffer);
         }
     }

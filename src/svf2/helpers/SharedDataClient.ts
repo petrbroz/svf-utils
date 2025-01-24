@@ -19,11 +19,8 @@ export class SharedDataClient {
     }
 
     async getAsset(urn: string, assetUrn: string): Promise<Buffer> {
-        const assetUrnTokens = assetUrn.split('/');
-        const account = assetUrnTokens[1];
-        const assetType = assetUrnTokens[2];
-        const assetHash = assetUrnTokens[3];
-        const cdnUrn = [assetHash.substring(0, 4), account, assetType, assetHash.substring(4)].join('/'); // `${assetHash.substring(0, 4)}/${account}/${assetType}/${assetHash.substring(4)}`;
+        const [_, account, type, hash] = assetUrn.split('/');
+        const cdnUrn = [hash.substring(0, 4), account, type, hash.substring(4)].join('/');
         const { data } = await this.axios.get(cdnUrn + `?acmsession=${urn}`, { responseType: 'arraybuffer' });
         return data;
     }

@@ -52,15 +52,17 @@ export class Reader {
         const viewManifestBuffer = await this.modelDataClient.getAsset(this.urn, encodeURIComponent(resolvedViewURN));
         const view = parse(JSON.parse(viewManifestBuffer.toString()));
         const { assets } = view.manifest;
-        const [fragments, geometries, materials] = await Promise.all([
-            this.readFragments(view, resolveAssetUrn(resolvedViewURN, assets.fragments)),
-            UseWebSockets
-                ? this.readGeometriesBatch(view, resolveAssetUrn(resolvedViewURN, assets.geometry_ptrs))
-                : this.readGeometries(view, resolveAssetUrn(resolvedViewURN, assets.geometry_ptrs)),
-            UseWebSockets
-                ? this.readMaterialsBatch(view, resolveAssetUrn(resolvedViewURN, assets.materials_ptrs))
-                : this.readMaterials(view, resolveAssetUrn(resolvedViewURN, assets.materials_ptrs)),,
-        ]);
+        const fragments = await this.readFragments(view, resolveAssetUrn(resolvedViewURN, assets.fragments));
+        const geometries: Geometry[] = assets.geometry_ptrs
+            ? (UseWebSockets
+                ? await this.readGeometriesBatch(view, resolveAssetUrn(resolvedViewURN, assets.geometry_ptrs))
+                : await this.readGeometries(view, resolveAssetUrn(resolvedViewURN, assets.geometry_ptrs)))
+            : [];
+        const materials: Material[] = assets.materials_ptrs
+            ? (UseWebSockets
+                ? await this.readMaterialsBatch(view, resolveAssetUrn(resolvedViewURN, assets.materials_ptrs))
+                : await this.readMaterials(view, resolveAssetUrn(resolvedViewURN, assets.materials_ptrs)))
+            : [];
         const textures = assets.texture_manifest
             ? await this.readTextures(view, resolveAssetUrn(resolvedViewURN, assets.texture_manifest))
             : new Map<string, any>();

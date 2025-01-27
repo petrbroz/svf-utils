@@ -106,9 +106,7 @@
             "required": [
                 "pdb",
                 "fragments",
-                "fragments_extra",
-                "materials_ptrs",
-                "geometry_ptrs"
+                "fragments_extra"
             ]
         },
         "SharedAssets": {

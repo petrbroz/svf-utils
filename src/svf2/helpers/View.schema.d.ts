@@ -34,8 +34,8 @@ export interface PrivateAssets {
   pdb: PrivatePDB;
   fragments: string;
   fragments_extra: string;
-  materials_ptrs: string;
-  geometry_ptrs: string;
+  materials_ptrs?: string;
+  geometry_ptrs?: string;
   texture_manifest?: string;
   [k: string]: unknown;
 }

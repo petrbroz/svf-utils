@@ -2,7 +2,7 @@ import axios from 'axios';
 import { IAuthenticationProvider } from '../../common/authentication-provider';
 import { Scopes } from '@aps_sdk/authentication';
 
-export class SharedDataClient {
+export class SharedDataHttpClient {
     protected readonly axios = axios.create({
         baseURL: 'https://cdn.derivative.autodesk.com/cdn',
         headers: {

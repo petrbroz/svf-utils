@@ -4,7 +4,7 @@ import { IAuthenticationProvider } from '../../common/authentication-provider';
 import { parse } from './Manifest';
 import { Manifest } from './Manifest.schema';
 
-export class ModelDataClient {
+export class ModelDataHttpClient {
     protected readonly axios = axios.create({
         baseURL: 'https://cdn.derivative.autodesk.com/modeldata',
         headers: {

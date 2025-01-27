@@ -3,16 +3,19 @@ import { gunzipSync } from 'zlib';
 import { Scopes } from '@aps_sdk/authentication';
 import { IAuthenticationProvider } from '../../common/authentication-provider';
 
-export enum ResourceType {
+export enum AssetType {
     Geometry = 'g',
     Material = 'm',
 }
 
-export interface Resource {
-    type: ResourceType;
+interface Resource {
+    type: AssetType;
     hash: string;
     data: Uint8Array;
 }
+
+const HashByteLength = 20;
+const HashHexLength = 40;
 
 export class SharedDataWebSocketClient {
     protected requestedResources: number = 0;
@@ -33,41 +36,29 @@ export class SharedDataWebSocketClient {
                 detachListeners();
                 reject(err);
             };
-            const attachListeners = () => {
-                ws.on('open', onOpen);
-                ws.on('error', onError);
-            };
-            const detachListeners = () => {
-                ws.off('open', onOpen);
-                ws.off('error', onError);
-            }
+            const attachListeners = () => ws.on('open', onOpen).on('error', onError);
+            const detachListeners = () => ws.off('open', onOpen).off('error', onError);
             attachListeners();
         });
     }
 
-    protected static HexToBinary = (hex: string): Uint8Array => {
-        const bytes = new Uint8Array(hex.length / 2);
-        for (let i = 0; i < bytes.length; i ++) {
-            bytes[i] = parseInt(hex.substring(i * 2, (i + 1) * 2), 16);
-        }
-        return bytes;
+    protected static HashToBinary = (hash: string): Uint8Array => {
+        console.assert(hash.length === HashHexLength);
+        return Uint8Array.from(Buffer.from(hash, 'hex'));
     }
 
-    protected static BinaryToHex = (binary: Uint8Array): string => {
-        return Array.from(binary).map(byte => byte.toString(16).padStart(2, '0')).join('');
+    protected static BinaryToHash = (arr: Uint8Array): string => {
+        console.assert(arr.byteLength === HashByteLength);
+        return Array.from(arr).map(byte => byte.toString(16).padStart(2, '0')).join('');
     }
 
-    protected static EncodeRequest = (type: ResourceType, hashes: string[]): Uint8Array => {
-        const byteLength = 1 + hashes.reduce((acc, hash) => acc + hash.length / 2, 0);
-        const buffer = new Uint8Array(byteLength);
-        buffer[0] = type.charCodeAt(0);
-        let offset = 1;
-        for (const hash of hashes) {
-            const binary = SharedDataWebSocketClient.HexToBinary(hash);
-            buffer.set(binary, offset);
-            offset += binary.byteLength;
+    protected static EncodeRequest = (type: AssetType, hashes: string[]): Uint8Array => {
+        const arr = new Uint8Array(1 + hashes.length * HashByteLength);
+        arr[0] = type.charCodeAt(0);
+        for (const [i, hash] of hashes.entries()) {
+            arr.set(SharedDataWebSocketClient.HashToBinary(hash), 1 + i * HashByteLength);
         }
-        return buffer;
+        return arr;
     }
 
     protected static DecodeResponse = (data: ArrayBuffer): Resource[] => {
@@ -84,20 +75,20 @@ export class SharedDataWebSocketClient {
         const resourceType = String.fromCharCode(view.getUint32(4, true) & 0xff);
         const numResources = view.getUint32(8, true);
         const offsets = new Uint32Array(data, 12, numResources);
-        const content = new Uint8Array(data, 12 + numResources * 4);
+        const content = new Uint8Array(data, 12 + offsets.byteLength);
         const resources: Resource[] = [];
         for (let i = 0; i < numResources; i++) {
             const start = offsets[i];
             const end = ((i < offsets.length - 1) ? offsets[i + 1] : content.byteLength);
-            const hash = SharedDataWebSocketClient.BinaryToHex(content.slice(start, start + 20));
-            const data = content.slice(start + 20, end);
+            const hash = SharedDataWebSocketClient.BinaryToHash(content.slice(start, start + HashByteLength));
+            const data = content.slice(start + HashByteLength, end);
             if (resourceType === 'e') {
                 // The first four bytes are a HTTP-statuscode-like error code. It doesn't add anything to the message so we ignore it.
                 // See https://git.autodesk.com/A360/platform-ds-ss/blob/6c439e82f3138eed3935b68096d2d980ffe95616/src/ws-server/ws-server.js#L310
                 const errorMessage = new TextDecoder().decode(data.subarray(4));
                 throw new Error(`Error from WebSocket server: ${errorMessage}`);
             } else {
-                resources.push({ type: resourceType as ResourceType, hash: hash, data });
+                resources.push({ type: resourceType as AssetType, hash: hash, data });
             }
         }
         return resources;
@@ -109,16 +100,9 @@ export class SharedDataWebSocketClient {
         this.ws.close();
     }
 
-    async getAsset(urn: string, assetUrn: string): Promise<Buffer> {
-        const [_, account, type, hash] = assetUrn.split('/');
+    async getAssets(urn: string, account: string, type: AssetType, hashes: string[]): Promise<Map<string, Buffer>> {
         const accessToken = await this.authenticationProvider.getToken([Scopes.ViewablesRead]);
-        const resources = await this.requestResources(urn, account, type as ResourceType, [hash], accessToken);
-        return gunzipSync(Buffer.from(resources[0].data.buffer));
-    }
-
-    async getAssets(urn: string, account: string, type: ResourceType, hashes: string[]): Promise<Map<string, Buffer>> {
-        const accessToken = await this.authenticationProvider.getToken([Scopes.ViewablesRead]);
-        const resources = await this.requestResources(urn, account, type as ResourceType, hashes, accessToken);
+        const resources = await this.requestResources(urn, account, type, hashes, accessToken);
         const assets = new Map<string, Buffer>();
         for (const { hash, data } of resources) {
             assets.set(hash, gunzipSync(Buffer.from(data.buffer)));
@@ -126,7 +110,7 @@ export class SharedDataWebSocketClient {
         return assets;
     }
 
-    protected requestResources(urn: string, accountID: string, type: ResourceType, hashes: string[], accessToken: string): Promise<Resource[]> {
+    protected requestResources(urn: string, accountID: string, type: AssetType, hashes: string[], accessToken: string): Promise<Resource[]> {
         if (this.ws.readyState !== WebSocket.OPEN) {
             throw new Error('WebSocket connection is not open.');
         }
@@ -173,16 +157,8 @@ export class SharedDataWebSocketClient {
                 detachListeners();
                 reject(new Error(`WebSocket connection closed with code ${code}: ${reason.toString()}.`));
             };
-            const attachListeners = () => {
-                this.ws.on('message', onMessage);
-                this.ws.on('error', onError);
-                this.ws.on('close', onClose);
-            };
-            const detachListeners = () => {
-                this.ws.off('message', onMessage);
-                this.ws.off('error', onError);
-                this.ws.off('close', onClose);
-            }
+            const attachListeners = () => this.ws.on('message', onMessage).on('error', onError).on('close', onClose);
+            const detachListeners = () => this.ws.off('message', onMessage).off('error', onError).off('close', onClose);
             attachListeners();
             const requestBuffer = SharedDataWebSocketClient.EncodeRequest(type, hashes);
             this.ws.send(requestBuffer);

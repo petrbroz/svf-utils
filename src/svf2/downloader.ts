@@ -1,8 +1,8 @@
 import * as path from 'node:path';
 import * as fse from 'fs-extra';
-import { ModelDataClient } from './helpers/ModelDataClient';
-import { SharedDataClient } from './helpers/SharedDataClient';
-import { ResourceType, SharedDataWebSocketClient } from './helpers/SharedDataWebSocketClient';
+import { ModelDataHttpClient } from './helpers/ModelDataHttpClient';
+import { SharedDataHttpClient } from './helpers/SharedDataHttpClient';
+import { SharedDataWebSocketClient, AssetType } from './helpers/SharedDataWebSocketClient';
 import { findManifestSVF2, resolveViewURN } from './helpers/Manifest';
 import { parseHashes } from './helpers/HashList';
 import { IAuthenticationProvider } from '../common/authentication-provider';
@@ -14,13 +14,13 @@ const UseWebSockets = true;
 const BatchSize = 32;
 
 export class Downloader {
-    protected readonly modelDataClient: ModelDataClient;
-    protected readonly sharedDataClient: SharedDataClient;
+    protected readonly modelDataClient: ModelDataHttpClient;
+    protected readonly sharedDataClient: SharedDataHttpClient;
     protected sharedDataWebSocketClient?: SharedDataWebSocketClient;
 
     constructor(protected readonly authenticationProvider: IAuthenticationProvider) {
-        this.modelDataClient = new ModelDataClient(authenticationProvider);
-        this.sharedDataClient = new SharedDataClient(authenticationProvider);
+        this.modelDataClient = new ModelDataHttpClient(authenticationProvider);
+        this.sharedDataClient = new SharedDataHttpClient(authenticationProvider);
     }
 
     async download(urn: string, outputDir: string): Promise<void> {
@@ -43,16 +43,16 @@ export class Downloader {
         console.log(`Downloading view ${viewId}...`);
         await fse.ensureDir(outputDir);
         const resolvedViewURN = resolveViewURN(manifest, manifest.views[viewId]);
-        const viewData = await this.modelDataClient.getAsset(urn, encodeURIComponent(resolvedViewURN));
-        const view = parse(JSON.parse(viewData.toString()));
+        const viewManifestBuffer = await this.modelDataClient.getAsset(urn, encodeURIComponent(resolvedViewURN));
+        const view = parse(JSON.parse(viewManifestBuffer.toString()));
         const viewFilePath = path.join(outputDir, manifest.views[viewId].urn);
         const viewFolderPath = path.dirname(viewFilePath);
         await fse.ensureDir(viewFolderPath);
-        await fse.writeFile(viewFilePath, viewData);
+        await fse.writeFile(viewFilePath, viewManifestBuffer);
         await this.downloadFragments(urn, resolvedViewURN, view, viewFolderPath, sharedAssetsDir);
         if (UseWebSockets) {
-            await this.downloadGeometriesWS(urn, resolvedViewURN, view, viewFolderPath, sharedAssetsDir);
-            await this.downloadMaterialsWS(urn, resolvedViewURN, view, viewFolderPath, sharedAssetsDir);
+            await this.downloadGeometriesBatch(urn, resolvedViewURN, view, viewFolderPath, sharedAssetsDir);
+            await this.downloadMaterialsBatch(urn, resolvedViewURN, view, viewFolderPath, sharedAssetsDir);
         } else {
             await this.downloadGeometries(urn, resolvedViewURN, view, viewFolderPath, sharedAssetsDir);
             await this.downloadMaterials(urn, resolvedViewURN, view, viewFolderPath, sharedAssetsDir);
@@ -88,7 +88,7 @@ export class Downloader {
         }
     }
 
-    protected async downloadGeometriesWS(urn: string, resolvedViewURN: string, view: View, outputDir: string, sharedAssetsDir: string): Promise<void> {
+    protected async downloadGeometriesBatch(urn: string, resolvedViewURN: string, view: View, outputDir: string, sharedAssetsDir: string): Promise<void> {
         console.log(`Downloading geometry list...`);
         const resolvedGeometryListUrn = resolveAssetUrn(resolvedViewURN, view.manifest.assets.geometry_ptrs);
         const geometryListBuffer = await this.modelDataClient.getAsset(urn, encodeURIComponent(resolvedGeometryListUrn));
@@ -96,7 +96,15 @@ export class Downloader {
         const geometryFolderPath = path.join(sharedAssetsDir, view.manifest.shared_assets.geometry);
         await fse.ensureDir(geometryFolderPath);
         const account = getViewAccount(view);
+
         let batch: { hash: string; path: string; }[] = [];
+        const processBatch = async () => {
+            console.log(`Downloading geometry batch ${batch.map(e => e.hash.substring(0, 4))}...`);
+            const buffers = await this.sharedDataWebSocketClient!.getAssets(urn, account, AssetType.Geometry, batch.map(e => e.hash));
+            await Promise.all(batch.map(({ hash, path }) => fse.writeFile(path, buffers.get(hash))));
+            batch = [];
+        }
+
         for (const hash of parseHashes(geometryListBuffer)) {
             const geometryFilePath = path.join(geometryFolderPath, hash);
             if (await fse.pathExists(geometryFilePath)) {
@@ -104,16 +112,12 @@ export class Downloader {
                 continue;
             }
             batch.push({ hash, path: geometryFilePath });
-            if (batch.length >= BatchSize) {
-                console.log(`Downloading geometries ${batch.map(e => e.hash)}...`);
-                const buffers = await this.sharedDataWebSocketClient!.getAssets(urn, account, ResourceType.Geometry, batch.map(e => e.hash));
-                await Promise.all(batch.map((e, i) => fse.writeFile(e.path, buffers.get(e.hash))));
+            if (batch.length === BatchSize) {
+                await processBatch();
             }
         }
         if (batch.length > 0) {
-            console.log(`Downloading geometries ${batch.map(e => e.hash)}...`);
-            const buffers = await this.sharedDataWebSocketClient!.getAssets(urn, account, ResourceType.Geometry, batch.map(e => e.hash));
-            await Promise.all(batch.map((e, i) => fse.writeFile(e.path, buffers.get(e.hash))));
+            await processBatch();
         }
     }
 
@@ -137,7 +141,7 @@ export class Downloader {
         }
     }
 
-    protected async downloadMaterialsWS(urn: string, resolvedViewURN: string, view: View, outputDir: string, sharedAssetsDir: string): Promise<void> {
+    protected async downloadMaterialsBatch(urn: string, resolvedViewURN: string, view: View, outputDir: string, sharedAssetsDir: string): Promise<void> {
         console.log(`Downloading material list...`);
         const resolvedMaterialListUrn = resolveAssetUrn(resolvedViewURN, view.manifest.assets.materials_ptrs);
         const materialListBuffer = await this.modelDataClient.getAsset(urn, encodeURIComponent(resolvedMaterialListUrn));
@@ -145,7 +149,15 @@ export class Downloader {
         const materialFolderPath = path.join(sharedAssetsDir, view.manifest.shared_assets.materials);
         await fse.ensureDir(materialFolderPath);
         const account = getViewAccount(view);
+
         let batch: { hash: string; path: string }[] = [];
+        const processBatch = async () => {
+            console.log(`Downloading material batch ${batch.map(e => e.hash.substring(0, 4))}...`);
+            const buffers = await this.sharedDataWebSocketClient!.getAssets(urn, account, AssetType.Material, batch.map(e => e.hash));
+            await Promise.all(batch.map(({ hash, path }) => fse.writeFile(path, buffers.get(hash))));
+            batch = [];
+        }
+
         for (const hash of parseHashes(materialListBuffer)) {
             const materialFilePath = path.join(materialFolderPath, hash);
             if (await fse.pathExists(materialFilePath)) {
@@ -153,16 +165,12 @@ export class Downloader {
                 continue;
             }
             batch.push({ hash, path: materialFilePath });
-            if (batch.length >= BatchSize) {
-                console.log(`Downloading materials ${batch.map(e => e.hash)}...`);
-                const buffers = await this.sharedDataWebSocketClient!.getAssets(urn, account, ResourceType.Material, batch.map(e => e.hash));
-                await Promise.all(batch.map((e, i) => fse.writeFile(e.path, buffers.get(e.hash))));
+            if (batch.length === BatchSize) {
+                await processBatch();
             }
         }
         if (batch.length > 0) {
-            console.log(`Downloading materials ${batch.map(e => e.hash)}...`);
-            const buffers = await this.sharedDataWebSocketClient!.getAssets(urn, account, ResourceType.Material, batch.map(e => e.hash));
-            await Promise.all(batch.map((e, i) => fse.writeFile(e.path, buffers.get(e.hash))));
+            await processBatch();
         }
     }
 

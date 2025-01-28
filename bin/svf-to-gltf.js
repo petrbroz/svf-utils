@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const program = require('commander');
+const program = require('commander'); // TODO: replace with the built-in parseArgs
 const path = require('path');
 const { ModelDerivativeClient} = require('@aps_sdk/model-derivative');
 const { Scopes } = require('@aps_sdk/authentication');

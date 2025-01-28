@@ -4,7 +4,8 @@
   "description": "Tools for working with the SVF format used by Autodesk Platform Services.",
   "main": "lib/index.js",
   "bin": {
-    "svf-to-gltf": "./bin/svf-to-gltf.js"
+    "svf-to-gltf": "./bin/svf-to-gltf.js",
+    "svf2-to-gltf": "./bin/svf2-to-gltf.js"
   },
   "engines": {
     "node": ">=16.0.0"

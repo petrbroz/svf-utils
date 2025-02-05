@@ -32,7 +32,8 @@ for dir in "$output_dir"/*/; do
     view=$(basename $dir)
     echo "Processing view: $view..."
     # npx gltfpack -i "$output_dir/$view/output.gltf" -o "$output_dir/$view.glb" -cc # Cannot use gltfpack because the gltf-to-usdz tool does not support its extensions
-    npx gltf-pipeline -i "$output_dir/$view/output.gltf" -o "$output_dir/$view.glb" -d
+    # npx gltf-pipeline -i "$output_dir/$view/output.gltf" -o "$output_dir/$view.glb" -d
+    node tools/consolidate-meshes.js "$output_dir/$view/output.gltf" "$output_dir/$view.consolidated.glb"
 done
 
 # Convert glTFs of individual views to USDZ
@@ -41,7 +42,5 @@ for dir in "$output_dir"/*/; do
     view=$(basename $dir)
     echo "Processing view: $view..."
     docker run -it --rm -v "$output_dir":/usr/app $docker_image "$view/output.gltf" "$view.usdz"
-    docker run -it --rm -v "$output_dir":/usr/app $docker_image "$view.glb" "$view.draco.usdz"
-    rm -rf "$output_dir/$view"
-    rm -rf "$output_dir/$view.glb"
+    docker run -it --rm -v "$output_dir":/usr/app $docker_image "$view.consolidated.glb" "$view.consolidated.usdz"
 done

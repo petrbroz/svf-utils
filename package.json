@@ -31,6 +31,9 @@
   },
   "homepage": "https://github.com/petrbroz/svf-utils#readme",
   "devDependencies": {
+    "@gltf-transform/core": "^4.1.1",
+    "@gltf-transform/extensions": "^4.1.1",
+    "@gltf-transform/functions": "^4.1.1",
     "@types/adm-zip": "^0.4.32",
     "@types/fs-extra": "^9.0.13",
     "@types/ws": "^8.5.14",

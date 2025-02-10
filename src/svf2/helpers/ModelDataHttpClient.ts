@@ -1,8 +1,7 @@
 import axios from 'axios';
 import { Scopes } from '@aps_sdk/authentication';
 import { IAuthenticationProvider } from '../../common/authentication-provider';
-import { parse } from './Manifest';
-import { Manifest } from './Manifest.schema';
+import { Manifest, parse } from './Manifest';
 
 export class ModelDataHttpClient {
     protected readonly axios = axios.create({

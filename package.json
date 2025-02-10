@@ -11,8 +11,7 @@
     "node": ">=16.0.0"
   },
   "scripts": {
-    "generate:types": "json2ts -i 'src/svf2/schemas/*.json' -o src/svf2/helpers",
-    "build": "npm run generate:types && tsc",
+    "build": "tsc",
     "docs": "typedoc --out docs src"
   },
   "author": "Petr Broz <petr.broz@autodesk.com>",
@@ -38,7 +37,6 @@
     "@types/fs-extra": "^9.0.13",
     "@types/ws": "^8.5.14",
     "gltf-validator": "^2.0.0-dev.3.2",
-    "json-schema-to-typescript": "^15.0.3",
     "typedoc": "^0.22.11",
     "typescript": "^4.5.5"
   },
@@ -46,9 +44,9 @@
     "@aps_sdk/authentication": "^1.0.0",
     "@aps_sdk/model-derivative": "^1.0.0",
     "adm-zip": "^0.5.9",
-    "ajv": "^8.17.1",
     "axios": "^1.6.8",
     "fs-extra": "^10.0.0",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "zod": "^3.24.1"
   }
 }

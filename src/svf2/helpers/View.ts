@@ -1,15 +1,72 @@
 import * as path from 'node:path';
-import { Ajv } from 'ajv';
-import { View } from './View.schema';
-import schema from '../schemas/View.schema.json';
+import { z } from 'zod';
+
+const PrivatePDBSchema = z.object({
+    avs: z.string(),
+    offsets: z.string(),
+    dbid: z.string()
+});
+
+const SharedPDBSchema = z.object({
+    attrs: z.string(),
+    values: z.string(),
+    ids: z.string()
+});
+
+const PrivateAssetsSchema = z.object({
+    pdb: PrivatePDBSchema,
+    fragments: z.string(),
+    fragments_extra: z.string(),
+    materials_ptrs: z.string().optional(),
+    geometry_ptrs: z.string().optional(),
+    texture_manifest: z.string().optional()
+});
+
+const SharedAssetsSchema = z.object({
+    pdb: SharedPDBSchema,
+    geometry: z.string(),
+    materials: z.string(),
+    textures: z.string(),
+    global_sharding: z.number()
+});
+
+const ManifestSchema = z.object({
+    assets: PrivateAssetsSchema,
+    shared_assets: SharedAssetsSchema
+});
+
+const StatsSchema = z.object({
+    num_fragments: z.number().optional(),
+    num_polys: z.number().optional(),
+    num_materials: z.number().optional(),
+    num_geoms: z.number().optional(),
+    num_textures: z.number().optional()
+});
+
+const GeoreferenceSchema = z.object({
+    positionLL84: z.array(z.number()).optional(),
+    refPointLMV: z.array(z.number()).optional()
+});
+
+const FragmentTransformsOffsetSchema = z.object({
+    x: z.number(),
+    y: z.number(),
+    z: z.number()
+});
+
+const ViewSchema = z.object({
+    name: z.string(),
+    version: z.number(),
+    manifest: ManifestSchema,
+    stats: StatsSchema.optional(),
+    georeference: GeoreferenceSchema.optional(),
+    fragmentTransformsOffset: FragmentTransformsOffsetSchema.optional()
+});
+
+export type View = z.infer<typeof ViewSchema>;
 
 export function parse(json: any): View {
-    const ajv = new Ajv();
-    const validate = ajv.compile<View>(schema);
-    if (!validate(json)) {
-        throw new Error(ajv.errorsText(validate.errors));
-    }
-    return json;
+    return ViewSchema.parse(json);
 }
 
 export function getViewMetadata(view: View): { [key: string]: any } {

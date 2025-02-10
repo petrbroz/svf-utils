@@ -1,14 +1,12 @@
 import * as path from 'node:path';
 import * as fse from 'fs-extra';
+import { IAuthenticationProvider } from '../common/authentication-provider';
 import { ModelDataHttpClient } from './helpers/ModelDataHttpClient';
 import { SharedDataHttpClient } from './helpers/SharedDataHttpClient';
 import { SharedDataWebSocketClient, AssetType } from './helpers/SharedDataWebSocketClient';
-import { findManifestSVF2, resolveViewURN } from './helpers/Manifest';
+import { findManifestSVF2, resolveViewURN, OTGManifest } from './helpers/Manifest';
 import { parseHashes } from './helpers/HashList';
-import { IAuthenticationProvider } from '../common/authentication-provider';
-import { OTGManifest } from './helpers/Manifest.schema';
-import { View } from './helpers/View.schema';
-import { getViewAccount, parse, resolveAssetUrn, resolveGeometryUrn, resolveMaterialUrn, resolveTextureUrn } from './helpers/View';
+import { getViewAccount, parse, resolveAssetUrn, resolveGeometryUrn, resolveMaterialUrn, resolveTextureUrn, View } from './helpers/View';
 
 const UseWebSockets = true;
 const BatchSize = 32;

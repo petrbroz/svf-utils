@@ -8,10 +8,8 @@ import { Fragment, parseFragments } from './helpers/Fragment';
 import { Geometry, GeometryType, parseGeometry } from './helpers/Geometry';
 import { Material, parseMaterial } from './helpers/Material';
 import { IAuthenticationProvider } from '../common/authentication-provider';
-import { findManifestSVF2, resolveViewURN } from './helpers/Manifest';
-import { OTGManifest } from './helpers/Manifest.schema';
-import { View } from './helpers/View.schema';
-import { getViewAccount, getViewMetadata, parse, resolveAssetUrn, resolveGeometryUrn, resolveMaterialUrn, resolveTextureUrn } from './helpers/View';
+import { findManifestSVF2, resolveViewURN, OTGManifest } from './helpers/Manifest';
+import { getViewAccount, getViewMetadata, parse, resolveAssetUrn, resolveGeometryUrn, resolveMaterialUrn, resolveTextureUrn, View } from './helpers/View';
 
 const UseWebSockets = true;
 const BatchSize = 32;

@@ -73,7 +73,7 @@ export class Reader {
     protected async readFragments(view: View, resolvedfragListUrn: string): Promise<Fragment[]> {
         console.log('Reading fragment list...');
         const fragmentData = await this.modelDataClient.getAsset(this.urn, encodeURIComponent(resolvedfragListUrn));
-        const fragments = Array.from(parseFragments(fragmentData));
+        const fragments = Array.from(parseFragments(fragmentData, view.fragmentTransformsOffset));
         return fragments;
     }
 

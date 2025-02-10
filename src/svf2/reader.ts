@@ -1,13 +1,13 @@
 import * as IMF from '../common/intermediate-format';
+import { IAuthenticationProvider } from '../common/authentication-provider';
 import { PropDbReader } from '../common/propdb-reader';
-import { ModelDataHttpClient } from './helpers/ModelDataHttpClient';
-import { SharedDataHttpClient } from './helpers/SharedDataHttpClient';
-import { SharedDataWebSocketClient, AssetType } from './helpers/SharedDataWebSocketClient';
+import { ModelDataHttpClient } from './clients/ModelDataHttpClient';
+import { SharedDataHttpClient } from './clients/SharedDataHttpClient';
+import { SharedDataWebSocketClient, AssetType } from './clients/SharedDataWebSocketClient';
 import { parseHashes } from './helpers/HashList';
 import { Fragment, parseFragments } from './helpers/Fragment';
 import { Geometry, GeometryType, parseGeometry } from './helpers/Geometry';
 import { Material, parseMaterial } from './helpers/Material';
-import { IAuthenticationProvider } from '../common/authentication-provider';
 import { findManifestSVF2, resolveViewURN, OTGManifest } from './helpers/Manifest';
 import { getViewAccount, getViewMetadata, parse, resolveAssetUrn, resolveGeometryUrn, resolveMaterialUrn, resolveTextureUrn, View } from './helpers/View';
 

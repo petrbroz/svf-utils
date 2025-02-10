@@ -82,6 +82,15 @@ export function getViewMetadata(view: View): { [key: string]: any } {
     return metadata;
 }
 
+export function getViewAccount(view: View): string {
+    let baseUrl = view.manifest.shared_assets.geometry;
+    if (baseUrl.startsWith('$otg_cdn$')) {
+        baseUrl = baseUrl.substring(baseUrl.indexOf('/'));
+    }
+    const [_, account] = baseUrl.split('/');
+    return account;
+}
+
 export function resolveAssetUrn(resolvedViewUrn: string, assetUrn: string): string {
     if (assetUrn.startsWith('urn:')) {
         return assetUrn;
@@ -96,15 +105,6 @@ export function resolveGeometryUrn(view: View, hash: string): string {
         baseUrl = baseUrl.substring(baseUrl.indexOf('/'));
     }
     return baseUrl + encodeURI(hash);
-}
-
-export function getViewAccount(view: View): string {
-    let baseUrl = view.manifest.shared_assets.geometry;
-    if (baseUrl.startsWith('$otg_cdn$')) {
-        baseUrl = baseUrl.substring(baseUrl.indexOf('/'));
-    }
-    const [_, account] = baseUrl.split('/');
-    return account;
 }
 
 export function resolveMaterialUrn(view: View, hash: string): string {

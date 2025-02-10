@@ -1,6 +1,6 @@
 import axios from 'axios';
-import { IAuthenticationProvider } from '../../common/authentication-provider';
 import { Scopes } from '@aps_sdk/authentication';
+import { IAuthenticationProvider } from '../../common/authentication-provider';
 
 export class SharedDataHttpClient {
     protected readonly axios = axios.create({

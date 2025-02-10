@@ -1,9 +1,9 @@
 import * as path from 'node:path';
 import * as fse from 'fs-extra';
 import { IAuthenticationProvider } from '../common/authentication-provider';
-import { ModelDataHttpClient } from './helpers/ModelDataHttpClient';
-import { SharedDataHttpClient } from './helpers/SharedDataHttpClient';
-import { SharedDataWebSocketClient, AssetType } from './helpers/SharedDataWebSocketClient';
+import { ModelDataHttpClient } from './clients/ModelDataHttpClient';
+import { SharedDataHttpClient } from './clients/SharedDataHttpClient';
+import { SharedDataWebSocketClient, AssetType } from './clients/SharedDataWebSocketClient';
 import { findManifestSVF2, resolveViewURN, OTGManifest } from './helpers/Manifest';
 import { parseHashes } from './helpers/HashList';
 import { getViewAccount, parse, resolveAssetUrn, resolveGeometryUrn, resolveMaterialUrn, resolveTextureUrn, View } from './helpers/View';

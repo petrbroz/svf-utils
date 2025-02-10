@@ -1,10 +1,9 @@
-const { SdkManagerBuilder } = require('@aps_sdk/autodesk-sdkmanager');
 const { AuthenticationClient, Scopes } = require('@aps_sdk/authentication');
 const { ModelDerivativeClient } = require('@aps_sdk/model-derivative');
 const { TwoLeggedAuthenticationProvider, BasicAuthenticationProvider } = require('..');
 
 async function getSvfDerivatives(urn, clientId, clientSecret, region) {
-    const authenticationClient = new AuthenticationClient(SdkManagerBuilder.create().build());
+    const authenticationClient = new AuthenticationClient();
     const modelDerivativeClient = new ModelDerivativeClient();
     const credentials = await authenticationClient.getTwoLeggedToken(clientId, clientSecret, [Scopes.ViewablesRead]);
     const manifest = await modelDerivativeClient.getManifest(urn, { accessToken: credentials.access_token, region });

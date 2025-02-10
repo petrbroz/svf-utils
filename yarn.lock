@@ -11,32 +11,32 @@
     "@types/json-schema" "^7.0.15"
     js-yaml "^4.1.0"
 
-"@aps_sdk/authentication@^1.0.0-beta.1":
-  version "1.0.0-beta.1"
-  resolved "https://registry.yarnpkg.com/@aps_sdk/authentication/-/authentication-1.0.0-beta.1.tgz#cd978e705f603d545cf3e61edbe45bb36b9d644a"
-  integrity sha512-pbDmQA7knAWWI0VXaWphpBOTUYHRdvqgtpX9cIIrzr8B/9c6jgbh7aAulslasuZmwdKbyWbJjqKPrdloHLqqTA==
+"@aps_sdk/authentication@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@aps_sdk/authentication/-/authentication-1.0.0.tgz#fbd0b0cea4d9227192e06d48acf608a17b251f23"
+  integrity sha512-nCRi0UCw1UKQAg1jZj8SOvZJU75rQgUVDjvljhvaKXlwol8+KHxl2qNHINOzCaJUyi8FW/QRqlaqSzWDyuY0lw==
   dependencies:
-    "@aps_sdk/autodesk-sdkmanager" "^1.0.0-beta.1"
+    "@aps_sdk/autodesk-sdkmanager" "^1.0.0"
     "@types/node" "^20.9.0"
-    axios "^1.6.1"
+    axios "^1.7.8"
 
-"@aps_sdk/autodesk-sdkmanager@^1.0.0-beta.1", "@aps_sdk/autodesk-sdkmanager@^1.0.0-beta.2":
-  version "1.0.0-beta.2"
-  resolved "https://registry.yarnpkg.com/@aps_sdk/autodesk-sdkmanager/-/autodesk-sdkmanager-1.0.0-beta.2.tgz#44a635518d70a81db0af57b76882f0dab36f1c8c"
-  integrity sha512-l+HAKPAec5nVDD6loPGjIVBScGT9HK34YyG+InjbrFucpJsZMMReTNqiR3mEZSg3BziYtwqNE7Fst/0wbpJeEg==
+"@aps_sdk/autodesk-sdkmanager@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@aps_sdk/autodesk-sdkmanager/-/autodesk-sdkmanager-1.0.0.tgz#1552b4ee3211bbc3a823f7fa93afc7932424e1b8"
+  integrity sha512-Nqi59aa3xHa5qG9KZZ9HhxYMrMGFimmbqLq8406MZB9Tje0gqwZLdEFfu25VDUhbzvONuq+ZX2m0e+yhBHl2QQ==
   dependencies:
-    axios "^1.4.0"
+    axios "^1.7.8"
     cockatiel "^3.1.1"
     winston "^3.9.0"
 
-"@aps_sdk/model-derivative@^1.0.0-beta.3":
-  version "1.0.0-beta.3"
-  resolved "https://registry.yarnpkg.com/@aps_sdk/model-derivative/-/model-derivative-1.0.0-beta.3.tgz#82332e742b645bc86b80722c7d12911aaabbe5f7"
-  integrity sha512-sdHW7J3nGPO6rDIQKhsNidgZctsI9k+UZOgVJCJjRTTYS8+KDIYW/vZGPl7B7dTYTqfytwo22nGugDxmjO2/2A==
+"@aps_sdk/model-derivative@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@aps_sdk/model-derivative/-/model-derivative-1.0.0.tgz#1d068c839288644866fecd37e55aee4de9fc4627"
+  integrity sha512-r7WHx/iYLltYmUnrShEskp7UWqG1CupeN8E9G2Ln7Kd/wOa6IkOIvD1CnFOQ3YFSMzkNQMjB6GMWNLiGIUnNbw==
   dependencies:
-    "@aps_sdk/autodesk-sdkmanager" "^1.0.0-beta.2"
+    "@aps_sdk/autodesk-sdkmanager" "^1.0.0"
     "@types/node" "^20.9.0"
-    axios "^1.6.1"
+    axios "^1.7.8"
 
 "@colors/colors@1.6.0", "@colors/colors@^1.6.0":
   version "1.6.0"
@@ -289,10 +289,19 @@ asynckit@^0.4.0:
   resolved "https://registry.yarnpkg.com/asynckit/-/asynckit-0.4.0.tgz#c79ed97f7f34cb8f2ba1bc9790bcc366474b4b79"
   integrity sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==
 
-axios@^1.4.0, axios@^1.6.1, axios@^1.6.8:
+axios@^1.6.8:
   version "1.7.7"
   resolved "https://registry.yarnpkg.com/axios/-/axios-1.7.7.tgz#2f554296f9892a72ac8d8e4c5b79c14a91d0a47f"
   integrity sha512-S4kL7XrjgBmvdGut0sN3yJxqYzrDOnivkBiN0OFs6hLiUam3UPvswUo0kqGyhqUZGEOytHyumEdXsAkgCOUf3Q==
+  dependencies:
+    follow-redirects "^1.15.6"
+    form-data "^4.0.0"
+    proxy-from-env "^1.1.0"
+
+axios@^1.7.8:
+  version "1.7.9"
+  resolved "https://registry.yarnpkg.com/axios/-/axios-1.7.9.tgz#d7d071380c132a24accda1b2cfc1535b79ec650a"
+  integrity sha512-LhLcE7Hbiryz8oMDdDptSrWowmB4Bl6RCt6sIJKpRB4XtVf0iEgewX3au/pJqm+Py1kCASkb/FFKjxQaLtxJvw==
   dependencies:
     follow-redirects "^1.15.6"
     form-data "^4.0.0"

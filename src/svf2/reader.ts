@@ -171,36 +171,29 @@ export class Reader {
         return map;
     }
 
-    // protected async getPropertyDb(view: View): Promise<PropDbReader> {
-    //     // const privateDbAssets = viewHelper.listPrivateDatabaseAssets();
-    //     // const sharedDbAssets = viewHelper.listSharedDatabaseAssets();
+    protected async getPropertyDb(urn:string, view: View): Promise<PropDbReader> {
+        const privateDbAssets = view.manifest.assets.pdb;
+        const sharedDbAssets = view.manifest.shared_assets.pdb;
+        if (!privateDbAssets || !sharedDbAssets) {
+            throw new Error('Could not parse property database. Some of the database assets are missing.');
+        }
 
-    //     const privateDbAssets = view.manifest.assets.pdb;
-    //     const sharedDbAssets = view.manifest.shared_assets.pdb;
-    //     if (!privateDbAssets || !sharedDbAssets) {
-    //         throw new Error('Could not parse property database. Some of the database assets are missing.');
-    //     }
+        const offsetsAsset = privateDbAssets['offsets'];
+        const avsAsset = privateDbAssets['avs'];
+        const dbIdAsset = privateDbAssets['dbid'];
 
-    //     const offsetsAsset = privateDbAssets['offsets'];
-    //     const avsAsset = privateDbAssets['avs'];
-    //     const dbIdAsset = privateDbAssets['dbid'];
+        const idsAsset = sharedDbAssets['ids'];
+        const attrsAsset = sharedDbAssets['attrs'];
+        const valsAsset = sharedDbAssets['values'];
 
-    //     const idsAsset = sharedDbAssets['ids'];
-    //     const attrsAsset = sharedDbAssets['attrs'];
-    //     const valsAsset = sharedDbAssets['values'];
+        const buffers = await Promise.all([
+            this.modelDataClient.getAsset(this.urn, encodeURIComponent(resolveAssetUrn(urn, idsAsset))),
+            this.modelDataClient.getAsset(this.urn, encodeURIComponent(resolveAssetUrn(urn, offsetsAsset))),
+            this.modelDataClient.getAsset(this.urn, encodeURIComponent(resolveAssetUrn(urn, avsAsset))),
+            this.modelDataClient.getAsset(this.urn, encodeURIComponent(resolveAssetUrn(urn, attrsAsset))),
+            this.modelDataClient.getAsset(this.urn, encodeURIComponent(resolveAssetUrn(urn, valsAsset))),
 
-    //     const buffers = await Promise.all([
-    //         this.modelDataClient.getAsset(this.urn, encodeURIComponent(resolveAssetUrn(view, idsAsset))),
-    //         this.modelDataClient.getAsset(this.urn, encodeURIComponent(offsetsAsset.resolvedUrn)),
-    //         this.modelDataClient.getAsset(this.urn, encodeURIComponent(avsAsset.resolvedUrn)),
-    //         this.modelDataClient.getAsset(this.urn, encodeURIComponent(attrsAsset.resolvedUrn)),
-    //         this.modelDataClient.getAsset(this.urn, encodeURIComponent(valsAsset.resolvedUrn)),
-    //         this.modelDataClient.getAsset(this.urn, encodeURIComponent(dbIdAsset.resolvedUrn)),
-    //     ]);
-
-    //     // SVF common function not working with private db assets
-    //     return new PropDbReader(buffers[0], buffers[1], buffers[2], buffers[3], buffers[4]);
-    // }
+        ]);
 }
 
 export class Scene implements IMF.IScene {

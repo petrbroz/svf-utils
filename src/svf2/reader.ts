@@ -192,8 +192,8 @@ export class Reader {
             this.modelDataClient.getAsset(this.urn, encodeURIComponent(resolveAssetUrn(urn, avsAsset))),
             this.modelDataClient.getAsset(this.urn, encodeURIComponent(resolveAssetUrn(urn, attrsAsset))),
             this.modelDataClient.getAsset(this.urn, encodeURIComponent(resolveAssetUrn(urn, valsAsset))),
-
         ]);
+        return new PropDbReader(buffers[0], buffers[1], buffers[2], buffers[3], buffers[4]);
 }
 
 export class Scene implements IMF.IScene {

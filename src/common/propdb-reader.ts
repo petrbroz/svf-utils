@@ -38,23 +38,30 @@ export class PropDbReader {
         return integers;
     }
 
-        /**
-     * Reads the avs.pack file (binary-encoded AVS data) and converts it to an array of numbers.
-     * @param {Buffer} buffer The buffer containing the avs.pack file data.
-     * @returns {number[]} The extracted AVS data in a format similar to objects_avs.json.
-     */
-        readAvsFile(buffer: Buffer): number[] {
-            const avs: number[] = [];
-        
-            // Ensure we only read in pairs and avoid out-of-bounds access
-            for (let i = 0; i < buffer.length - 1; i += 2) {
-                const key = buffer.readUInt8(i);       // First byte
-                const value = buffer.readUInt8(i + 1); // Second byte
-                avs.push(key, value);
-            }
-        
-            return avs;
+/**
+ * Reads the avs.pack file (binary-encoded AVS data) and converts it to an array of key-value tuples.
+ * @param {Buffer} buffer The buffer containing the avs.pack file data.
+ * @returns {[number, number][]} The extracted AVS data as an array of key-value tuples.
+ */
+readAvsFile(buffer: Buffer): [number, number][] {
+    const avs: [number, number][] = [];
+
+    // Ensure we process all pairs safely within buffer boundaries
+    for (let i = 0; i < buffer.length - 2; i += 4) {
+        const key = buffer.readUInt16LE(i); // Read first 16-bit value
+
+        // Ensure there's a valid next value before reading
+        if (i + 2 < buffer.length) {
+            const value = buffer.readUInt16LE(i + 2); // Read second 16-bit value
+            avs.push([key, value]);
+        } else {
+            // If there's no next value, push the last key with a placeholder
+            avs.push([key, 0]);
         }
+    }
+
+    return avs;
+}
         
 
     /**
@@ -66,11 +73,11 @@ export class PropDbReader {
      */
     *enumerateProperties(id: number): Iterable<{ name: string; category: string; value: any }> {
         if (id > 0 && id < this._offsets.length) {
-            const avStart = 2 * this._offsets[id];
-            const avEnd = id == this._offsets.length - 1 ? this._avs.length : 2 * this._offsets[id + 1];
+            const avStart =this._offsets[id];
+            const avEnd = id == this._offsets.length - 1 ? this._avs.length : this._offsets[id + 1];
             for (let i = avStart; i < avEnd; i += 2) {
-                const attrOffset = this._avs[i];
-                const valOffset = this._avs[i + 1];
+                const attrOffset = this._avs[i][0];
+                const valOffset = this._avs[i][1];
                 const attr = this._attrs[attrOffset];
                 const value = this._vals[valOffset];
                 yield { name: attr[0], category: attr[1], value };

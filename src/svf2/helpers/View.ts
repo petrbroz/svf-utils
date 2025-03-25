@@ -1,4 +1,4 @@
-import * as path from 'node:path';
+import { posix } from 'node:path';
 import { z } from 'zod';
 
 const PrivatePDBSchema = z.object({
@@ -95,7 +95,7 @@ export function resolveAssetUrn(resolvedViewUrn: string, assetUrn: string): stri
     if (assetUrn.startsWith('urn:')) {
         return assetUrn;
     } else {
-        return path.normalize(path.join(path.dirname(resolvedViewUrn), assetUrn));
+        return posix.normalize(posix.join(posix.dirname(resolvedViewUrn), assetUrn));
     }
 }
 

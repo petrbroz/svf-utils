@@ -77,7 +77,7 @@ const ManifestSchema = z.object({
     progress: z.string(),
     region: z.string().optional(),
     status: z.string(),
-    registerKeys: z.map(z.string(), z.array(z.string())).optional(),
+    // registerKeys: z.map(z.string(), z.array(z.string())).optional(),
     children: z.array(ChildSchema)
 });
 

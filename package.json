@@ -4,10 +4,11 @@
   "description": "Tools for working with the SVF format used by Autodesk Platform Services.",
   "main": "lib/index.js",
   "bin": {
-    "svf-to-gltf": "./bin/svf-to-gltf.js"
+    "svf-to-gltf": "./bin/svf-to-gltf.js",
+    "svf2-to-gltf": "./bin/svf2-to-gltf.js"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=20.0.0"
   },
   "scripts": {
     "build": "tsc",
@@ -29,8 +30,12 @@
   },
   "homepage": "https://github.com/petrbroz/svf-utils#readme",
   "devDependencies": {
+    "@gltf-transform/core": "^4.1.1",
+    "@gltf-transform/extensions": "^4.1.1",
+    "@gltf-transform/functions": "^4.1.1",
     "@types/adm-zip": "^0.5.7",
     "@types/fs-extra": "^11.0.4",
+    "@types/ws": "^8.5.14",
     "gltf-validator": "^2.0.0-dev.3.2",
     "typedoc": "^0.28.2",
     "typescript": "^5.8.3"
@@ -40,7 +45,8 @@
     "@aps_sdk/model-derivative": "^1.1.0",
     "adm-zip": "^0.5.9",
     "axios": "^1.8.4",
-    "commander": "^3.0.2",
-    "fs-extra": "^11.3.0"
+    "fs-extra": "^11.3.0",
+    "ws": "^8.18.0",
+    "zod": "^3.24.1"
   }
 }

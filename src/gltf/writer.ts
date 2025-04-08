@@ -128,7 +128,7 @@ export class Writer {
             asset: {
                 version: '2.0',
                 generator: 'svf-utils',
-                copyright: '2024 (c) Autodesk'
+                copyright: '2025 (c) Autodesk'
             },
             extensionsUsed: [
                 "KHR_texture_transform"

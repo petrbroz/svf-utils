@@ -9,14 +9,16 @@
 
 ![APS & glTF logos](./logo.png)
 
-Utilities for converting [Autodesk Platform Services](https://aps.autodesk.com) SVF file format into
-[glTF 2.0](https://github.com/KhronosGroup/glTF/tree/master/specification/2.0).
+*Experimental* utilities for working with [Autodesk Platform Services](https://aps.autodesk.com) SVF/SVF2 file formats.
 
 ## Usage
 
 ### Command line
 
-- install the package: `npm install --global svf-utils`
+Install the package globally (`npm install --global svf-utils`), and use one of the commands listed below.
+
+#### SVF
+
 - run the `svf-to-gltf` command without parameters for usage info
 - run the command with a path to a local SVF file
 - run the command with a Model Derivative URN (and optionally viewable GUID)
@@ -32,7 +34,7 @@ Utilities for converting [Autodesk Platform Services](https://aps.autodesk.com) 
   - `--ignore-points` to exclude point geometry from the output
   - `--center` move the model to origin
 
-#### Unix/macOS
+On Unix/macOS:
 
 ```
 svf-to-gltf <path to local svf> --output-folder <path to output folder>
@@ -53,7 +55,7 @@ export APS_ACCESS_TOKEN=<access token>
 svf-to-gltf <urn> --output-folder <path to output folder>
 ```
 
-#### Windows
+On Windows:
 
 ```
 svf-to-gltf <path to local svf> --output-folder <path to output folder>
@@ -74,20 +76,52 @@ set APS_ACCESS_TOKEN=<access token>
 svf-to-gltf <urn> --output-folder <path to output folder>
 ```
 
+#### SVF2
+
+- run the `svf2-to-gltf` command without parameters for usage info
+- run the command with a Model Derivative URN
+    - to access APS you must also specify credentials (`APS_CLIENT_ID` and `APS_CLIENT_SECRET`)
+    or an authentication token (`APS_ACCESS_TOKEN`) as env. variables
+- the command also accepts the following options:
+  - `--center` move the model to origin
+
+On Unix/macOS:
+
+```
+export APS_CLIENT_ID=<client id>
+export APS_CLIENT_SECRET=<client secret>
+svf2-to-gltf <urn> <path/to/output/folder>
+```
+
+or
+
+```
+export APS_ACCESS_TOKEN=<access token>
+svf2-to-gltf <urn> <path/to/output/folder>
+```
+
+On Windows:
+
+```
+set APS_CLIENT_ID=<client id>
+set APS_CLIENT_SECRET=<client secret>
+svf2-to-gltf <urn> <path\to\output\folder>
+```
+
+or
+
+```
+set APS_ACCESS_TOKEN=<access token>
+svf2-to-gltf <urn> <path\to\output\folder>
+```
+
 ### Node.js
 
 The library can be used at different levels of granularity.
 
-The easiest way to convert an SVF file is to read the entire model into memory
-using [SvfReader#read](https://petrbroz.github.io/svf-utils/docs/classes/_svf_reader_.reader.html#read)
-method, and save the model into glTF using [GltfWriter#write](https://petrbroz.github.io/svf-utils/docs/classes/_gltf_writer_.writer.html#write):
-[samples/remote-svf-to-gltf.js](./samples/remote-svf-to-gltf.js).
+The easiest way to convert an SVF file is to read the entire model into memory using `SvfReader#read`/`SVF2Reader#read` methods, and save the model into glTF using `GltfWriter#write`. See [samples/remote-svf-to-gltf.js](./samples/remote-svf-to-gltf.js) and [samples/remote-svf2-to-gltf.js](./samples/remote-svf2-to-gltf.js).
 
-If you don't want to read the entire model into memory (for example, when distributing
-the parsing of an SVF over multiple servers), you can use methods like
-[SvfReader#enumerateFragments](https://petrbroz.github.io/svf-utils/docs/classes/_svf_reader_.reader.html#enumeratefragments)
-or [SvfReader#enumerateGeometries](https://petrbroz.github.io/svf-utils/docs/classes/_svf_reader_.reader.html#enumerategeometries)
-to _asynchronously_ iterate over individual elements:
+If you don't want to read the entire model into memory (for example, when distributing the parsing of an SVF over multiple servers), you can use methods like `SvfReader#enumerateFragments`/`SVF2Reader#enumerateFragments` or `SvfReader#enumerateGeometries`/`SVF2Reader#enumerateGeometries` to _asynchronously_ iterate over individual elements:
 
 ```js
 const { SvfReader } = require('svf-utils');
@@ -100,8 +134,7 @@ for await (const fragment of reader.enumerateFragments()) {
 }
 ```
 
-And finally, if you already have the individual SVF assets in memory, you can parse the binary data
-directly using _synchronous_ iterators like [parseMeshes](https://petrbroz.github.io/svf-utils/docs/modules/_svf_meshes_.html#parsemeshes):
+And finally, if you already have the individual SVF/SVF2 assets in memory, you can parse the binary data directly using _synchronous_ iterators like `parseMeshes`:
 
 ```js
 const { parseMeshes } = require('svf-utils/lib/svf/meshes');
@@ -119,16 +152,12 @@ for (const mesh of parseMeshes(buffer)) {
 
 You can customize the translation by sub-classing the reader and/or the writer class. For example:
 
-- The _samples/custom-gltf-attribute.js_ script adds the dbID of each SVF node as a new attribute in its mesh
-- The _samples/filter-by-area.js_ script only outputs geometries that are completely contained within a specified area
+- [samples/custom-gltf-attribute.js](samples/custom-gltf-attribute.js) adds the dbID of each SVF node as a new attribute in its mesh
+- [samples/filter-by-area.js](samples/filter-by-area.js) only outputs geometries that are completely contained within a specified area
 
 ### Metadata
 
-When converting models from [Model Derivative service](https://aps.autodesk.com/en/docs/model-derivative/v2),
-you can retrieve the model's properties and metadata in form of a sqlite database. The command line tool downloads
-this database automatically as _properties.sqlite_ file directly in your output folder. If you're using this library
-in your own Node.js code, you can find the database in the manifest by looking for an asset with type "resource",
-and role "Autodesk.CloudPlatform.PropertyDatabase":
+When converting models from [Model Derivative service](https://aps.autodesk.com/en/docs/model-derivative/v2), you can retrieve the model properties and metadata in form of a sqlite database. The command line tool downloads this database automatically as _properties.sqlite_ file directly in your output folder. If you're using this library in your own Node.js code, you can find the database in the manifest by looking for an asset with type "resource", and role "Autodesk.CloudPlatform.PropertyDatabase":
 
 ```js
     ...
@@ -140,9 +169,7 @@ and role "Autodesk.CloudPlatform.PropertyDatabase":
     ...
 ```
 
-The structure of the sqlite database, and the way to extract model properties from it is explained in
-https://github.com/wallabyway/propertyServer/blob/master/pipeline.md. Here's a simple diagram showing
-the individual tables in the database, and the relationships between them:
+The structure of the sqlite database, and the way to extract model properties from it is explained in https://github.com/wallabyway/propertyServer/blob/master/pipeline.md. Here's a simple diagram showing the individual tables in the database, and the relationships between them:
 
 ![Property Database Diagram](https://user-images.githubusercontent.com/440241/42006177-35a1070e-7a2d-11e8-8c9e-48a0afeea00f.png)
 
@@ -159,10 +186,7 @@ WHERE propName = "Material" AND propValue LIKE "%Concrete%"
 
 ### GLB, Draco, and other post-processing
 
-Following the Unix philosophy, we removed post-processing dependencies from this project,
-and instead leave it to developers to "pipe" the output of this library to other tools
-such as https://github.com/CesiumGS/gltf-pipeline or https://github.com/zeux/meshoptimizer.
-See [./samples/local-svf-to-gltf.sh](./samples/local-svf-to-gltf.sh) or
+Following the Unix philosophy, we removed post-processing dependencies from this project, and instead leave it to developers to "pipe" the output of this library to other tools such as https://github.com/CesiumGS/gltf-pipeline or https://github.com/zeux/meshoptimizer. See [./samples/local-svf-to-gltf.sh](./samples/local-svf-to-gltf.sh) or
 [./samples/remote-svf-to-gltf.sh](./samples/remote-svf-to-gltf.sh) for examples.
 
 ## Development
@@ -227,7 +251,4 @@ In _.vscode/launch.json_:
 
 ### Intermediate Format
 
-The project provides a collection of interfaces for an [intermediate 3D format](./src/common/intermediate-format.ts)
-that is meant to be used by all loaders and writers. When implementing a new loader, make sure that
-its output implements the intermediate format's `IScene` interface. Similarly, this interface should
-also be expected as the input to all new writers.
+The project provides a collection of interfaces for an [intermediate 3D format](./src/common/intermediate-format.ts) that is meant to be used by all loaders and writers. When implementing a new loader, make sure that its output implements the intermediate format's `IScene` interface. Similarly, this interface should also be expected as the input to all new writers.

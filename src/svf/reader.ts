@@ -2,7 +2,6 @@ import * as path from 'path';
 import * as fse from 'fs-extra';
 import Zip from 'adm-zip';
 import axios from 'axios';
-import { isNullOrUndefined } from 'util';
 import { ManifestResources, ModelDerivativeClient, Region } from '@aps_sdk/model-derivative';
 import { Scopes } from '@aps_sdk/authentication';
 import { PropDbReader } from '../common/propdb-reader';
@@ -365,8 +364,13 @@ export class Reader {
 
     protected findAsset(query: { type?: SVF.AssetType, uri?: string }): SVF.ISvfManifestAsset | undefined {
         return this.svf.manifest.assets.find(asset => {
-            return (isNullOrUndefined(query.type) || asset.type === query.type)
-                && (isNullOrUndefined(query.uri) || asset.URI === query.uri);
+            if (query.type && asset.type !== query.type) {
+                return false;
+            }
+            if (query.uri && asset.URI !== query.uri) {
+                return false;
+            }
+            return true;
         });
     }
 

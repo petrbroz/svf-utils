@@ -1,9 +1,7 @@
 import * as path from 'path';
 import crypto from 'crypto';
 import * as fse from 'fs-extra';
-
 import * as gltf from './schema';
-import { isUndefined, isNullOrUndefined } from 'util';
 import { ImagePlaceholder } from '../common/image-placeholders';
 import * as IMF from '../common/intermediate-format';
 
@@ -68,7 +66,7 @@ export class Writer {
      */
     constructor(options: IWriterOptions = {}) {
         this.options = {
-            maxBufferSize: isNullOrUndefined(options.maxBufferSize) ? MaxBufferSize : options.maxBufferSize,
+            maxBufferSize: options.maxBufferSize ?? MaxBufferSize,
             ignoreMeshGeometry: !!options.ignoreMeshGeometry,
             ignoreLineGeometry: !!options.ignoreLineGeometry,
             ignorePointGeometry: !!options.ignorePointGeometry,
@@ -264,7 +262,7 @@ export class Writer {
             const outputUvs = hasTextures(material) || !this.options.skipUnusedUvs;
             const node = this.createNode(fragment, imf, outputUvs);
             // Only output nodes that have a mesh
-            if (!isUndefined(node.mesh)) {
+            if (node.mesh !== undefined) {
                 nodeIndices.push(manifestNodes.push(node) - 1);
             }
         }
@@ -292,7 +290,7 @@ export class Writer {
             // Update material indices in all mesh primitives
             for (const mesh of (this.manifest.meshes as gltf.Mesh[])) {
                 for (const primitive of mesh.primitives) {
-                    if (!isUndefined(primitive.material)) {
+                    if (primitive.material !== undefined) {
                         primitive.material = newMaterialIndices[primitive.material];
                     }
                 }
@@ -444,13 +442,13 @@ export class Writer {
             indices: indexAccessorID
         });
 
-        if (!isUndefined(normalAccessorID)) {
+        if (normalAccessorID !== undefined) {
             mesh.primitives[0].attributes.NORMAL = normalAccessorID;
         }
-        if (!isUndefined(colorAccessorID)) {
+        if (colorAccessorID !== undefined) {
             mesh.primitives[0].attributes.COLOR_0 = colorAccessorID;
         }
-        if (!isUndefined(uvAccessorID)) {
+        if (uvAccessorID !== undefined) {
             mesh.primitives[0].attributes.TEXCOORD_0 = uvAccessorID;
         }
 
@@ -500,7 +498,7 @@ export class Writer {
             indices: indexAccessorID
         });
 
-        if (!isUndefined(colorAccessorID)) {
+        if (colorAccessorID !== undefined) {
             mesh.primitives[0].attributes['COLOR_0'] = colorAccessorID;
         }
 
@@ -541,7 +539,7 @@ export class Writer {
             }
         });
 
-        if (!isUndefined(colorAccessorID)) {
+        if (colorAccessorID !== undefined) {
             mesh.primitives[0].attributes['COLOR_0'] = colorAccessorID;
         }
 
@@ -640,10 +638,10 @@ export class Writer {
             type: type
         };
 
-        if (!isUndefined(min)) {
+        if (min !== undefined) {
             accessor.min = min.map(Math.fround);
         }
-        if (!isUndefined(max)) {
+        if (max !== undefined) {
             accessor.max = max.map(Math.fround);
         }
 
@@ -664,7 +662,7 @@ export class Writer {
                 roughnessFactor: (mat.roughness > 1.0) ? 1.0 : mat.roughness
             }
         };
-        if (!isUndefined(mat.opacity) && mat.opacity < 1.0 && material.pbrMetallicRoughness.baseColorFactor) {
+        if (mat.opacity !== undefined && mat.opacity < 1.0 && material.pbrMetallicRoughness.baseColorFactor) {
             material.alphaMode = 'BLEND';
             material.pbrMetallicRoughness.baseColorFactor[3] = mat.opacity;
         }

@@ -1,5 +1,4 @@
 import { AuthenticationClient, Scopes } from "@aps_sdk/authentication";
-import { SdkManagerBuilder } from "@aps_sdk/autodesk-sdkmanager";
 
 export interface IAuthenticationProvider {
     getToken(scopes: Scopes[]): Promise<string>;
@@ -18,7 +17,7 @@ export class TwoLeggedAuthenticationProvider implements IAuthenticationProvider 
     protected authenticationClient: AuthenticationClient;
 
     constructor(protected clientId: string, protected clientSecret: string) {
-        this.authenticationClient = new AuthenticationClient(SdkManagerBuilder.create().build());
+        this.authenticationClient = new AuthenticationClient();
     }
 
     async getToken(scopes: Scopes[]): Promise<string> {

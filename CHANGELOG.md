@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.0] - 2025-04-08
+
+- Added
+  - Experimental support for SVF2 downloading and parsing
+- Fixed
+  - When exporting 3D lines, scale colors to 0..1 range
+- Technical debt
+  - Replaced `commander` with built-in `parseArgs`
+  - Removed deprecated `isUndefined` and `isNullOrUndefined` functions from `node:utils`
+
 ## [5.0.5] - 2024-09-11
 
 - Added
